@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import {
   Card,
@@ -19,7 +20,7 @@ import {
 import { Input } from '@/components/ui/input';
 import type { AvailabilityRules } from '@/types/admin';
 
-export function AvailabilityRulesCard() {
+export const AvailabilityRulesCard = memo(function AvailabilityRulesCard() {
   const { control, watch } = useFormContext();
 
   return (
@@ -132,4 +133,4 @@ export function AvailabilityRulesCard() {
       </CardContent>
     </Card>
   );
-}
+});

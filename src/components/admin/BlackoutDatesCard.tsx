@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { useFieldArray, useFormContext } from 'react-hook-form';
 import { Trash2, Plus } from 'lucide-react';
 import {
@@ -26,7 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
-export function BlackoutDatesCard() {
+export const BlackoutDatesCard = memo(function BlackoutDatesCard() {
   const { control } = useFormContext();
 
   const { fields, append, remove } = useFieldArray({
@@ -144,4 +145,4 @@ export function BlackoutDatesCard() {
       </CardContent>
     </Card>
   );
-}
+});

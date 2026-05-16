@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
   Card,
@@ -18,7 +19,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 
-export function PricingSettingsCard() {
+export const PricingSettingsCard = memo(function PricingSettingsCard() {
   const { control } = useFormContext();
 
   return (
@@ -184,4 +185,4 @@ export function PricingSettingsCard() {
       </CardContent>
     </Card>
   );
-}
+});

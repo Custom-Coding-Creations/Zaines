@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
   Card,
@@ -18,8 +19,8 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 
-export function CancellationPolicySettingsCard() {
-  const { control } = useFormContext();
+export const CancellationPolicySettingsCard = memo(function CancellationPolicySettingsCard() {
+  const { control, watch } = useFormContext();
 
   return (
     <Card>
@@ -129,4 +130,4 @@ export function CancellationPolicySettingsCard() {
       </CardContent>
     </Card>
   );
-}
+});

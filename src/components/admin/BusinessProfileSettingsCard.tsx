@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
   Card,
@@ -17,7 +18,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 
-export function BusinessProfileSettingsCard() {
+export const BusinessProfileSettingsCard = memo(function BusinessProfileSettingsCard() {
   const { control } = useFormContext();
 
   return (
@@ -92,4 +93,4 @@ export function BusinessProfileSettingsCard() {
       </CardContent>
     </Card>
   );
-}
+});

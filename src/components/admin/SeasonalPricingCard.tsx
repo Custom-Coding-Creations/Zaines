@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { useFieldArray, useFormContext } from 'react-hook-form';
 import { Trash2, Plus } from 'lucide-react';
 import {
@@ -20,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 
-export function SeasonalPricingCard() {
+export const SeasonalPricingCard = memo(function SeasonalPricingCard() {
   const { control } = useFormContext();
 
   const { fields, append, remove } = useFieldArray({
@@ -179,4 +180,4 @@ export function SeasonalPricingCard() {
       </CardContent>
     </Card>
   );
-}
+});

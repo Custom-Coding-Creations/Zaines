@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
   Card,
@@ -17,7 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 
-export function TrustCopySettingsCard() {
+export const TrustCopySettingsCard = memo(function TrustCopySettingsCard() {
   const { control } = useFormContext();
 
   return (
@@ -118,4 +119,4 @@ export function TrustCopySettingsCard() {
       </CardContent>
     </Card>
   );
-}
+});
