@@ -146,6 +146,12 @@ export function BookingTab({ onDirtyChange }: BookingTabProps) {
     'dashboardDateRange',
     'stripeCapabilityFlags',
     'availabilityRules',
+    'smsSettings',
+    'smsBudgetSettings',
+    'packageExpirationSettings',
+    'reminderSettings',
+    'requiredVaccineSettings',
+    'holidaySurcharges',
   ];
 
   const { form, isLoading, isSaving, isDirty, error, onSubmit, onReset } =
@@ -355,6 +361,310 @@ export function BookingTab({ onDirtyChange }: BookingTabProps) {
                 )}
               />
             ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>SMS Notifications & Budget Guardrails</CardTitle>
+            <CardDescription>
+              Control SMS delivery and cap monthly spend with automatic pause behavior.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control as any}
+              name="smsSettings.enabled"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel>Enable SMS notifications</FormLabel>
+                    <FormDescription>
+                      Send booking and operational updates by SMS when enabled.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control as any}
+              name="smsSettings.fromNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>SMS from number</FormLabel>
+                  <FormControl>
+                    <Input {...field} value={field.value ?? ''} placeholder="+13155551234" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control as any}
+                name="smsBudgetSettings.monthlyBudgetLimit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Monthly budget limit (USD)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={field.value ?? 0}
+                        onChange={(event) => field.onChange(Number(event.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control as any}
+                name="smsBudgetSettings.currentMonthSpend"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Current month spend (USD)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={field.value ?? 0}
+                        onChange={(event) => field.onChange(Number(event.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control as any}
+                name="smsBudgetSettings.budgetAlertThreshold"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Alert threshold (%)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={field.value ?? 80}
+                        onChange={(event) => field.onChange(Number(event.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control as any}
+                name="smsBudgetSettings.pauseWhenExceeded"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-4 mt-7">
+                    <div className="space-y-0.5">
+                      <FormLabel>Pause SMS when budget exceeded</FormLabel>
+                    </div>
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Package Expiration Policy</CardTitle>
+            <CardDescription>
+              Define how unused sessions are handled when package validity expires.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control as any}
+              name="packageExpirationSettings.autoForfeitUnusedSessions"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel>Auto-forfeit expired unused sessions</FormLabel>
+                  </div>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control as any}
+              name="packageExpirationSettings.allowAdminManualExtension"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel>Allow admin manual extension</FormLabel>
+                  </div>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control as any}
+              name="packageExpirationSettings.defaultExtensionDays"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Default extension days</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={field.value ?? 14}
+                      onChange={(event) => field.onChange(Number(event.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Reminder Automation & Vaccine Gate</CardTitle>
+            <CardDescription>
+              Configure automated reminders and enforce required vaccine policies.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control as any}
+              name="reminderSettings.bookingReminder24hEnabled"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                  <FormLabel>Booking reminder (24h before check-in)</FormLabel>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control as any}
+              name="reminderSettings.pickupReminderEnabled"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                  <FormLabel>Pickup reminder (day of checkout)</FormLabel>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control as any}
+              name="reminderSettings.rebookNudgeEnabled"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                  <FormLabel>Rebook nudge enabled</FormLabel>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={form.control as any}
+                name="reminderSettings.rebookNudgeDaysAfterCheckout"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rebook nudge delay (days)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={90}
+                        value={field.value ?? 7}
+                        onChange={(event) => field.onChange(Number(event.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control as any}
+                name="requiredVaccineSettings.requiredVaccines"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Required vaccines (comma-separated)</FormLabel>
+                    <FormControl>
+                      <Input
+                        value={(field.value ?? []).join(', ')}
+                        onChange={(event) =>
+                          field.onChange(
+                            event.target.value
+                              .split(',')
+                              .map((value) => value.trim())
+                              .filter(Boolean),
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control as any}
+              name="requiredVaccineSettings.blockBookingsOnExpiredVaccines"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                  <FormLabel>Block bookings on expired required vaccines</FormLabel>
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
 

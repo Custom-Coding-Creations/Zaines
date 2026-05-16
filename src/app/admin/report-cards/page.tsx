@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,6 +55,9 @@ export default function AdminReportCardsPage() {
         <p className="text-sm text-muted-foreground mt-1">
           Daily summaries for each dog visit.
         </p>
+        <Button asChild className="mt-3">
+          <Link href="/admin/report-cards/new">Create Report Card</Link>
+        </Button>
       </div>
 
       <Card>
@@ -82,14 +86,13 @@ export default function AdminReportCardsPage() {
                     <Badge variant={row.sentToOwner ? 'default' : 'secondary'}>
                       {row.sentToOwner ? 'Sent' : 'Draft'}
                     </Badge>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/admin/report-cards/${row.id}`}>Open</Link>
+                    </Button>
                   </div>
                 </div>
               ))
             : null}
-
-          <Button variant="outline" disabled>
-            Report Card Composer Coming Next
-          </Button>
         </CardContent>
       </Card>
     </div>

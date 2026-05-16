@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useRef } from "react";
 import type { ComponentType } from "react";
-import { CalendarDays, ClipboardList, House, MessageSquareMore, PawPrint, Settings2, Shield } from "lucide-react";
+import { CalendarDays, ClipboardList, House, MessageSquareMore, PawPrint, Settings2, Shield, FileText, AlertTriangle, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type DashboardNavItem = {
@@ -44,6 +44,24 @@ const dashboardNavItems: DashboardNavItem[] = [
     label: "Updates",
     icon: MessageSquareMore,
     match: (pathname) => pathname.startsWith("/dashboard/updates") || pathname.startsWith("/dashboard/messages"),
+  },
+  {
+    href: "/dashboard/report-cards",
+    label: "Report Cards",
+    icon: FileText,
+    match: (pathname) => pathname.startsWith("/dashboard/report-cards"),
+  },
+  {
+    href: "/dashboard/incidents",
+    label: "Incidents",
+    icon: AlertTriangle,
+    match: (pathname) => pathname.startsWith("/dashboard/incidents"),
+  },
+  {
+    href: "/dashboard/packages",
+    label: "Packages",
+    icon: Wallet,
+    match: (pathname) => pathname.startsWith("/dashboard/packages"),
   },
   {
     href: "/dashboard/settings",

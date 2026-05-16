@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,6 +60,9 @@ export default function AdminStaffPage() {
         <p className="text-sm text-muted-foreground mt-1">
           Manage daycare team members, roles, and activation state.
         </p>
+        <Button asChild className="mt-3">
+          <Link href="/admin/staff/new">Add Staff Member</Link>
+        </Button>
       </div>
 
       <Card>
@@ -98,14 +102,13 @@ export default function AdminStaffPage() {
                     <Badge variant={row.isActive ? 'default' : 'secondary'}>
                       {row.isActive ? 'Active' : 'Inactive'}
                     </Badge>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/admin/staff/${row.id}`}>Open</Link>
+                    </Button>
                   </div>
                 </div>
               ))
             : null}
-
-          <Button variant="outline" disabled>
-            New Staff Form Coming Next
-          </Button>
         </CardContent>
       </Card>
     </div>

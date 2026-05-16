@@ -46,9 +46,11 @@ export default async function DashboardPage() {
   const [
     upcomingBookings,
     recentBookings,
+    bookingCount,
     pets,
     activeVaccinePets,
     accountWaivers,
+    validAssessmentsCount,
     unreadStaffMessages,
   ] = await Promise.all([
     prisma.booking.findMany({
@@ -65,6 +67,9 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" },
       take: 5,
       include: { suite: true, bookingPets: { include: { pet: true } } },
+    }),
+    prisma.booking.count({
+      where: { userId: session.user.id },
     }),
     prisma.pet.findMany({ where: { userId: session.user.id }, take: 6 }),
     prisma.vaccine.findMany({
@@ -84,6 +89,12 @@ export default async function DashboardPage() {
         ],
       },
       select: { type: true },
+    }),
+    prisma.behavioralAssessment.count({
+      where: {
+        pet: { userId: session.user.id },
+        OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+      },
     }),
     prisma.message.count({
       where: {
@@ -117,6 +128,44 @@ export default async function DashboardPage() {
     pets.length === 0 ? 0 : petsWithActiveVaccine / pets.length;
   const detailsCoverage =
     pets.length === 0 ? 0 : petsWithProfileDetails / pets.length;
+
+  const onboardingSteps = [
+    {
+      id: 'add-pet',
+      label: 'Add pet profile',
+      complete: pets.length > 0,
+      href: '/dashboard/pets/new',
+    },
+    {
+      id: 'upload-vaccines',
+      label: 'Upload vaccine records',
+      complete: pets.length > 0 && petsWithActiveVaccine === pets.length,
+      href: '/dashboard/records',
+    },
+    {
+      id: 'waivers',
+      label: 'Sign account waivers',
+      complete: hasAllActiveWaivers,
+      href: '/dashboard/records',
+    },
+    {
+      id: 'assessment',
+      label: 'Complete temperament assessment',
+      complete: pets.length > 0 && validAssessmentsCount >= pets.length,
+      href: '/dashboard/pets',
+    },
+    {
+      id: 'book-first-stay',
+      label: 'Book first stay',
+      complete: bookingCount > 0,
+      href: '/book',
+    },
+  ];
+
+  const onboardingCompletedCount = onboardingSteps.filter((step) => step.complete).length;
+  const onboardingProgressPercent = Math.round(
+    (onboardingCompletedCount / onboardingSteps.length) * 100,
+  );
 
   // Readiness weights: 40% waivers, 40% vaccine coverage, 20% profile details.
   const profileReadiness = Math.round(
@@ -172,6 +221,41 @@ export default async function DashboardPage() {
 
       {/* Phase 6: Enhanced Quick Actions */}
       <QuickActions />
+
+      {onboardingProgressPercent < 100 ? (
+        <section className="rounded-2xl border border-border/70 bg-card/80 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-medium">Getting Started Checklist</h2>
+            <span className="text-sm text-muted-foreground">
+              {onboardingCompletedCount}/{onboardingSteps.length} complete
+            </span>
+          </div>
+          <div className="mt-3 h-2 rounded-full bg-muted">
+            <div
+              className="h-2 rounded-full bg-primary"
+              style={{ width: `${Math.max(6, onboardingProgressPercent)}%` }}
+            />
+          </div>
+          <ul className="mt-4 space-y-2">
+            {onboardingSteps.map((step) => (
+              <li
+                key={step.id}
+                className="flex items-center justify-between rounded-md border px-3 py-2"
+              >
+                <span className={step.complete ? 'text-muted-foreground line-through' : 'font-medium'}>
+                  {step.complete ? 'Completed: ' : 'Pending: '}
+                  {step.label}
+                </span>
+                {!step.complete ? (
+                  <Link href={step.href} className="text-sm text-primary">
+                    Complete
+                  </Link>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {/* Phase 6: Activity Feed */}
       <ActivityFeed

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,6 +51,9 @@ export default function AdminIncidentsPage() {
         <p className="text-sm text-muted-foreground mt-1">
           Track behavioral and medical incidents with follow-up status.
         </p>
+        <Button asChild className="mt-3">
+          <Link href="/admin/incidents/new">Log Incident</Link>
+        </Button>
       </div>
 
       <Card>
@@ -77,14 +81,13 @@ export default function AdminIncidentsPage() {
                       {row.ownerNotified ? 'Owner Notified' : 'Owner Pending'}
                     </Badge>
                     {row.followUpRequired ? <Badge variant="outline">Follow-up</Badge> : null}
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/admin/incidents/${row.id}`}>Open</Link>
+                    </Button>
                   </div>
                 </div>
               ))
             : null}
-
-          <Button variant="outline" disabled>
-            Incident Intake Form Coming Next
-          </Button>
         </CardContent>
       </Card>
     </div>
