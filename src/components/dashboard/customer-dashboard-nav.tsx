@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useRef } from "react";
 import type { ComponentType } from "react";
-import { CalendarDays, ClipboardList, House, MessageSquareMore, PawPrint, Settings2, Shield, FileText, AlertTriangle, Wallet } from "lucide-react";
+import { CalendarDays, ClipboardList, House, MessageSquareMore, PawPrint, Settings2, Shield, FileText, AlertTriangle, Wallet, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type DashboardNavItem = {
@@ -62,6 +62,12 @@ const dashboardNavItems: DashboardNavItem[] = [
     label: "Packages",
     icon: Wallet,
     match: (pathname) => pathname.startsWith("/dashboard/packages"),
+  },
+  {
+    href: "/dashboard/recurring",
+    label: "Recurring",
+    icon: Repeat,
+    match: (pathname) => pathname.startsWith("/dashboard/recurring"),
   },
   {
     href: "/dashboard/settings",
