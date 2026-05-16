@@ -1,7 +1,7 @@
 'use client';
 
 import type { ComponentType } from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   SettingsSidebar,
@@ -97,6 +97,14 @@ export default function AdminSettingsPage() {
   // Handle dirty state changes from child tabs
   const handleDirtyChange = (section: SettingsSection, isDirty: boolean) => {
     setDirtySections((prev) => {
+      if (isDirty && prev.has(section)) {
+        return prev;
+      }
+
+      if (!isDirty && !prev.has(section)) {
+        return prev;
+      }
+
       const next = new Set(prev);
       if (isDirty) {
         next.add(section);
@@ -121,6 +129,13 @@ export default function AdminSettingsPage() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [dirtySections]);
+
+  const handleActiveTabDirtyChange = useCallback(
+    (dirty: boolean) => {
+      handleDirtyChange(activeSection, dirty);
+    },
+    [activeSection],
+  );
 
   // Show skeleton on initial load
   if (isInitialLoad) {
@@ -163,11 +178,7 @@ export default function AdminSettingsPage() {
 
         {/* Content Area */}
         <div className="flex-1 min-w-0">
-          <ActiveTab
-            onDirtyChange={(dirty) => {
-              handleDirtyChange(activeSection, dirty);
-            }}
-          />
+          <ActiveTab onDirtyChange={handleActiveTabDirtyChange} />
         </div>
       </div>
     </div>
