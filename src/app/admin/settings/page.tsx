@@ -1,5 +1,6 @@
 'use client';
 
+import type { ComponentType } from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -27,15 +28,33 @@ const VALID_SECTIONS: SettingsSection[] = [
   'testimonials',
 ];
 
+type TabProps = {
+  onDirtyChange?: (isDirty: boolean) => void;
+};
+
+const SECTION_COMPONENTS: Record<SettingsSection, ComponentType<TabProps>> = {
+  general: GeneralTab,
+  booking: BookingTab,
+  pricing: PricingTab,
+  'blackout-dates': BlackoutDatesTab,
+  services: ServicesTab,
+  website: WebsiteTab,
+  testimonials: TestimonialsTab,
+};
+
+function formatSectionLabel(section: SettingsSection): string {
+  return section
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 export default function AdminSettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [dirtySections, setDirtySections] = useState<Set<SettingsSection>>(
     new Set(),
-  );
-  const [pendingSection, setPendingSection] = useState<SettingsSection | null>(
-    null,
   );
 
   // Get active section from URL, default to 'general'
@@ -108,6 +127,8 @@ export default function AdminSettingsPage() {
     return <SettingsPageSkeleton />;
   }
 
+  const ActiveTab = SECTION_COMPONENTS[activeSection];
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -120,12 +141,12 @@ export default function AdminSettingsPage() {
 
       {/* Warning for unsaved changes */}
       {dirtySections.size > 0 && (
-        <Alert>
+        <Alert role="status" aria-live="polite">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             You have unsaved changes in:{' '}
             {Array.from(dirtySections)
-              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+              .map(formatSectionLabel)
               .join(', ')}
           </AlertDescription>
         </Alert>
@@ -142,55 +163,11 @@ export default function AdminSettingsPage() {
 
         {/* Content Area */}
         <div className="flex-1 min-w-0">
-          {activeSection === 'general' && (
-            <GeneralTab
-              onDirtyChange={(dirty) =>
-                handleDirtyChange('general', dirty)
-              }
-            />
-          )}
-          {activeSection === 'booking' && (
-            <BookingTab
-              onDirtyChange={(dirty) =>
-                handleDirtyChange('booking', dirty)
-              }
-            />
-          )}
-          {activeSection === 'pricing' && (
-            <PricingTab
-              onDirtyChange={(dirty) =>
-                handleDirtyChange('pricing', dirty)
-              }
-            />
-          )}
-          {activeSection === 'blackout-dates' && (
-            <BlackoutDatesTab
-              onDirtyChange={(dirty) =>
-                handleDirtyChange('blackout-dates', dirty)
-              }
-            />
-          )}
-          {activeSection === 'services' && (
-            <ServicesTab
-              onDirtyChange={(dirty) =>
-                handleDirtyChange('services', dirty)
-              }
-            />
-          )}
-          {activeSection === 'website' && (
-            <WebsiteTab
-              onDirtyChange={(dirty) =>
-                handleDirtyChange('website', dirty)
-              }
-            />
-          )}
-          {activeSection === 'testimonials' && (
-            <TestimonialsTab
-              onDirtyChange={(dirty) =>
-                handleDirtyChange('testimonials', dirty)
-              }
-            />
-          )}
+          <ActiveTab
+            onDirtyChange={(dirty) => {
+              handleDirtyChange(activeSection, dirty);
+            }}
+          />
         </div>
       </div>
     </div>

@@ -141,4 +141,19 @@ describe('Admin settings page integration', () => {
     await click('switch-pricing');
     expect(routerPush).toHaveBeenCalledWith('/admin/settings?section=pricing');
   });
+
+  it('shows unsaved-changes alert and blocks beforeunload when a section becomes dirty', async () => {
+    await renderPage();
+
+    await click('mark-dirty');
+
+    const alert = document.querySelector('[role="status"]');
+    expect(alert?.textContent).toContain('You have unsaved changes in: General');
+
+    const beforeUnloadEvent = new Event('beforeunload', { cancelable: true });
+    const dispatchResult = window.dispatchEvent(beforeUnloadEvent);
+
+    expect(dispatchResult).toBe(false);
+    expect(beforeUnloadEvent.defaultPrevented).toBe(true);
+  });
 });
