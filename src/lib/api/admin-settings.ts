@@ -18,13 +18,7 @@ import type {
   TestimonialsSettings,
   StripeCapabilityFlags,
 } from '@/types/admin';
-import { siteConfig } from '@/config/site';
-import {
-  CANCELLATION_POLICY_COPY,
-  PRICING_TRUST_DISCLOSURE,
-  PRIVACY_SECURITY_DISCLOSURE,
-  TRUST_EVIDENCE_CLAIM,
-} from '@/config/trust-copy';
+import { fullSettingsDefaults } from '@/lib/config/admin-settings-defaults';
 
 const SETTINGS_KEYS: Record<string, string> = {
   AUTO_CONFIRM_BOOKINGS: 'admin.auto_confirm_bookings',
@@ -594,276 +588,53 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
   }
 }
 
-/**
- * Get default business hours (Mon-Fri 6am-8pm, Sat-Sun 8am-6pm, all open)
- */
-function getDefaultBusinessHours(): BusinessHours {
-  return {
-    monday: { openTime: '06:00', closeTime: '20:00', isClosed: false },
-    tuesday: { openTime: '06:00', closeTime: '20:00', isClosed: false },
-    wednesday: { openTime: '06:00', closeTime: '20:00', isClosed: false },
-    thursday: { openTime: '06:00', closeTime: '20:00', isClosed: false },
-    friday: { openTime: '06:00', closeTime: '20:00', isClosed: false },
-    saturday: { openTime: '08:00', closeTime: '18:00', isClosed: false },
-    sunday: { openTime: '08:00', closeTime: '18:00', isClosed: false },
-  };
-}
-
-/**
- * Get default availability rules
- */
-function getDefaultAvailabilityRules(): AvailabilityRules {
-  return {
-    minNightsPerBooking: 1,
-    maxNightsPerBooking: 365,
-    advanceBookingWindowDays: 365, // Allow booking up to 1 year ahead
-    minimumLeadTimeDays: 0, // Allow same-day bookings
-  };
-}
-
-/**
- * Get default pricing settings
- */
-function getDefaultPricingSettings(): PricingSettings {
-  return {
-    currency: 'USD',
-    standardNightlyRate: 65,
-    deluxeNightlyRate: 85,
-    luxuryNightlyRate: 120,
-    taxRatePercent: 10,
-    twoPetDiscountPercent: 15,
-    threePlusPetsDiscountPercent: 20,
-  };
-}
-
-/**
- * Get default cancellation policy settings
- */
-function getDefaultCancellationPolicySettings(): CancellationPolicySettings {
-  return {
-    fullRefundHours: 48,
-    partialRefundHours: 24,
-    partialRefundPercent: 50,
-    noShowRefundPercent: 0,
-  };
-}
-
-/**
- * Get default business profile settings
- */
-function getDefaultBusinessProfileSettings(): BusinessProfileSettings {
-  return {
-    businessName: siteConfig.name,
-    socialLinks: {
-      facebook: siteConfig.links.facebook,
-      instagram: siteConfig.links.instagram,
-      twitter: siteConfig.links.twitter,
-    },
-  };
-}
-
-/**
- * Get default website profile settings
- */
-function getDefaultWebsiteProfileSettings(): WebsiteProfileSettings {
-  return {
-    siteUrl: siteConfig.url,
-    siteDescription: siteConfig.description,
-    ogImageUrl: siteConfig.ogImage,
-    ownerImageUrl: `${siteConfig.url}/images/owner-placeholder.svg`,
-    logoImageUrl: `${siteConfig.url}/logo.svg`,
-    serviceArea: [...siteConfig.serviceArea],
-  };
-}
-
-/**
- * Get default trust copy settings
- */
-function getDefaultTrustCopySettings(): TrustCopySettings {
-  return {
-    pricingDisclosure: PRICING_TRUST_DISCLOSURE,
-    cancellationProcessing: CANCELLATION_POLICY_COPY.processing,
-    privacySecurityDisclosure: PRIVACY_SECURITY_DISCLOSURE,
-    trustEvidenceClaim: TRUST_EVIDENCE_CLAIM,
-  };
-}
-
-/**
- * Get default service tiers settings
- */
-function getDefaultServiceTiersSettings(): ServiceTiersSettings {
-  return {
-    serviceTiers: [
-      {
-        id: 'standard-suite',
-        name: 'Standard Suite',
-        description: 'Comfortable and cozy suite with basic amenities',
-        baseNightlyRate: 65,
-        capacity: 3,
-        imageUrl: '/images/suites/standard-placeholder.svg',
-        isActive: true,
-        displayOrder: 1,
-      },
-      {
-        id: 'deluxe-suite',
-        name: 'Deluxe Suite',
-        description: 'Premium suite with enhanced comfort and features',
-        baseNightlyRate: 85,
-        capacity: 2,
-        imageUrl: '/images/suites/deluxe-placeholder.svg',
-        isActive: true,
-        displayOrder: 2,
-      },
-      {
-        id: 'luxury-suite',
-        name: 'Luxury Suite',
-        description: 'Exclusive luxury experience with top-tier amenities',
-        baseNightlyRate: 120,
-        capacity: 1,
-        imageUrl: '/images/suites/luxury-placeholder.svg',
-        isActive: true,
-        displayOrder: 3,
-      },
-    ],
-  };
-}
-
-/**
- * Get default add-ons settings
- */
-function getDefaultAddOnsSettings(): AddOnsSettings {
-  return {
-    addOns: [
-      {
-        id: 'premium-treats',
-        name: 'Premium Treats Package',
-        description: 'Special premium treats and snacks throughout stay',
-        price: 15,
-        applicableTiers: ['standard-suite', 'deluxe-suite', 'luxury-suite'],
-        isActive: true,
-      },
-      {
-        id: 'extra-playtime',
-        name: 'Extra Playtime Session',
-        description: 'Additional supervised playtime session',
-        price: 25,
-        applicableTiers: ['standard-suite', 'deluxe-suite', 'luxury-suite'],
-        isActive: true,
-      },
-      {
-        id: 'training-session',
-        name: 'Training Session',
-        description: 'Professional training session during stay',
-        price: 50,
-        applicableTiers: ['deluxe-suite', 'luxury-suite'],
-        isActive: true,
-      },
-    ],
-  };
-}
-
-/**
- * Get default testimonials settings
- */
-function getDefaultTestimonialsSettings(): TestimonialsSettings {
-  return {
-    testimonials: [
-      {
-        id: 'testimonial-1',
-        author: 'Sarah M.',
-        petName: 'Max',
-        rating: 5,
-        date: '2 weeks ago',
-        text: 'Max had an amazing stay. The owner sent us photos every day and he looked genuinely happy and relaxed.',
-        serviceLabel: 'Deluxe Suite',
-        isActive: true,
-        displayOrder: 0,
-      },
-      {
-        id: 'testimonial-2',
-        author: 'James T.',
-        petName: 'Luna',
-        rating: 5,
-        date: '1 month ago',
-        text: 'Luna settled in quickly and came home calm and happy. We will absolutely be back.',
-        serviceLabel: 'Standard Suite',
-        isActive: true,
-        displayOrder: 1,
-      },
-      {
-        id: 'testimonial-3',
-        author: 'Emily R.',
-        petName: 'Charlie',
-        rating: 5,
-        date: '1 month ago',
-        text: 'The quiet environment and clear communication made all the difference for Charlie.',
-        serviceLabel: 'Deluxe Suite',
-        isActive: true,
-        displayOrder: 2,
-      },
-    ],
-  };
-}
-
 function getDefaultStripeCapabilityFlags(): StripeCapabilityFlags {
-  return {
-    billingSubscriptionsEnabled: false,
-    customerPortalEnabled: false,
-    savedPaymentMethodsEnabled: false,
-    oneClickRebookingEnabled: false,
-    autopayEnabled: false,
-    taxEnabled: false,
-    disputesEnabled: false,
-    radarReviewEnabled: false,
-    connectEnabled: false,
-    treasuryEnabled: false,
-    issuingEnabled: false,
-    financialConnectionsEnabled: false,
-    identityEnabled: false,
-    terminalEnabled: false,
-    premiumCheckoutReassuranceEnabled: false,
-    premiumCheckoutCopyEnabled: false,
-    premiumCheckoutTrustIndicatorsEnabled: false,
-    premiumCheckoutLoadingExperienceEnabled: false,
-  };
+  return getDefaultSettings().stripeCapabilityFlags;
+}
+
+function getDefaultBusinessHours(): BusinessHours {
+  return getDefaultSettings().businessHours;
+}
+
+function getDefaultAvailabilityRules(): AvailabilityRules {
+  return getDefaultSettings().availabilityRules;
+}
+
+function getDefaultPricingSettings(): PricingSettings {
+  return getDefaultSettings().pricingSettings;
+}
+
+function getDefaultCancellationPolicySettings(): CancellationPolicySettings {
+  return getDefaultSettings().cancellationPolicySettings;
+}
+
+function getDefaultBusinessProfileSettings(): BusinessProfileSettings {
+  return getDefaultSettings().businessProfileSettings;
+}
+
+function getDefaultWebsiteProfileSettings(): WebsiteProfileSettings {
+  return getDefaultSettings().websiteProfileSettings;
+}
+
+function getDefaultTrustCopySettings(): TrustCopySettings {
+  return getDefaultSettings().trustCopySettings;
+}
+
+function getDefaultServiceTiersSettings(): ServiceTiersSettings {
+  return getDefaultSettings().serviceSettings;
+}
+
+function getDefaultAddOnsSettings(): AddOnsSettings {
+  return getDefaultSettings().addOnsSettings;
+}
+
+function getDefaultTestimonialsSettings(): TestimonialsSettings {
+  return getDefaultSettings().testimonialsSettings;
 }
 
 /**
- * Get default admin settings
+ * Get default admin settings from centralized defaults
  */
 export function getDefaultSettings(): AdminSettings {
-  return {
-    autoConfirmBookings: true,
-    photoNotificationType: 'instant',
-    dashboardDateRange: 'today',
-    stripeCapabilityFlags: getDefaultStripeCapabilityFlags(),
-    // Phase 1: Business Hours & Contact Info
-    businessHours: getDefaultBusinessHours(),
-    contactPhone: '(315) 657-1332',
-    contactEmail: 'jgibbs@zainesstayandplay.com',
-    address: '123 Pet Paradise Lane',
-    city: 'Syracuse',
-    state: 'NY',
-    zip: '13202',
-    // Phase 3: Availability & Scheduling Rules
-    availabilityRules: getDefaultAvailabilityRules(),
-    // Phase 4: Blackout Dates & Seasonal Pricing
-    blackoutDates: [],
-    seasonalPricingRules: [],
-    // Phase 5: Pricing & Fees Configuration
-    pricingSettings: getDefaultPricingSettings(),
-    // Phase 6: Cancellation Policy Configuration
-    cancellationPolicySettings: getDefaultCancellationPolicySettings(),
-    // Phase 7: Business Profile & Social Links
-    businessProfileSettings: getDefaultBusinessProfileSettings(),
-    // Phase 8: Website Profile & Service Area
-    websiteProfileSettings: getDefaultWebsiteProfileSettings(),
-    // Phase 9: Trust Copy Settings
-    trustCopySettings: getDefaultTrustCopySettings(),
-    // Phase 10: Service Tiers & Add-Ons Configuration
-    serviceSettings: getDefaultServiceTiersSettings(),
-    addOnsSettings: getDefaultAddOnsSettings(),
-    // Phase 11: Testimonials Configuration
-    testimonialsSettings: getDefaultTestimonialsSettings(),
-  };
+  return structuredClone(fullSettingsDefaults) as AdminSettings;
 }

@@ -96,10 +96,66 @@ export const blackoutDatesSettingsDefaults: BlackoutDatesSettingsFormValues = {
 
 export const servicesSettingsDefaults: ServicesSettingsFormValues = {
   serviceSettings: {
-    serviceTiers: [],
+    serviceTiers: [
+      {
+        id: 'standard-suite',
+        name: 'Standard Suite',
+        description: 'Comfortable and cozy suite with basic amenities',
+        baseNightlyRate: 65,
+        capacity: 3,
+        imageUrl: '/images/suites/standard-placeholder.svg',
+        isActive: true,
+        displayOrder: 1,
+      },
+      {
+        id: 'deluxe-suite',
+        name: 'Deluxe Suite',
+        description: 'Premium suite with enhanced comfort and features',
+        baseNightlyRate: 85,
+        capacity: 2,
+        imageUrl: '/images/suites/deluxe-placeholder.svg',
+        isActive: true,
+        displayOrder: 2,
+      },
+      {
+        id: 'luxury-suite',
+        name: 'Luxury Suite',
+        description: 'Exclusive luxury experience with top-tier amenities',
+        baseNightlyRate: 120,
+        capacity: 1,
+        imageUrl: '/images/suites/luxury-placeholder.svg',
+        isActive: true,
+        displayOrder: 3,
+      },
+    ],
   },
   addOnsSettings: {
-    addOns: [],
+    addOns: [
+      {
+        id: 'premium-treats',
+        name: 'Premium Treats Package',
+        description: 'Special premium treats and snacks throughout stay',
+        price: 15,
+        applicableTiers: ['standard-suite', 'deluxe-suite', 'luxury-suite'],
+        isActive: true,
+      },
+      {
+        id: 'extra-playtime',
+        name: 'Extra Playtime Session',
+        description: 'Additional supervised playtime session',
+        price: 25,
+        applicableTiers: ['standard-suite', 'deluxe-suite', 'luxury-suite'],
+        isActive: true,
+      },
+      {
+        id: 'training-session',
+        name: 'Training Session',
+        description: 'Professional training session during stay',
+        price: 50,
+        applicableTiers: ['deluxe-suite', 'luxury-suite'],
+        isActive: true,
+      },
+    ],
   },
 };
 
@@ -136,7 +192,41 @@ export const websiteSettingsDefaults: WebsiteSettingsFormValues = {
 
 export const testimonialsSettingsDefaults: TestimonialsSettingsFormValues = {
   testimonialsSettings: {
-    testimonials: [],
+    testimonials: [
+      {
+        id: 'testimonial-1',
+        author: 'Sarah M.',
+        petName: 'Max',
+        rating: 5,
+        date: '2 weeks ago',
+        text: 'Max had an amazing stay. The owner sent us photos every day and he looked genuinely happy and relaxed.',
+        serviceLabel: 'Deluxe Suite',
+        isActive: true,
+        displayOrder: 0,
+      },
+      {
+        id: 'testimonial-2',
+        author: 'James T.',
+        petName: 'Luna',
+        rating: 5,
+        date: '1 month ago',
+        text: 'Luna settled in quickly and came home calm and happy. We will absolutely be back.',
+        serviceLabel: 'Standard Suite',
+        isActive: true,
+        displayOrder: 1,
+      },
+      {
+        id: 'testimonial-3',
+        author: 'Emily R.',
+        petName: 'Charlie',
+        rating: 5,
+        date: '1 month ago',
+        text: 'The quiet environment and clear communication made all the difference for Charlie.',
+        serviceLabel: 'Deluxe Suite',
+        isActive: true,
+        displayOrder: 2,
+      },
+    ],
   },
 };
 
