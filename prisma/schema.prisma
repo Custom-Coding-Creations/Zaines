@@ -28,6 +28,7 @@ model User {
   bookingStatusEmailsEnabled Boolean @default(true)
   productUpdatesEmailsEnabled Boolean @default(false)
   marketingEmailsEnabled Boolean @default(false)
+  smsNotificationsEnabled Boolean @default(false)
   lastLoginAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -45,6 +46,10 @@ model User {
   emergencyContacts EmergencyContact[]
   credits           Credit[]
   claimedBookingTokens BookingClaimToken[] @relation("ClaimedByUser")
+  staffProfile      StaffMember?
+  customerPackages  CustomerPackage[]
+  recurringBookings RecurringBooking[]
+  automatedReminders AutomatedReminder[]
 
   @@map("users")
 }
@@ -154,6 +159,11 @@ model Pet {
   bookingPets   BookingPet[]
   activities    Activity[]
   photos        PetPhoto[]
+  reportCards   ReportCard[]
+  incidentReports IncidentReport[]
+  assessments   BehavioralAssessment[]
+  playGroupAssignments PlayGroupAssignment[]
+  automatedReminders AutomatedReminder[]
 
   @@index([userId])
   @@map("pets")
@@ -277,6 +287,7 @@ model Suite {
   updatedAt   DateTime @updatedAt
 
   bookings Booking[]
+  recurringBookings RecurringBooking[]
 
   @@map("suites")
 }
@@ -304,6 +315,8 @@ model Booking {
   id              String    @id @default(cuid())
   userId          String
   suiteId         String
+  packageId       String?
+  recurringBookingId String?
   bookingNumber   String    @unique // Auto-generated: PB-20260206-0001
   checkInDate     DateTime
   checkOutDate    DateTime
@@ -311,6 +324,8 @@ model Booking {
   subtotal        Float
   tax             Float
   total           Float
+  dropoffTimeSlot String?
+  pickupTimeSlot  String?
   status          String    @default("pending") // pending, confirmed, checked_in, completed, cancelled
   specialRequests String?
   createdAt       DateTime  @default(now())
@@ -318,6 +333,8 @@ model Booking {
 
   user          User                   @relation(fields: [userId], references: [id])
   suite         Suite                  @relation(fields: [suiteId], references: [id])
+  package       BookingPackage?        @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  recurringBooking RecurringBooking?   @relation(fields: [recurringBookingId], references: [id], onDelete: SetNull)
   bookingPets   BookingPet[]
   bookingAddOns BookingAddOn[]
   waivers       Waiver[]
@@ -327,13 +344,361 @@ model Booking {
   messages      Message[]
   photoNotifications PhotoNotification[]
   claimTokens   BookingClaimToken[]
+  reportCards   ReportCard[]
+  incidentReports IncidentReport[]
+  playGroupAssignments PlayGroupAssignment[]
+  automatedReminders AutomatedReminder[]
 
   @@index([userId])
   @@index([suiteId])
+  @@index([packageId])
+  @@index([recurringBookingId])
   @@index([checkInDate])
   @@index([checkOutDate])
   @@index([status])
   @@map("bookings")
+}
+
+model StaffMember {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  role             String // handler, groomer, manager
+  phone            String?
+  hireDate         DateTime?
+  certifications   String[]
+  emergencyContact String?
+  notes            String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedules StaffSchedule[]
+  reportCards ReportCard[]
+  incidentReports IncidentReport[]
+  assessments BehavioralAssessment[]
+  playGroups PlayGroup[]
+
+  @@index([role])
+  @@index([isActive])
+  @@map("staff_members")
+}
+
+model StaffSchedule {
+  id            String   @id @default(cuid())
+  staffMemberId String
+  date          DateTime
+  shiftStart    String
+  shiftEnd      String
+  breakMinutes  Int      @default(0)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  staffMember StaffMember @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([staffMemberId, date, shiftStart, shiftEnd])
+  @@index([date])
+  @@map("staff_schedules")
+}
+
+model ReportCard {
+  id            String   @id @default(cuid())
+  bookingId     String
+  petId         String
+  staffMemberId String?
+  date          DateTime
+  overallMood   String // excellent, good, fair, low
+  energyLevel   Int // 1-5
+  appetiteLevel String // ate_all, ate_some, didnt_eat
+  socialization String // loved_it, warming_up, preferred_alone
+  bathroomNotes String?
+  playHighlights String?
+  behaviorNotes String?
+  staffNotes    String?
+  sentToOwner   Boolean  @default(false)
+  sentAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  pet     Pet     @relation(fields: [petId], references: [id], onDelete: Cascade)
+  staffMember StaffMember? @relation(fields: [staffMemberId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId])
+  @@index([petId])
+  @@index([date])
+  @@index([sentToOwner])
+  @@map("report_cards")
+}
+
+model IncidentReport {
+  id              String   @id @default(cuid())
+  bookingId       String?
+  petId           String
+  reportedByStaffId String?
+  type            String // injury, aggression, health_event, escape_attempt, property_damage
+  severity        String // minor, moderate, serious, critical
+  description     String
+  actionTaken     String?
+  vetReferral     Boolean  @default(false)
+  vetDetails      String?
+  ownerNotified   Boolean  @default(false)
+  ownerNotifiedAt DateTime?
+  followUpRequired Boolean @default(false)
+  followUpNotes   String?
+  followUpCompletedAt DateTime?
+  photos          String[]
+  witnessNames    String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  pet     Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  reportedByStaff StaffMember? @relation(fields: [reportedByStaffId], references: [id], onDelete: SetNull)
+
+  @@index([bookingId])
+  @@index([petId])
+  @@index([type])
+  @@index([severity])
+  @@index([followUpRequired])
+  @@map("incident_reports")
+}
+
+model BookingPackage {
+  id            String   @id @default(cuid())
+  name          String
+  type          String // daycare_pass, boarding_bundle, monthly_unlimited
+  totalSessions Int
+  price         Float
+  validDays     Int
+  description   String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  customerPackages CustomerPackage[]
+  bookings Booking[]
+
+  @@index([type])
+  @@index([isActive])
+  @@map("booking_packages")
+}
+
+model CustomerPackage {
+  id               String   @id @default(cuid())
+  userId           String
+  packageId        String
+  purchaseDate     DateTime @default(now())
+  expiresAt        DateTime
+  sessionsUsed     Int      @default(0)
+  sessionsRemaining Int
+  status           String   @default("active") // active, expired, fully_used, cancelled
+  stripePaymentId  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package BookingPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([packageId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("customer_packages")
+}
+
+model RecurringBooking {
+  id              String   @id @default(cuid())
+  userId          String
+  suiteId         String?
+  serviceType     String // daycare, boarding
+  daysOfWeek      Int[] // 0=Sun..6=Sat
+  startDate       DateTime
+  endDate         DateTime?
+  isActive        Boolean  @default(true)
+  specialRequests String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  suite Suite? @relation(fields: [suiteId], references: [id], onDelete: SetNull)
+  generatedBookings Booking[]
+
+  @@index([userId])
+  @@index([suiteId])
+  @@index([isActive])
+  @@map("recurring_bookings")
+}
+
+model BehavioralAssessment {
+  id                String   @id @default(cuid())
+  petId             String
+  assessedByStaffId String?
+  assessmentDate    DateTime
+  reactivityLevel   Int // 1-5
+  resourceGuarding  Boolean  @default(false)
+  leashBehavior     String // excellent, good, needs_work, reactive
+  separationAnxiety String // none, mild, moderate, high
+  playStyle         String // rough, gentle, independent, observer
+  sizeCompatibility String // small_only, medium_and_small, any
+  energyLevel       String // low, moderate, high
+  overallResult     String // approved, conditional, denied
+  conditions        String?
+  notes             String?
+  validUntil        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+  assessedByStaff StaffMember? @relation(fields: [assessedByStaffId], references: [id], onDelete: SetNull)
+
+  @@index([petId])
+  @@index([assessmentDate])
+  @@index([overallResult])
+  @@index([validUntil])
+  @@map("behavioral_assessments")
+}
+
+model PlayGroup {
+  id            String   @id @default(cuid())
+  name          String
+  date          DateTime
+  timeSlot      String
+  location      String // yard_a, yard_b, indoor
+  maxCapacity   Int
+  sizeCategory  String // small, medium, large, mixed
+  energyLevel   String // calm, moderate, high
+  staffMemberId String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  staffMember StaffMember? @relation(fields: [staffMemberId], references: [id], onDelete: SetNull)
+  assignments PlayGroupAssignment[]
+
+  @@index([date])
+  @@index([location])
+  @@index([staffMemberId])
+  @@map("play_groups")
+}
+
+model PlayGroupAssignment {
+  id            String   @id @default(cuid())
+  playGroupId   String
+  petId         String
+  bookingId     String?
+  joinedAt      DateTime @default(now())
+  leftAt        DateTime?
+  behaviorNotes String?
+
+  playGroup PlayGroup @relation(fields: [playGroupId], references: [id], onDelete: Cascade)
+  pet       Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+  booking   Booking?  @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@unique([playGroupId, petId])
+  @@index([petId])
+  @@index([bookingId])
+  @@map("play_group_assignments")
+}
+
+model HolidaySurcharge {
+  id              String   @id @default(cuid())
+  name            String
+  startDate       DateTime
+  endDate         DateTime
+  surchargeType   String // flat, percentage
+  surchargeAmount Float
+  appliesTo       String // boarding, daycare, all
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([startDate])
+  @@index([endDate])
+  @@index([isActive])
+  @@map("holiday_surcharges")
+}
+
+model AutomatedReminder {
+  id              String   @id @default(cuid())
+  type            String // booking_reminder, pickup_reminder, rebook_nudge, vaccine_expiry, assessment_due
+  recipientUserId String
+  recipientEmail  String
+  bookingId       String?
+  petId           String?
+  scheduledFor    DateTime
+  channel         String // email, sms
+  sent            Boolean  @default(false)
+  sentAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  recipientUser User @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  pet Pet? @relation(fields: [petId], references: [id], onDelete: SetNull)
+
+  @@index([recipientUserId])
+  @@index([bookingId])
+  @@index([petId])
+  @@index([scheduledFor])
+  @@index([sent])
+  @@map("automated_reminders")
+}
+
+model TimeSlotConfig {
+  id          String   @id @default(cuid())
+  dayOfWeek   Int // 0=Sun..6=Sat
+  slotStart   String
+  slotEnd     String
+  maxCapacity Int
+  serviceType String // dropoff, pickup, both
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([dayOfWeek])
+  @@index([serviceType])
+  @@index([isActive])
+  @@map("time_slot_configs")
+}
+
+model InventoryItem {
+  id             String   @id @default(cuid())
+  name           String
+  category       String // food, treats, cleaning, medical, supplies
+  unit           String // bag, bottle, count, lbs, etc
+  currentStock   Float
+  reorderLevel   Float
+  reorderQuantity Float
+  costPerUnit    Float?
+  supplier       String?
+  notes          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  logs InventoryLog[]
+
+  @@index([category])
+  @@index([isActive])
+  @@map("inventory_items")
+}
+
+model InventoryLog {
+  id         String   @id @default(cuid())
+  itemId      String
+  changeType  String // restock, used, adjustment, waste
+  quantity    Float
+  performedBy String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+  @@index([changeType])
+  @@index([createdAt])
+  @@map("inventory_logs")
 }
 
 model BookingClaimToken {

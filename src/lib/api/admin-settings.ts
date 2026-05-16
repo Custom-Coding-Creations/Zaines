@@ -54,6 +54,12 @@ const SETTINGS_KEYS: Record<string, string> = {
   ADD_ONS_SETTINGS: 'admin.add_ons_settings', // JSON object
   // Phase 11: Testimonials Configuration
   TESTIMONIALS_SETTINGS: 'admin.testimonials_settings', // JSON object
+  SMS_SETTINGS: 'admin.sms_settings', // JSON object
+  SMS_BUDGET_SETTINGS: 'admin.sms_budget_settings', // JSON object
+  PACKAGE_EXPIRATION_SETTINGS: 'admin.package_expiration_settings', // JSON object
+  REMINDER_SETTINGS: 'admin.reminder_settings', // JSON object
+  REQUIRED_VACCINE_SETTINGS: 'admin.required_vaccine_settings', // JSON object
+  HOLIDAY_SURCHARGES: 'admin.holiday_surcharges', // JSON array
 };
 
 /**
@@ -128,6 +134,79 @@ export async function getAdminSettings(): Promise<AdminSettings> {
           return rulesJson ? JSON.parse(rulesJson) : getDefaultAvailabilityRules();
         } catch {
           return getDefaultAvailabilityRules();
+        }
+      })(),
+      smsSettings: (() => {
+        try {
+          const json = settingsMap.get(SETTINGS_KEYS.SMS_SETTINGS);
+          return json
+            ? {
+                ...getDefaultSettings().smsSettings,
+                ...(JSON.parse(json) as Partial<AdminSettings['smsSettings']>),
+              }
+            : getDefaultSettings().smsSettings;
+        } catch {
+          return getDefaultSettings().smsSettings;
+        }
+      })(),
+      smsBudgetSettings: (() => {
+        try {
+          const json = settingsMap.get(SETTINGS_KEYS.SMS_BUDGET_SETTINGS);
+          return json
+            ? {
+                ...getDefaultSettings().smsBudgetSettings,
+                ...(JSON.parse(json) as Partial<AdminSettings['smsBudgetSettings']>),
+              }
+            : getDefaultSettings().smsBudgetSettings;
+        } catch {
+          return getDefaultSettings().smsBudgetSettings;
+        }
+      })(),
+      packageExpirationSettings: (() => {
+        try {
+          const json = settingsMap.get(SETTINGS_KEYS.PACKAGE_EXPIRATION_SETTINGS);
+          return json
+            ? {
+                ...getDefaultSettings().packageExpirationSettings,
+                ...(JSON.parse(json) as Partial<AdminSettings['packageExpirationSettings']>),
+              }
+            : getDefaultSettings().packageExpirationSettings;
+        } catch {
+          return getDefaultSettings().packageExpirationSettings;
+        }
+      })(),
+      reminderSettings: (() => {
+        try {
+          const json = settingsMap.get(SETTINGS_KEYS.REMINDER_SETTINGS);
+          return json
+            ? {
+                ...getDefaultSettings().reminderSettings,
+                ...(JSON.parse(json) as Partial<AdminSettings['reminderSettings']>),
+              }
+            : getDefaultSettings().reminderSettings;
+        } catch {
+          return getDefaultSettings().reminderSettings;
+        }
+      })(),
+      requiredVaccineSettings: (() => {
+        try {
+          const json = settingsMap.get(SETTINGS_KEYS.REQUIRED_VACCINE_SETTINGS);
+          return json
+            ? {
+                ...getDefaultSettings().requiredVaccineSettings,
+                ...(JSON.parse(json) as Partial<AdminSettings['requiredVaccineSettings']>),
+              }
+            : getDefaultSettings().requiredVaccineSettings;
+        } catch {
+          return getDefaultSettings().requiredVaccineSettings;
+        }
+      })(),
+      holidaySurcharges: (() => {
+        try {
+          const json = settingsMap.get(SETTINGS_KEYS.HOLIDAY_SURCHARGES);
+          return json ? JSON.parse(json) : getDefaultSettings().holidaySurcharges;
+        } catch {
+          return getDefaultSettings().holidaySurcharges;
         }
       })(),
       // Phase 4: Blackout Dates & Seasonal Pricing
@@ -435,6 +514,84 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
           create: {
             key: SETTINGS_KEYS.AVAILABILITY_RULES,
             value: JSON.stringify(updates.availabilityRules),
+          },
+        }),
+      );
+    }
+
+    if (updates.smsSettings !== undefined) {
+      updatePromises.push(
+        prisma.settings.upsert({
+          where: { key: SETTINGS_KEYS.SMS_SETTINGS },
+          update: { value: JSON.stringify(updates.smsSettings) },
+          create: {
+            key: SETTINGS_KEYS.SMS_SETTINGS,
+            value: JSON.stringify(updates.smsSettings),
+          },
+        }),
+      );
+    }
+
+    if (updates.smsBudgetSettings !== undefined) {
+      updatePromises.push(
+        prisma.settings.upsert({
+          where: { key: SETTINGS_KEYS.SMS_BUDGET_SETTINGS },
+          update: { value: JSON.stringify(updates.smsBudgetSettings) },
+          create: {
+            key: SETTINGS_KEYS.SMS_BUDGET_SETTINGS,
+            value: JSON.stringify(updates.smsBudgetSettings),
+          },
+        }),
+      );
+    }
+
+    if (updates.packageExpirationSettings !== undefined) {
+      updatePromises.push(
+        prisma.settings.upsert({
+          where: { key: SETTINGS_KEYS.PACKAGE_EXPIRATION_SETTINGS },
+          update: { value: JSON.stringify(updates.packageExpirationSettings) },
+          create: {
+            key: SETTINGS_KEYS.PACKAGE_EXPIRATION_SETTINGS,
+            value: JSON.stringify(updates.packageExpirationSettings),
+          },
+        }),
+      );
+    }
+
+    if (updates.reminderSettings !== undefined) {
+      updatePromises.push(
+        prisma.settings.upsert({
+          where: { key: SETTINGS_KEYS.REMINDER_SETTINGS },
+          update: { value: JSON.stringify(updates.reminderSettings) },
+          create: {
+            key: SETTINGS_KEYS.REMINDER_SETTINGS,
+            value: JSON.stringify(updates.reminderSettings),
+          },
+        }),
+      );
+    }
+
+    if (updates.requiredVaccineSettings !== undefined) {
+      updatePromises.push(
+        prisma.settings.upsert({
+          where: { key: SETTINGS_KEYS.REQUIRED_VACCINE_SETTINGS },
+          update: { value: JSON.stringify(updates.requiredVaccineSettings) },
+          create: {
+            key: SETTINGS_KEYS.REQUIRED_VACCINE_SETTINGS,
+            value: JSON.stringify(updates.requiredVaccineSettings),
+          },
+        }),
+      );
+    }
+
+    if (updates.holidaySurcharges !== undefined) {
+      updatePromises.push(
+        prisma.settings.upsert({
+          where: { key: SETTINGS_KEYS.HOLIDAY_SURCHARGES },
+          update: { value: JSON.stringify(updates.holidaySurcharges) },
+          create: {
+            key: SETTINGS_KEYS.HOLIDAY_SURCHARGES,
+            value: JSON.stringify(updates.holidaySurcharges),
           },
         }),
       );

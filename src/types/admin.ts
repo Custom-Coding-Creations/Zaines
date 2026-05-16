@@ -148,6 +148,51 @@ export interface StripeCapabilityFlags {
   premiumCheckoutLoadingExperienceEnabled: boolean;
 }
 
+export interface SmsSettings {
+  enabled: boolean;
+  fromNumber: string;
+}
+
+export interface SmsBudgetSettings {
+  monthlyBudgetLimit: number;
+  currentMonthSpend: number;
+  budgetAlertThreshold: number;
+  pauseWhenExceeded: boolean;
+}
+
+export interface PackageExpirationSettings {
+  autoForfeitUnusedSessions: boolean;
+  allowAdminManualExtension: boolean;
+  defaultExtensionDays: number;
+}
+
+export interface HolidaySurchargeRule {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  surchargeType: 'flat' | 'percentage';
+  surchargeAmount: number;
+  appliesTo: 'boarding' | 'daycare' | 'all';
+  isActive: boolean;
+}
+
+export interface ReminderSettings {
+  bookingReminder24hEnabled: boolean;
+  pickupReminderEnabled: boolean;
+  rebookNudgeEnabled: boolean;
+  rebookNudgeDaysAfterCheckout: number;
+  vaccineReminderEnabled: boolean;
+  vaccineReminderDaysBeforeExpiry: number[];
+  assessmentReminderEnabled: boolean;
+  assessmentReminderDaysBeforeExpiry: number[];
+}
+
+export interface RequiredVaccineSettings {
+  requiredVaccines: string[];
+  blockBookingsOnExpiredVaccines: boolean;
+}
+
 export interface AdminSettings {
   // Operational Preferences
   autoConfirmBookings: boolean;
@@ -155,6 +200,12 @@ export interface AdminSettings {
   photoNotificationTime?: string; // HH:mm format, e.g., "17:00"
   dashboardDateRange: 'today' | 'today_tomorrow' | 'this_week';
   stripeCapabilityFlags: StripeCapabilityFlags;
+  smsSettings: SmsSettings;
+  smsBudgetSettings: SmsBudgetSettings;
+  packageExpirationSettings: PackageExpirationSettings;
+  reminderSettings: ReminderSettings;
+  requiredVaccineSettings: RequiredVaccineSettings;
+  holidaySurcharges: HolidaySurchargeRule[];
   
   // Phase 1: Business Hours & Contact Info
   businessHours: BusinessHours;
@@ -193,6 +244,69 @@ export interface AdminSettings {
 
   // Phase 11: Testimonials Configuration
   testimonialsSettings: TestimonialsSettings;
+}
+
+// ============================================================================
+// PHASE 1 DOMAIN TYPES
+// ============================================================================
+
+export interface StaffMemberRecord {
+  id: string;
+  userId: string;
+  role: 'handler' | 'groomer' | 'manager';
+  phone?: string | null;
+  hireDate?: Date | null;
+  certifications: string[];
+  emergencyContact?: string | null;
+  notes?: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ReportCardRecord {
+  id: string;
+  bookingId: string;
+  petId: string;
+  staffMemberId?: string | null;
+  date: Date;
+  overallMood: 'excellent' | 'good' | 'fair' | 'low';
+  energyLevel: 1 | 2 | 3 | 4 | 5;
+  appetiteLevel: 'ate_all' | 'ate_some' | 'didnt_eat';
+  socialization: 'loved_it' | 'warming_up' | 'preferred_alone';
+  bathroomNotes?: string | null;
+  playHighlights?: string | null;
+  behaviorNotes?: string | null;
+  staffNotes?: string | null;
+  sentToOwner: boolean;
+  sentAt?: Date | null;
+}
+
+export interface IncidentReportRecord {
+  id: string;
+  bookingId?: string | null;
+  petId: string;
+  reportedByStaffId?: string | null;
+  type:
+    | 'injury'
+    | 'aggression'
+    | 'health_event'
+    | 'escape_attempt'
+    | 'property_damage';
+  severity: 'minor' | 'moderate' | 'serious' | 'critical';
+  description: string;
+  actionTaken?: string | null;
+  vetReferral: boolean;
+  vetDetails?: string | null;
+  ownerNotified: boolean;
+  ownerNotifiedAt?: Date | null;
+  followUpRequired: boolean;
+  followUpNotes?: string | null;
+  followUpCompletedAt?: Date | null;
+  photos: string[];
+  witnessNames: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface SettingsRecord {

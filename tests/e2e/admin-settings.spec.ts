@@ -191,7 +191,7 @@ test.describe('Admin Settings Page', () => {
       const initialTiers = await page.locator('[data-testid="service-tier"]').count();
       
       if (initialTiers > 1) {
-        await page.click('button:has-text("Remove")').first();
+        await page.locator('button:has-text("Remove")').first().click();
         
         const newTierCount = await page.locator('[data-testid="service-tier"]').count();
         expect(newTierCount).toBe(initialTiers - 1);

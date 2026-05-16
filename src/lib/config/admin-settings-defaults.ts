@@ -69,6 +69,36 @@ export const bookingSettingsDefaults: BookingSettingsFormValues = {
     advanceBookingWindowDays: 365,
     minimumLeadTimeDays: 0,
   },
+  smsSettings: {
+    enabled: false,
+    fromNumber: '',
+  },
+  smsBudgetSettings: {
+    monthlyBudgetLimit: 50,
+    currentMonthSpend: 0,
+    budgetAlertThreshold: 80,
+    pauseWhenExceeded: true,
+  },
+  packageExpirationSettings: {
+    autoForfeitUnusedSessions: true,
+    allowAdminManualExtension: true,
+    defaultExtensionDays: 14,
+  },
+  reminderSettings: {
+    bookingReminder24hEnabled: true,
+    pickupReminderEnabled: true,
+    rebookNudgeEnabled: true,
+    rebookNudgeDaysAfterCheckout: 7,
+    vaccineReminderEnabled: true,
+    vaccineReminderDaysBeforeExpiry: [30, 14, 7],
+    assessmentReminderEnabled: true,
+    assessmentReminderDaysBeforeExpiry: [30, 7],
+  },
+  requiredVaccineSettings: {
+    requiredVaccines: ['Rabies', 'DHPP', 'Bordetella'],
+    blockBookingsOnExpiredVaccines: true,
+  },
+  holidaySurcharges: [],
 };
 
 export const pricingSettingsDefaults: PricingSettingsFormValues = {

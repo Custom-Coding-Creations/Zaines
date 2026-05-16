@@ -77,6 +77,59 @@ export const bookingSettingsSchema = z.object({
     advanceBookingWindowDays: z.number().min(1, 'Minimum 1 day'),
     minimumLeadTimeDays: z.number().min(0, 'Minimum 0 days'),
   }),
+  smsSettings: z
+    .object({
+      enabled: z.boolean(),
+      fromNumber: z.string().min(3, 'From number is required'),
+    })
+    .optional(),
+  smsBudgetSettings: z
+    .object({
+      monthlyBudgetLimit: z.number().min(0, 'Budget cannot be negative'),
+      currentMonthSpend: z.number().min(0, 'Spend cannot be negative'),
+      budgetAlertThreshold: z.number().min(1).max(100),
+      pauseWhenExceeded: z.boolean(),
+    })
+    .optional(),
+  packageExpirationSettings: z
+    .object({
+      autoForfeitUnusedSessions: z.boolean(),
+      allowAdminManualExtension: z.boolean(),
+      defaultExtensionDays: z.number().int().min(1).max(365),
+    })
+    .optional(),
+  reminderSettings: z
+    .object({
+      bookingReminder24hEnabled: z.boolean(),
+      pickupReminderEnabled: z.boolean(),
+      rebookNudgeEnabled: z.boolean(),
+      rebookNudgeDaysAfterCheckout: z.number().int().min(1).max(90),
+      vaccineReminderEnabled: z.boolean(),
+      vaccineReminderDaysBeforeExpiry: z.array(z.number().int().min(1).max(365)),
+      assessmentReminderEnabled: z.boolean(),
+      assessmentReminderDaysBeforeExpiry: z.array(z.number().int().min(1).max(365)),
+    })
+    .optional(),
+  requiredVaccineSettings: z
+    .object({
+      requiredVaccines: z.array(z.string().min(1)).min(1),
+      blockBookingsOnExpiredVaccines: z.boolean(),
+    })
+    .optional(),
+  holidaySurcharges: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string().min(1),
+        startDate: z.string().min(1),
+        endDate: z.string().min(1),
+        surchargeType: z.enum(['flat', 'percentage']),
+        surchargeAmount: z.number().min(0),
+        appliesTo: z.enum(['boarding', 'daycare', 'all']),
+        isActive: z.boolean(),
+      }),
+    )
+    .optional(),
 });
 
 /**
@@ -262,6 +315,12 @@ export const fullSettingsSchema = z.object({
   dashboardDateRange: bookingSettingsSchema.shape.dashboardDateRange,
   stripeCapabilityFlags: bookingSettingsSchema.shape.stripeCapabilityFlags,
   availabilityRules: bookingSettingsSchema.shape.availabilityRules,
+  smsSettings: bookingSettingsSchema.shape.smsSettings,
+  smsBudgetSettings: bookingSettingsSchema.shape.smsBudgetSettings,
+  packageExpirationSettings: bookingSettingsSchema.shape.packageExpirationSettings,
+  reminderSettings: bookingSettingsSchema.shape.reminderSettings,
+  requiredVaccineSettings: bookingSettingsSchema.shape.requiredVaccineSettings,
+  holidaySurcharges: bookingSettingsSchema.shape.holidaySurcharges,
   
   // Pricing
   pricingSettings: pricingSettingsSchema.shape.pricingSettings,
