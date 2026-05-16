@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/card';
 import { Loader2, Save, X } from 'lucide-react';
 import { useSettingsSectionForm } from '@/hooks/use-settings-section-form';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import {
   blackoutDatesSettingsSchema,
   type BlackoutDatesSettingsFormValues,
@@ -33,6 +34,21 @@ export function BlackoutDatesTab({ onDirtyChange }: BlackoutDatesTabProps) {
       sectionKeys,
       defaults: blackoutDatesSettingsDefaults,
     });
+
+  // Enable keyboard shortcuts (Ctrl+S to save, Esc to discard)
+  useKeyboardShortcuts({
+    onSave: () => {
+      if (!isSaving && isDirty && form.formState.isValid) {
+        onSubmit(form.getValues());
+      }
+    },
+    onDiscard: () => {
+      if (isDirty && !isSaving) {
+        onReset();
+      }
+    },
+    enabled: !isLoading,
+  });
 
   // Notify parent of dirty state changes
   if (onDirtyChange) {

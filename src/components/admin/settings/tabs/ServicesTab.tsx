@@ -13,6 +13,7 @@ import { Loader2, Plus, Save, Trash2, RotateCcw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useSettingsSectionForm } from '@/hooks/use-settings-section-form';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { servicesSettingsSchema } from '@/lib/validations/admin-settings';
 import { servicesSettingsDefaults } from '@/lib/config/admin-settings-defaults';
 
@@ -31,6 +32,21 @@ export function ServicesTab({ onDirtyChange }: ServicesTabProps) {
       sectionKeys,
       defaults: servicesSettingsDefaults,
     });
+
+  // Enable keyboard shortcuts (Ctrl+S to save, Esc to discard)
+  useKeyboardShortcuts({
+    onSave: () => {
+      if (!isSaving && isDirty && form.formState.isValid) {
+        onSubmit(form.getValues());
+      }
+    },
+    onDiscard: () => {
+      if (isDirty && !isSaving) {
+        onReset();
+      }
+    },
+    enabled: !isLoading,
+  });
 
   const {
     fields: tierFields,

@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Save, X } from 'lucide-react';
 import { useSettingsSectionForm } from '@/hooks/use-settings-section-form';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import {
   bookingSettingsSchema,
   type BookingSettingsFormValues,
@@ -152,6 +153,21 @@ export function BookingTab({ onDirtyChange }: BookingTabProps) {
       sectionKeys,
       defaults: bookingSettingsDefaults,
     });
+
+  // Enable keyboard shortcuts (Ctrl+S to save, Esc to discard)
+  useKeyboardShortcuts({
+    onSave: () => {
+      if (!isSaving && isDirty && form.formState.isValid) {
+        onSubmit(form.getValues());
+      }
+    },
+    onDiscard: () => {
+      if (isDirty && !isSaving) {
+        onReset();
+      }
+    },
+    enabled: !isLoading,
+  });
 
   const watchedPhotoNotificationType = useWatch({
     control: form.control,
