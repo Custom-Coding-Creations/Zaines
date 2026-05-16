@@ -337,6 +337,107 @@ export async function POST(request: NextRequest) {
 
     const data = validation.data;
     const adminSettings = await getAdminSettings();
+    const selectedPetIds = [...new Set((data.petIds ?? []).filter(Boolean))];
+
+    if ((data.newPets ?? []).length > 0) {
+      return errorResponse({
+        status: 409,
+        errorCode: 'BOOKING_REQUIRES_EXISTING_ASSESSED_PET',
+        message:
+          'New pets must complete profile setup, vaccine upload, and temperament assessment before booking.',
+        retryable: false,
+        correlationId,
+      });
+    }
+
+    if (selectedPetIds.length > 0) {
+      const requiredVaccines =
+        adminSettings.requiredVaccineSettings?.requiredVaccines?.map((name) =>
+          name.toLowerCase(),
+        ) ?? [];
+
+      const blockOnExpiredVaccines =
+        adminSettings.requiredVaccineSettings?.blockBookingsOnExpiredVaccines !==
+        false;
+
+      const petRecords = await prisma.pet.findMany({
+        where: {
+          id: { in: selectedPetIds },
+          userId: session?.user?.id ?? undefined,
+        },
+        select: {
+          id: true,
+          vaccines: {
+            select: {
+              name: true,
+              expiryDate: true,
+            },
+          },
+          assessments: {
+            where: {
+              overallResult: { in: ['approved', 'conditional'] },
+              OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
+            },
+            select: { id: true },
+            orderBy: { assessmentDate: 'desc' },
+            take: 1,
+          },
+        },
+      });
+
+      if (petRecords.length !== selectedPetIds.length) {
+        return errorResponse({
+          status: 400,
+          errorCode: 'BOOKING_PET_SELECTION_INVALID',
+          message: 'One or more selected pets are invalid for this account.',
+          retryable: false,
+          correlationId,
+        });
+      }
+
+      const now = new Date();
+      const missingAssessmentPetIds = petRecords
+        .filter((pet) => pet.assessments.length === 0)
+        .map((pet) => pet.id);
+
+      if (missingAssessmentPetIds.length > 0) {
+        return errorResponse({
+          status: 409,
+          errorCode: 'BOOKING_REQUIRES_BEHAVIOR_ASSESSMENT',
+          message:
+            'Every pet must have a valid behavior assessment before booking.',
+          retryable: false,
+          correlationId,
+          details: { petIds: missingAssessmentPetIds },
+        });
+      }
+
+      if (blockOnExpiredVaccines && requiredVaccines.length > 0) {
+        const invalidVaccinePetIds = petRecords
+          .filter((pet) => {
+            const validVaccineNames = new Set(
+              pet.vaccines
+                .filter((vaccine) => new Date(vaccine.expiryDate) > now)
+                .map((vaccine) => vaccine.name.toLowerCase()),
+            );
+            return requiredVaccines.some((required) => !validVaccineNames.has(required));
+          })
+          .map((pet) => pet.id);
+
+        if (invalidVaccinePetIds.length > 0) {
+          return errorResponse({
+            status: 409,
+            errorCode: 'BOOKING_REQUIRES_CURRENT_VACCINES',
+            message:
+              'One or more selected pets are missing required current vaccines.',
+            retryable: false,
+            correlationId,
+            details: { petIds: invalidVaccinePetIds, requiredVaccines },
+          });
+        }
+      }
+    }
+
     const minNights = Math.max(
       1,
       adminSettings.availabilityRules.minNightsPerBooking,
@@ -660,7 +761,6 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        const selectedPetIds = [...new Set((data.petIds ?? []).filter(Boolean))];
         const linkedPetIds: string[] = [];
 
         if (selectedPetIds.length > 0) {

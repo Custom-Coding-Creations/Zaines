@@ -52,6 +52,11 @@ const adminSubNavItems: AdminSubNavItem[] = [
     match: (pathname) => pathname.startsWith("/admin/recurring"),
   },
   {
+    href: "/admin/vaccine-alerts",
+    label: "Vaccine Alerts",
+    match: (pathname) => pathname.startsWith("/admin/vaccine-alerts"),
+  },
+  {
     href: "/admin/activities",
     label: "Activity Log",
     match: (pathname) => pathname.startsWith("/admin/activities"),
