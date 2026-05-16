@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { isDatabaseConfigured } from '@/lib/prisma';
 import { getAdminSettings, updateAdminSettings } from '@/lib/api/admin-settings';
+import { fullSettingsSchema } from '@/lib/validations/admin-settings';
 import type { AdminSettings, ApiResponse } from '@/types/admin';
 
 /**
@@ -66,7 +67,20 @@ export async function PUT(request: NextRequest) {
 
     const body = (await request.json()) as Partial<AdminSettings>;
 
-    const settings = await updateAdminSettings(body);
+    // Validate the request body with Zod (allow partial updates)
+    const validation = fullSettingsSchema.partial().safeParse(body);
+    
+    if (!validation.success) {
+      return NextResponse.json(
+        { 
+          error: 'Validation failed', 
+          details: validation.error.issues 
+        },
+        { status: 400 },
+      );
+    }
+
+    const settings = await updateAdminSettings(validation.data as Partial<AdminSettings>);
 
     return NextResponse.json({
       success: true,

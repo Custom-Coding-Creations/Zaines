@@ -1,910 +1,199 @@
 'use client';
 
-import { startTransition, useState, useEffect } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Save } from 'lucide-react';
-import { toast } from 'sonner';
-import { useInvalidateSettings } from '@/providers/settings-provider';
-import type { AdminSettings } from '@/types/admin';
-import { ServiceManagementCard } from '@/components/admin/ServiceManagementCard';
-import { AvailabilityRulesCard } from '@/components/admin/AvailabilityRulesCard';
-import { BlackoutDatesCard } from '@/components/admin/BlackoutDatesCard';
-import { SeasonalPricingCard } from '@/components/admin/SeasonalPricingCard';
-import { PricingSettingsCard } from '@/components/admin/PricingSettingsCard';
-import { CancellationPolicySettingsCard } from '@/components/admin/CancellationPolicySettingsCard';
-import { BusinessProfileSettingsCard } from '@/components/admin/BusinessProfileSettingsCard';
-import { WebsiteProfileSettingsCard } from '@/components/admin/WebsiteProfileSettingsCard';
-import { TrustCopySettingsCard } from '@/components/admin/TrustCopySettingsCard';
-import { ServiceTiersAndAddOnsCard } from '@/components/admin/ServiceTiersAndAddOnsCard';
-import { TestimonialsSettingsCard } from '@/components/admin/TestimonialsSettingsCard';
+  SettingsSidebar,
+  type SettingsSection,
+} from '@/components/admin/settings/SettingsSidebar';
+import { SettingsPageSkeleton } from '@/components/admin/settings/SettingsPageSkeleton';
+import { GeneralTab } from '@/components/admin/settings/tabs/GeneralTab';
+import { BookingTab } from '@/components/admin/settings/tabs/BookingTab';
+import { PricingTab } from '@/components/admin/settings/tabs/PricingTab';
+import { BlackoutDatesTab } from '@/components/admin/settings/tabs/BlackoutDatesTab';
+import { ServicesTab } from '@/components/admin/settings/tabs/ServicesTab';
+import { WebsiteTab } from '@/components/admin/settings/tabs/WebsiteTab';
+import { TestimonialsTab } from '@/components/admin/settings/tabs/TestimonialsTab';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const businessHoursSchema = z.object({
-  openTime: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format'),
-  closeTime: z.string().regex(/^\d{2}:\d{2}$/, 'Invalid time format'),
-  isClosed: z.boolean(),
-});
-
-const settingsFormSchema = z.object({
-  // Operational Preferences
-  autoConfirmBookings: z.boolean(),
-  photoNotificationType: z.enum(['instant', 'daily_batch']),
-  photoNotificationTime: z.string().nullable().optional(),
-  dashboardDateRange: z.enum(['today', 'today_tomorrow', 'this_week']),
-  stripeCapabilityFlags: z.object({
-    billingSubscriptionsEnabled: z.boolean(),
-    customerPortalEnabled: z.boolean(),
-    savedPaymentMethodsEnabled: z.boolean(),
-    oneClickRebookingEnabled: z.boolean(),
-    autopayEnabled: z.boolean(),
-    taxEnabled: z.boolean(),
-    disputesEnabled: z.boolean(),
-    radarReviewEnabled: z.boolean(),
-    connectEnabled: z.boolean(),
-    treasuryEnabled: z.boolean(),
-    issuingEnabled: z.boolean(),
-    financialConnectionsEnabled: z.boolean(),
-    identityEnabled: z.boolean(),
-    terminalEnabled: z.boolean(),
-    premiumCheckoutReassuranceEnabled: z.boolean(),
-    premiumCheckoutCopyEnabled: z.boolean(),
-    premiumCheckoutTrustIndicatorsEnabled: z.boolean(),
-    premiumCheckoutLoadingExperienceEnabled: z.boolean(),
-  }),
-  // Phase 1: Business Hours & Contact Info
-  businessHours: z.object({
-    monday: businessHoursSchema,
-    tuesday: businessHoursSchema,
-    wednesday: businessHoursSchema,
-    thursday: businessHoursSchema,
-    friday: businessHoursSchema,
-    saturday: businessHoursSchema,
-    sunday: businessHoursSchema,
-  }),
-  contactPhone: z.string().min(1, 'Phone is required'),
-  contactEmail: z.string().email('Invalid email'),
-  address: z.string().min(1, 'Address is required'),
-  city: z.string().min(1, 'City is required'),
-  state: z.string().min(2, 'State must be 2 characters').max(2),
-  zip: z.string().min(5, 'ZIP code must be at least 5 characters').max(10),
-  // Phase 3: Availability & Scheduling Rules
-  availabilityRules: z.object({
-    minNightsPerBooking: z.number().min(1, 'Minimum 1 night'),
-    maxNightsPerBooking: z.number().min(1, 'Maximum must be at least 1'),
-    advanceBookingWindowDays: z.number().min(1, 'Minimum 1 day'),
-    minimumLeadTimeDays: z.number().min(0, 'Minimum 0 days'),
-  }),
-  // Phase 4: Blackout Dates & Seasonal Pricing
-  blackoutDates: z.array(
-    z.object({
-      id: z.string(),
-      date: z.string().min(1, 'Date is required'),
-      reason: z.string(),
-      blockType: z.enum(['full_day', 'check_in_only', 'check_out_only']),
-    }),
-  ),
-  seasonalPricingRules: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string().min(1, 'Name is required'),
-      startDate: z.string().min(1, 'Start date is required'),
-      endDate: z.string().min(1, 'End date is required'),
-      priceMultiplier: z.number().min(0.1, 'Multiplier must be at least 0.1'),
-      isActive: z.boolean(),
-    }),
-  ),
-  // Phase 5: Pricing & Fees Configuration
-  pricingSettings: z.object({
-    currency: z.string().length(3, 'Currency must be a 3-letter ISO code'),
-    standardNightlyRate: z.number().min(0, 'Rate cannot be negative'),
-    deluxeNightlyRate: z.number().min(0, 'Rate cannot be negative'),
-    luxuryNightlyRate: z.number().min(0, 'Rate cannot be negative'),
-    taxRatePercent: z.number().min(0, 'Tax cannot be negative').max(100, 'Tax cannot exceed 100%'),
-    twoPetDiscountPercent: z.number().min(0, 'Discount cannot be negative').max(100, 'Discount cannot exceed 100%'),
-    threePlusPetsDiscountPercent: z.number().min(0, 'Discount cannot be negative').max(100, 'Discount cannot exceed 100%'),
-  }),
-  // Phase 6: Cancellation Policy Configuration
-  cancellationPolicySettings: z.object({
-    fullRefundHours: z.number().int().min(1, 'Must be at least 1 hour'),
-    partialRefundHours: z.number().int().min(0, 'Cannot be negative'),
-    partialRefundPercent: z.number().min(0, 'Cannot be negative').max(100, 'Cannot exceed 100%'),
-    noShowRefundPercent: z.number().min(0, 'Cannot be negative').max(100, 'Cannot exceed 100%'),
-  }),
-  // Phase 7: Business Profile & Social Links
-  businessProfileSettings: z.object({
-    businessName: z.string().min(1, 'Business name is required'),
-    socialLinks: z.object({
-      facebook: z.string().url('Facebook URL must be valid'),
-      instagram: z.string().url('Instagram URL must be valid'),
-      twitter: z.string().url('X/Twitter URL must be valid'),
-    }),
-  }),
-  // Phase 8: Website Profile & Service Area
-  websiteProfileSettings: z.object({
-    siteUrl: z.string().url('Website URL must be valid'),
-    siteDescription: z.string().min(1, 'Site description is required'),
-    ogImageUrl: z.string().url('OG image URL must be valid'),
-    ownerImageUrl: z.string().url('Owner image URL must be valid'),
-    logoImageUrl: z.string().url('Logo image URL must be valid'),
-    serviceArea: z.array(z.string().min(1)).min(1, 'At least one service area is required'),
-  }),
-  // Phase 9: Trust Copy Settings
-  trustCopySettings: z
-    .object({
-      pricingDisclosure: z.string().min(1, 'Pricing disclosure is required'),
-      cancellationProcessing: z
-        .string()
-        .min(1, 'Cancellation processing note is required'),
-      privacySecurityDisclosure: z
-        .string()
-        .min(1, 'Privacy and security disclosure is required'),
-      trustEvidenceClaim: z.string().min(1, 'Trust evidence claim is required'),
-    })
-    .refine(
-      (val) =>
-        val.pricingDisclosure.toLowerCase().includes('before confirmation') &&
-        val.pricingDisclosure.toLowerCase().includes('no hidden fees'),
-      {
-        path: ['pricingDisclosure'],
-        message:
-          'Pricing disclosure must include "before confirmation" and "No hidden fees" language',
-      },
-    )
-    .refine(
-      (val) =>
-        val.privacySecurityDisclosure.includes('Stripe') &&
-        val.privacySecurityDisclosure.toLowerCase().includes('does not store card numbers'),
-      {
-        path: ['privacySecurityDisclosure'],
-        message:
-          'Privacy disclosure must mention Stripe and that card numbers are not stored',
-      },
-    )
-    .refine(
-      (val) =>
-        val.trustEvidenceClaim.includes('Only 3 private suites') &&
-        val.trustEvidenceClaim.toLowerCase().includes('owner onsite'),
-      {
-        path: ['trustEvidenceClaim'],
-        message:
-          'Trust evidence claim must include "Only 3 private suites" and "owner onsite"',
-      },
-    ),
-}).refine(
-  (data) => data.cancellationPolicySettings.fullRefundHours > data.cancellationPolicySettings.partialRefundHours,
-  {
-    path: ['cancellationPolicySettings', 'fullRefundHours'],
-    message: 'Full refund window must be greater than partial refund window',
-  },
-);
-
-type SettingsFormValues = z.infer<typeof settingsFormSchema>;
-
-const DAYS_OF_WEEK = [
-  'monday',
-  'tuesday',
-  'wednesday',
-  'thursday',
-  'friday',
-  'saturday',
-  'sunday',
-] as const;
+const VALID_SECTIONS: SettingsSection[] = [
+  'general',
+  'booking',
+  'pricing',
+  'blackout-dates',
+  'services',
+  'website',
+  'testimonials',
+];
 
 export default function AdminSettingsPage() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const { invalidate } = useInvalidateSettings();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [dirtySections, setDirtySections] = useState<Set<SettingsSection>>(
+    new Set(),
+  );
+  const [pendingSection, setPendingSection] = useState<SettingsSection | null>(
+    null,
+  );
 
-  const form = useForm<SettingsFormValues>({
-    resolver: zodResolver(settingsFormSchema),
-    defaultValues: {
-      autoConfirmBookings: true,
-      photoNotificationType: 'instant',
-      photoNotificationTime: null,
-      dashboardDateRange: 'today',
-      stripeCapabilityFlags: {
-        billingSubscriptionsEnabled: false,
-        customerPortalEnabled: false,
-        savedPaymentMethodsEnabled: false,
-        oneClickRebookingEnabled: false,
-        autopayEnabled: false,
-        taxEnabled: false,
-        disputesEnabled: false,
-        radarReviewEnabled: false,
-        connectEnabled: false,
-        treasuryEnabled: false,
-        issuingEnabled: false,
-        financialConnectionsEnabled: false,
-        identityEnabled: false,
-        terminalEnabled: false,
-        premiumCheckoutReassuranceEnabled: false,
-        premiumCheckoutCopyEnabled: false,
-        premiumCheckoutTrustIndicatorsEnabled: false,
-        premiumCheckoutLoadingExperienceEnabled: false,
-      },
-      businessHours: {
-        monday: { openTime: '06:00', closeTime: '20:00', isClosed: false },
-        tuesday: { openTime: '06:00', closeTime: '20:00', isClosed: false },
-        wednesday: { openTime: '06:00', closeTime: '20:00', isClosed: false },
-        thursday: { openTime: '06:00', closeTime: '20:00', isClosed: false },
-        friday: { openTime: '06:00', closeTime: '20:00', isClosed: false },
-        saturday: { openTime: '08:00', closeTime: '18:00', isClosed: false },
-        sunday: { openTime: '08:00', closeTime: '18:00', isClosed: false },
-      },
-      contactPhone: '(315) 657-1332',
-      contactEmail: 'jgibbs@zainesstayandplay.com',
-      address: '123 Pet Paradise Lane',
-      city: 'Syracuse',
-      state: 'NY',
-      zip: '13202',
-      // Phase 3: Availability & Scheduling Rules
-      availabilityRules: {
-        minNightsPerBooking: 1,
-        maxNightsPerBooking: 365,
-        advanceBookingWindowDays: 365,
-        minimumLeadTimeDays: 0,
-      },
-      // Phase 4: Blackout Dates & Seasonal Pricing
-      blackoutDates: [],
-      seasonalPricingRules: [],
-      // Phase 5: Pricing & Fees Configuration
-      pricingSettings: {
-        currency: 'USD',
-        standardNightlyRate: 65,
-        deluxeNightlyRate: 85,
-        luxuryNightlyRate: 120,
-        taxRatePercent: 10,
-        twoPetDiscountPercent: 15,
-        threePlusPetsDiscountPercent: 20,
-      },
-      // Phase 6: Cancellation Policy Configuration
-      cancellationPolicySettings: {
-        fullRefundHours: 48,
-        partialRefundHours: 24,
-        partialRefundPercent: 50,
-        noShowRefundPercent: 0,
-      },
-      // Phase 7: Business Profile & Social Links
-      businessProfileSettings: {
-        businessName: "Zaine's Stay & Play",
-        socialLinks: {
-          facebook: 'https://www.facebook.com/people/Zaines-Stay-Play/61550036005682/',
-          instagram: 'https://instagram.com/zainesstayandplay',
-          twitter: 'https://twitter.com/zainesstayandplay',
-        },
-      },
-      // Phase 8: Website Profile & Service Area
-      websiteProfileSettings: {
-        siteUrl: 'https://zainesstayandplay.com',
-        siteDescription:
-          'Private, small-capacity dog boarding in Syracuse with owner-on-site care, three suites, and safety-first updates.',
-        ogImageUrl: 'https://zainesstayandplay.com/og-default.svg',
-        ownerImageUrl: 'https://zainesstayandplay.com/images/owner-placeholder.svg',
-        logoImageUrl: 'https://zainesstayandplay.com/logo.svg',
-        serviceArea: [
-          'Syracuse',
-          'Liverpool',
-          'Cicero',
-          'Baldwinsville',
-          'Fayetteville',
-          'Manlius',
-          'Clay',
-          'North Syracuse',
-        ],
-      },
-      // Phase 9: Trust Copy Settings
-      trustCopySettings: {
-        pricingDisclosure:
-          'Premium but fair pricing includes clear subtotal, applicable tax, selected care items, and total shown before confirmation. No hidden fees, no surprise add-ons, or other undisclosed charges are introduced at checkout.',
-        cancellationProcessing:
-          'Refunds are returned to the original payment method when payment processing is available.',
-        privacySecurityDisclosure:
-          "Payment details are processed by Stripe; Zaine's Stay & Play does not store card numbers on our servers. We use access controls and secure transmission for booking, account, pet health, and message data.",
-        trustEvidenceClaim:
-          'Only 3 private suites, owner onsite, camera-monitored safety, no harsh chemicals, and same-family dogs can stay together when approved.',
-      },
-    },
-  });
-  const watchedBusinessHours = useWatch({
-    control: form.control,
-    name: 'businessHours',
-  });
-  const watchedPhotoNotificationType = useWatch({
-    control: form.control,
-    name: 'photoNotificationType',
-  });
+  // Get active section from URL, default to 'general'
+  const rawSection = searchParams?.get('section');
+  const activeSection: SettingsSection = VALID_SECTIONS.includes(
+    rawSection as SettingsSection,
+  )
+    ? (rawSection as SettingsSection)
+    : 'general';
 
-  // Load settings on mount
-  const loadSettings = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const res = await fetch('/api/admin/settings');
-      if (!res.ok) {
-        throw new Error(`Failed to load settings: ${res.status} ${res.statusText}`);
-      }
-      const data = (await res.json()) as {
-        success?: boolean;
-        data?: AdminSettings;
-      };
-
-      if (data.data) {
-        form.reset(data.data);
-      }
-      setLoadError(null);
-    } catch (error) {
-      console.error('Error loading settings:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load settings';
-      setLoadError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Initial load complete after mount
   useEffect(() => {
-    loadSettings();
-  }, [form]);
+    setIsInitialLoad(false);
+  }, []);
 
-  async function onSubmit(values: SettingsFormValues) {
-    setIsSaving(true);
+  // Handle section change with unsaved changes warning
+  const handleSectionChange = (newSection: SettingsSection) => {
+    if (dirtySections.has(activeSection)) {
+      // Show confirmation dialog
+      const confirmed = window.confirm(
+        `You have unsaved changes in ${activeSection}. Discard changes and switch sections?`,
+      );
 
-    try {
-      const res = await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      });
-
-      const data = (await res.json()) as {
-        success?: boolean;
-        data?: AdminSettings;
-        error?: string;
-      };
-
-      if (!res.ok) {
-        toast.error(data.error || 'Failed to save settings');
+      if (!confirmed) {
         return;
       }
 
-      // Invalidate settings cache so all components update immediately
-      await invalidate();
-
-      toast.success('Settings saved successfully and updated across the site!');
-      form.reset(values);
-    } catch (error) {
-      console.error('Settings save error:', error);
-      toast.error('Failed to save settings');
-    } finally {
-      setIsSaving(false);
+      // Clear dirty state for current section
+      setDirtySections((prev) => {
+        const next = new Set(prev);
+        next.delete(activeSection);
+        return next;
+      });
     }
-  }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="sr-only">Loading settings...</span>
-      </div>
-    );
-  }
+    // Update URL
+    router.push(`/admin/settings?section=${newSection}`);
+  };
 
-  if (loadError) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 gap-4">
-        <div className="text-center">
-          <p className="text-destructive font-semibold">Error Loading Settings</p>
-          <p className="text-sm text-muted-foreground mt-2">{loadError}</p>
-        </div>
-        <Button onClick={loadSettings} variant="outline">
-          <Loader2 className="mr-2 h-4 w-4" />
-          Retry
-        </Button>
-      </div>
-    );
+  // Handle dirty state changes from child tabs
+  const handleDirtyChange = (section: SettingsSection, isDirty: boolean) => {
+    setDirtySections((prev) => {
+      const next = new Set(prev);
+      if (isDirty) {
+        next.add(section);
+      } else {
+        next.delete(section);
+      }
+      return next;
+    });
+  };
+
+  // Warn before leaving page with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (dirtySections.size > 0) {
+        e.preventDefault();
+        e.returnValue =
+          'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [dirtySections]);
+
+  // Show skeleton on initial load
+  if (isInitialLoad) {
+    return <SettingsPageSkeleton />;
   }
 
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div>
         <h1 className="text-2xl font-semibold">Admin Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Configure business hours, contact info, and operational preferences
+          Configure business operations, booking rules, and website content
         </p>
       </div>
 
-      <Form {...form}>
-        <div className="space-y-6">
-          {/* Business Hours Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Business Hours</CardTitle>
-              <CardDescription>Set opening and closing times for each day</CardDescription>
-              <div className="text-xs text-muted-foreground">
-                <a href="/contact#hours-of-operation" target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">Inspect hours on contact page</a>
-                <span className="mx-2">•</span>
-                <a href="/#site-footer" target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">Inspect hours in footer</a>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {DAYS_OF_WEEK.map((day) => (
-                <div key={day} className="flex flex-col sm:flex-row sm:items-end gap-4 p-4 rounded-lg border">
-                  <div className="flex-1 min-w-0">
-                    <label className="text-sm font-medium capitalize">{day}</label>
-                  </div>
+      {/* Warning for unsaved changes */}
+      {dirtySections.size > 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            You have unsaved changes in:{' '}
+            {Array.from(dirtySections)
+              .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+              .join(', ')}
+          </AlertDescription>
+        </Alert>
+      )}
 
-                  {/* Closed Checkbox */}
-                  <FormField
-                    control={form.control}
-                    name={`businessHours.${day}.isClosed`}
-                    render={({ field }) => (
-                      <FormItem className="flex items-center gap-2">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={(checked) => {
-                              startTransition(() => field.onChange(Boolean(checked)));
-                            }}
-                          />
-                        </FormControl>
-                        <FormLabel className="text-sm font-normal cursor-pointer">Closed</FormLabel>
-                      </FormItem>
-                    )}
-                  />
+      {/* Layout: Sidebar + Content */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Sidebar Navigation */}
+        <SettingsSidebar
+          activeSection={activeSection}
+          onSectionChange={handleSectionChange}
+          dirtySections={dirtySections}
+        />
 
-                  {/* Open/Close Times */}
-                  {!watchedBusinessHours?.[day]?.isClosed && (
-                    <>
-                      <FormField
-                        control={form.control}
-                        name={`businessHours.${day}.openTime`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs">Opens</FormLabel>
-                            <FormControl>
-                              <Input type="time" {...field} className="w-24" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`businessHours.${day}.closeTime`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs">Closes</FormLabel>
-                            <FormControl>
-                              <Input type="time" {...field} className="w-24" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </>
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Contact Information Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
-              <CardDescription>Update business contact details displayed to customers</CardDescription>
-              <div className="text-xs text-muted-foreground">
-                <a href="/contact#contact-information" target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">Inspect on contact page</a>
-                <span className="mx-2">•</span>
-                <a href="/#site-footer" target="_blank" rel="noreferrer" className="text-primary underline underline-offset-2">Inspect in footer</a>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="contactPhone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="(315) 657-1332" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="contactEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email Address</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="contact@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Street Address</FormLabel>
-                    <FormControl>
-                      <Input placeholder="123 Main Street" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Syracuse" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="state"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>State</FormLabel>
-                      <FormControl>
-                        <Input placeholder="NY" maxLength={2} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="zip"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ZIP Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="13202" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Booking Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Booking Settings</CardTitle>
-              <CardDescription>Control how new bookings are created</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Auto-confirm Toggle */}
-              <FormField
-                control={form.control}
-                name="autoConfirmBookings"
-                render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel>Auto-confirm Bookings</FormLabel>
-                      <FormDescription>
-                        Automatically confirm bookings when created from admin or phone orders
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={(checked) => {
-                          startTransition(() => field.onChange(Boolean(checked)));
-                        }}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              {/* Dashboard Date Range */}
-              <FormField
-                control={form.control}
-                name="dashboardDateRange"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dashboard Date Range</FormLabel>
-                    <FormDescription>
-                      Which dates to show in admin dashboard KPIs
-                    </FormDescription>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="today">Today only</SelectItem>
-                        <SelectItem value="today_tomorrow">Today + Tomorrow</SelectItem>
-                        <SelectItem value="this_week">This week (Mon-Sun)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Stripe Capability Tracks</CardTitle>
-              <CardDescription>
-                Enable production-ready tracks as your business model expands. Disabled tracks remain integrated but dormant.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                {
-                  key: 'billingSubscriptionsEnabled' as const,
-                  label: 'Billing subscriptions',
-                  description: 'Recurring plans, subscriptions, and proration-safe changes.',
-                },
-                {
-                  key: 'customerPortalEnabled' as const,
-                  label: 'Customer portal',
-                  description: 'Self-service billing updates and plan changes.',
-                },
-                {
-                  key: 'savedPaymentMethodsEnabled' as const,
-                  label: 'Saved payment methods',
-                  description: 'Store and reuse cards for faster checkout experiences.',
-                },
-                {
-                  key: 'oneClickRebookingEnabled' as const,
-                  label: 'One-click rebooking',
-                  description: 'Allow returning customers to confirm with a default payment method.',
-                },
-                {
-                  key: 'autopayEnabled' as const,
-                  label: 'Autopay authorization',
-                  description: 'Enable optional automatic charging for upcoming balances and incidentals.',
-                },
-                {
-                  key: 'taxEnabled' as const,
-                  label: 'Stripe Tax',
-                  description: 'Automated tax calculation and reporting workflows.',
-                },
-                {
-                  key: 'disputesEnabled' as const,
-                  label: 'Disputes workflow',
-                  description: 'Chargeback evidence and response deadline tracking.',
-                },
-                {
-                  key: 'radarReviewEnabled' as const,
-                  label: 'Radar review flow',
-                  description: 'Risk-review queue for suspicious charges.',
-                },
-                {
-                  key: 'connectEnabled' as const,
-                  label: 'Connect platform',
-                  description: 'Connected account orchestration for partner models.',
-                },
-                {
-                  key: 'treasuryEnabled' as const,
-                  label: 'Treasury track',
-                  description: 'Financial account operations for advanced cash workflows.',
-                },
-                {
-                  key: 'issuingEnabled' as const,
-                  label: 'Issuing track',
-                  description: 'Card issuing controls for internal spend operations.',
-                },
-                {
-                  key: 'financialConnectionsEnabled' as const,
-                  label: 'Financial Connections',
-                  description: 'Bank account linking and ACH verification flows.',
-                },
-                {
-                  key: 'identityEnabled' as const,
-                  label: 'Identity verification',
-                  description: 'Verification gates for high-risk or regulated paths.',
-                },
-                {
-                  key: 'terminalEnabled' as const,
-                  label: 'Terminal in-person payments',
-                  description: 'card_present and in-person check-in charging capability.',
-                },
-                {
-                  key: 'premiumCheckoutReassuranceEnabled' as const,
-                  label: 'Premium checkout reassurance',
-                  description: 'Luxury reassurance panel near payment submission.',
-                },
-                {
-                  key: 'premiumCheckoutCopyEnabled' as const,
-                  label: 'Premium emotional copy',
-                  description: 'Pet-centric checkout headlines and action language.',
-                },
-                {
-                  key: 'premiumCheckoutTrustIndicatorsEnabled' as const,
-                  label: 'Checkout trust indicators',
-                  description: 'Testimonials, satisfaction stats, and care badges.',
-                },
-                {
-                  key: 'premiumCheckoutLoadingExperienceEnabled' as const,
-                  label: 'Premium loading experience',
-                  description: 'Enhanced processing and payment recovery states.',
-                },
-              ].map((track) => (
-                <FormField
-                  key={track.key}
-                  control={form.control}
-                  name={`stripeCapabilityFlags.${track.key}`}
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                      <div>
-                        <FormLabel>{track.label}</FormLabel>
-                        <FormDescription>{track.description}</FormDescription>
-                      </div>
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={(checked) => {
-                            startTransition(() => field.onChange(Boolean(checked)));
-                          }}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Photo Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Photo Notification Settings</CardTitle>
-              <CardDescription>Control how owners are notified of uploaded photos</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Notification Type */}
-              <FormField
-                control={form.control}
-                name="photoNotificationType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notification Type</FormLabel>
-                    <FormDescription>
-                      How frequently owners receive photo notifications
-                    </FormDescription>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="instant">
-                          Instant - Notify on each photo upload
-                        </SelectItem>
-                        <SelectItem value="daily_batch">
-                          Daily Batch - Send digest at set time
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Notification Time */}
-              {watchedPhotoNotificationType === 'daily_batch' && (
-                <FormField
-                  control={form.control}
-                  name="photoNotificationTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Batch Send Time</FormLabel>
-                      <FormDescription>
-                        Daily digest email send time
-                      </FormDescription>
-                      <FormControl>
-                        <Input
-                          type="time"
-                          value={field.value ?? '17:00'}
-                          onChange={(e) => field.onChange(e.target.value)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Services & Pricing Card */}
-          <ServiceManagementCard />
-
-          {/* Availability & Scheduling Rules Card */}
-          <AvailabilityRulesCard />
-
-          {/* Blackout Dates Card */}
-          <BlackoutDatesCard />
-
-          {/* Seasonal Pricing Card */}
-          <SeasonalPricingCard />
-
-          {/* Pricing & Fees Card */}
-          <PricingSettingsCard />
-
-          {/* Cancellation Policy Card */}
-          <CancellationPolicySettingsCard />
-
-          {/* Business Profile & Social Links Card */}
-          <BusinessProfileSettingsCard />
-
-          {/* Website Profile & Service Area Card */}
-          <WebsiteProfileSettingsCard />
-
-          {/* Trust Copy Card */}
-          <TrustCopySettingsCard />
-
-          {/* Service Tiers & Add-Ons Card */}
-          <ServiceTiersAndAddOnsCard />
-
-          {/* Testimonials Card */}
-          <TestimonialsSettingsCard />
-
-          {/* Save Button */}
-          <Button
-            type="button"
-            onClick={form.handleSubmit(onSubmit)}
-            disabled={isSaving}
-            className="w-full md:w-auto"
-            size="lg"
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Settings
-              </>
-            )}
-          </Button>
+        {/* Content Area */}
+        <div className="flex-1 min-w-0">
+          {activeSection === 'general' && (
+            <GeneralTab
+              onDirtyChange={(dirty) =>
+                handleDirtyChange('general', dirty)
+              }
+            />
+          )}
+          {activeSection === 'booking' && (
+            <BookingTab
+              onDirtyChange={(dirty) =>
+                handleDirtyChange('booking', dirty)
+              }
+            />
+          )}
+          {activeSection === 'pricing' && (
+            <PricingTab
+              onDirtyChange={(dirty) =>
+                handleDirtyChange('pricing', dirty)
+              }
+            />
+          )}
+          {activeSection === 'blackout-dates' && (
+            <BlackoutDatesTab
+              onDirtyChange={(dirty) =>
+                handleDirtyChange('blackout-dates', dirty)
+              }
+            />
+          )}
+          {activeSection === 'services' && (
+            <ServicesTab
+              onDirtyChange={(dirty) =>
+                handleDirtyChange('services', dirty)
+              }
+            />
+          )}
+          {activeSection === 'website' && (
+            <WebsiteTab
+              onDirtyChange={(dirty) =>
+                handleDirtyChange('website', dirty)
+              }
+            />
+          )}
+          {activeSection === 'testimonials' && (
+            <TestimonialsTab
+              onDirtyChange={(dirty) =>
+                handleDirtyChange('testimonials', dirty)
+              }
+            />
+          )}
         </div>
-      </Form>
+      </div>
     </div>
   );
 }
+
