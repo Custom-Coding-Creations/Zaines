@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   Form,
 } from '@/components/ui/form';
@@ -51,9 +52,9 @@ export function BlackoutDatesTab({ onDirtyChange }: BlackoutDatesTabProps) {
   });
 
   // Notify parent of dirty state changes
-  if (onDirtyChange) {
-    onDirtyChange(isDirty);
-  }
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   if (isLoading) {
     return (

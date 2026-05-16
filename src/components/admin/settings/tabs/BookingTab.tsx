@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { startTransition } from 'react';
 import { useWatch } from 'react-hook-form';
 import {
@@ -175,9 +176,9 @@ export function BookingTab({ onDirtyChange }: BookingTabProps) {
   });
 
   // Notify parent of dirty state changes
-  if (onDirtyChange) {
-    onDirtyChange(isDirty);
-  }
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   if (isLoading) {
     return (

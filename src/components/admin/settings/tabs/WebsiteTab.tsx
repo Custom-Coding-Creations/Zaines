@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   Form,
 } from '@/components/ui/form';
@@ -55,9 +56,9 @@ export function WebsiteTab({ onDirtyChange }: WebsiteTabProps) {
   });
 
   // Notify parent of dirty state changes
-  if (onDirtyChange) {
-    onDirtyChange(isDirty);
-  }
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   if (isLoading) {
     return (

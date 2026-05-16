@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   Form,
   FormMessage,
@@ -58,9 +59,9 @@ export function PricingTab({ onDirtyChange }: PricingTabProps) {
   });
 
   // Notify parent of dirty state changes
-  if (onDirtyChange) {
-    onDirtyChange(isDirty);
-  }
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   if (isLoading) {
     return (
