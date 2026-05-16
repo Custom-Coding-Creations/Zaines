@@ -94,7 +94,7 @@ export function WebsiteTab({ onDirtyChange }: WebsiteTabProps) {
 
         {/* Save/Discard Buttons */}
         <div className="flex gap-3 sticky bottom-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 rounded-lg border border-border shadow-sm">
-          <Button type="submit" disabled={!isDirty || isSaving}>
+          <Button type="submit" disabled={!isDirty || isSaving || !form.formState.isValid}>
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -111,7 +111,7 @@ export function WebsiteTab({ onDirtyChange }: WebsiteTabProps) {
             type="button"
             variant="outline"
             onClick={onReset}
-            disabled={!isDirty || isSaving}
+            disabled={!isDirty || isSaving || !form.formState.isValid}
           >
             <X className="mr-2 h-4 w-4" />
             Discard Changes

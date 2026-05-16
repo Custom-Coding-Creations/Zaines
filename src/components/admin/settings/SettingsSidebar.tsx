@@ -92,7 +92,7 @@ export function SettingsSidebar({
       aria-label="Settings navigation"
     >
       {/* Desktop vertical nav */}
-      <nav className="hidden lg:block sticky top-4">
+      <nav className="hidden lg:block sticky top-4" aria-label="Settings sections">
         <ul className="space-y-1">
           {sidebarItems.map((item) => {
             const active = item.id === activeSection;
@@ -136,7 +136,7 @@ export function SettingsSidebar({
       </nav>
 
       {/* Mobile horizontal scrollable nav */}
-      <nav className="lg:hidden -mx-4 px-4 overflow-x-auto border-b border-border">
+      <nav className="lg:hidden -mx-4 px-4 overflow-x-auto border-b border-border" aria-label="Settings sections mobile">
         <ul className="flex gap-2 pb-4 min-w-max">
           {sidebarItems.map((item) => {
             const active = item.id === activeSection;

@@ -317,13 +317,13 @@ export function TestimonialsTab({ onDirtyChange }: TestimonialsTabProps) {
               <Button
                 type="button"
                 variant="outline"
-                disabled={!isDirty || isSaving}
+                disabled={!isDirty || isSaving || !form.formState.isValid}
                 onClick={onReset}
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Discard
               </Button>
-              <Button type="submit" disabled={!isDirty || isSaving}>
+              <Button type="submit" disabled={!isDirty || isSaving || !form.formState.isValid}>
                 {isSaving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
