@@ -35,6 +35,9 @@ export default function AdminRecurringPage() {
   const [rows, setRows] = useState<RecurringItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [daysAhead, setDaysAhead] = useState(21);
+  const [generationResult, setGenerationResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function loadRecurring() {
@@ -58,6 +61,50 @@ export default function AdminRecurringPage() {
   useEffect(() => {
     void loadRecurring();
   }, []);
+
+  async function runGeneration() {
+    try {
+      setIsGenerating(true);
+      setError(null);
+      setGenerationResult(null);
+
+      const response = await fetch('/api/admin/recurring-bookings/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ daysAhead }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error ?? 'Failed to generate recurring bookings');
+      }
+
+      const payload = (await response.json()) as {
+        data?: {
+          generated: number;
+          skipped: number;
+          schedulesProcessed: number;
+          daysAhead: number;
+        };
+      };
+
+      if (payload.data) {
+        setGenerationResult(
+          `Generated ${payload.data.generated} bookings (${payload.data.skipped} skipped) across ${payload.data.schedulesProcessed} schedules for the next ${payload.data.daysAhead} days.`,
+        );
+      }
+
+      await loadRecurring();
+    } catch (generationError) {
+      setError(
+        generationError instanceof Error
+          ? generationError.message
+          : 'Failed to generate recurring bookings',
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   async function onSubmit(formData: FormData) {
     setError(null);
@@ -164,6 +211,37 @@ export default function AdminRecurringPage() {
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Generate Bookings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Generate upcoming bookings from active recurring schedules.
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-32 space-y-2">
+              <Label htmlFor="daysAhead">Days Ahead</Label>
+              <Input
+                id="daysAhead"
+                type="number"
+                min={1}
+                max={60}
+                value={daysAhead}
+                onChange={(event) => setDaysAhead(Number(event.target.value) || 1)}
+              />
+            </div>
+            <Button onClick={() => void runGeneration()} disabled={isGenerating}>
+              {isGenerating ? 'Generating...' : 'Generate Upcoming Bookings'}
+            </Button>
+          </div>
+
+          {generationResult ? (
+            <p className="text-sm text-emerald-700">{generationResult}</p>
+          ) : null}
         </CardContent>
       </Card>
 
