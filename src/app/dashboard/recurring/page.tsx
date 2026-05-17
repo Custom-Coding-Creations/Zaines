@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDateUtc } from '@/lib/datetime-format';
 
 type RecurringItem = {
   id: string;
@@ -84,8 +85,8 @@ export default function DashboardRecurringPage() {
                     {row.daysOfWeek.map((day) => DAY_LABELS[day]).join(', ')}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(row.startDate).toLocaleDateString()}
-                    {row.endDate ? ` to ${new Date(row.endDate).toLocaleDateString()}` : ' onward'}
+                    {formatDateUtc(row.startDate)}
+                    {row.endDate ? ` to ${formatDateUtc(row.endDate)}` : ' onward'}
                   </p>
                   {row.suite ? <p className="text-xs text-muted-foreground">Suite: {row.suite.name}</p> : null}
                   {row.generatedBookings.length > 0 ? (

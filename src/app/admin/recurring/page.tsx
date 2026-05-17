@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { formatDateUtc } from '@/lib/datetime-format';
 
 type RecurringItem = {
   id: string;
@@ -265,8 +266,8 @@ export default function AdminRecurringPage() {
                 {row.serviceType} · {row.daysOfWeek.map((day) => DAY_LABELS[day]).join(', ')}
               </p>
               <p className="text-xs text-muted-foreground">
-                {new Date(row.startDate).toLocaleDateString()}
-                {row.endDate ? ` to ${new Date(row.endDate).toLocaleDateString()}` : ' onward'}
+                {formatDateUtc(row.startDate)}
+                {row.endDate ? ` to ${formatDateUtc(row.endDate)}` : ' onward'}
               </p>
               {row.suite ? <p className="text-xs text-muted-foreground">Suite: {row.suite.name}</p> : null}
             </article>

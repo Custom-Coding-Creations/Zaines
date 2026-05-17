@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDateTimeUtc } from '@/lib/datetime-format';
 
 type DashboardIncident = {
   id: string;
@@ -73,7 +74,7 @@ export default function DashboardIncidentsPage() {
                     <p className="font-medium">{row.pet.name} · {row.type}</p>
                     <Badge variant="destructive">{row.severity}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{new Date(row.createdAt).toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">{formatDateTimeUtc(row.createdAt)}</p>
                   <p className="text-sm">{row.description}</p>
                   {row.actionTaken ? (
                     <p className="text-sm">

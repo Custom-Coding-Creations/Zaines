@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDateUtc } from '@/lib/datetime-format';
 
 type CustomerPackageItem = {
   id: string;
@@ -72,7 +73,7 @@ export default function DashboardPackagesPage() {
                   </p>
                   <p className="text-sm">Used: {row.sessionsUsed} · Remaining: {row.sessionsRemaining}</p>
                   <p className="text-xs text-muted-foreground">
-                    Expires {new Date(row.expiresAt).toLocaleDateString()}
+                    Expires {formatDateUtc(row.expiresAt)}
                   </p>
                 </article>
               ))

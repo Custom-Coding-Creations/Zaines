@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { formatDateTimeUtc, formatDateUtc } from '@/lib/datetime-format';
 
 type CustomerPackageItem = {
   id: string;
@@ -301,7 +302,7 @@ export default function AdminPackagesPage() {
                   {event.payload.eventType === 'PACKAGE_GRANTED' ? 'Package granted' : 'Package updated'}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {new Date(event.sentAt).toLocaleString()} · {event.actorName}
+                  {formatDateTimeUtc(event.sentAt)} · {event.actorName}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Package ID {event.payload.packageId} · Customer package {event.payload.customerPackageId}
@@ -430,9 +431,9 @@ export default function AdminPackagesPage() {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm">
-                              <p>{new Date(customerPackage.expiresAt).toLocaleDateString()}</p>
+                              <p>{formatDateUtc(customerPackage.expiresAt)}</p>
                               <p className="text-xs text-muted-foreground">
-                                Purchased {new Date(customerPackage.purchaseDate).toLocaleDateString()}
+                                Purchased {formatDateUtc(customerPackage.purchaseDate)}
                               </p>
                             </div>
                           </TableCell>

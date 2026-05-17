@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDateUtc } from '@/lib/datetime-format';
 
 type DashboardReportCard = {
   id: string;
@@ -70,7 +71,7 @@ export default function DashboardReportCardsPage() {
                 <article key={row.id} className="rounded-lg border p-4 space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-medium">
-                      {row.pet.name} · {new Date(row.date).toLocaleDateString()}
+                      {row.pet.name} · {formatDateUtc(row.date)}
                     </p>
                     <Badge variant="outline">{row.booking.bookingNumber}</Badge>
                   </div>

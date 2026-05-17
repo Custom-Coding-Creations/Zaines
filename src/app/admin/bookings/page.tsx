@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Loader2, Plus, Search } from 'lucide-react';
 import type { AdminBookingResponse } from '@/types/admin';
+import { formatDateUtc } from '@/lib/datetime-format';
 
 function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (status) {
@@ -200,10 +201,10 @@ export default function BookingsPage() {
                           .join(', ') || '—'}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {new Date(booking.checkInDate).toLocaleDateString()}
+                        {formatDateUtc(booking.checkInDate)}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {new Date(booking.checkOutDate).toLocaleDateString()}
+                        {formatDateUtc(booking.checkOutDate)}
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusBadgeVariant(booking.status)}>

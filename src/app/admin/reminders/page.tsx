@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDateTimeUtc } from '@/lib/datetime-format';
 
 type ReminderRow = {
   id: string;
@@ -118,8 +119,8 @@ export default function AdminRemindersPage() {
               {row.booking ? <p className="text-xs text-muted-foreground">Booking: {row.booking.bookingNumber}</p> : null}
               {row.pet ? <p className="text-xs text-muted-foreground">Pet: {row.pet.name}</p> : null}
               <p className="text-xs text-muted-foreground">
-                Scheduled {new Date(row.scheduledFor).toLocaleString()}
-                {row.sentAt ? ` · Sent ${new Date(row.sentAt).toLocaleString()}` : ''}
+                Scheduled {formatDateTimeUtc(row.scheduledFor)}
+                {row.sentAt ? ` · Sent ${formatDateTimeUtc(row.sentAt)}` : ''}
               </p>
             </article>
           ))}
