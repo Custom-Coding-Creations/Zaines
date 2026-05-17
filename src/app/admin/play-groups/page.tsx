@@ -137,6 +137,14 @@ type PlayGroupAuditEvent = {
   };
 };
 
+type BulkStaffingRun = {
+  mode: 'auto_assign' | 'repair_conflicts';
+  targetDate: string;
+  attempted: number;
+  assigned: number;
+  skipped: Array<{ groupId: string; reason: string }>;
+};
+
 export default function AdminPlayGroupsPage() {
   const [groups, setGroups] = useState<PlayGroup[]>([]);
   const [staff, setStaff] = useState<StaffOption[]>([]);
@@ -149,6 +157,7 @@ export default function AdminPlayGroupsPage() {
   const [staffSelections, setStaffSelections] = useState<Record<string, string>>({});
   const [staffRecommendations, setStaffRecommendations] = useState<Record<string, StaffRecommendation[]>>({});
   const [auditEvents, setAuditEvents] = useState<PlayGroupAuditEvent[]>([]);
+  const [lastBulkRun, setLastBulkRun] = useState<BulkStaffingRun | null>(null);
 
   const load = async (date = selectedDate) => {
     try {
@@ -449,6 +458,23 @@ export default function AdminPlayGroupsPage() {
         throw new Error(body.error || 'Failed to auto-assign unassigned groups');
       }
 
+      const payload = (await response.json()) as {
+        data?: {
+          targetDate?: string;
+          attempted?: number;
+          assigned?: number;
+          skipped?: Array<{ groupId: string; reason: string }>;
+        };
+      };
+
+      setLastBulkRun({
+        mode: 'auto_assign',
+        targetDate: payload.data?.targetDate ?? new Date(selectedDate).toISOString(),
+        attempted: payload.data?.attempted ?? 0,
+        assigned: payload.data?.assigned ?? 0,
+        skipped: payload.data?.skipped ?? [],
+      });
+
       await load(selectedDate);
     } catch (autoAssignError) {
       setError(autoAssignError instanceof Error ? autoAssignError.message : 'Failed to auto-assign unassigned groups');
@@ -472,6 +498,23 @@ export default function AdminPlayGroupsPage() {
         const body = (await response.json()) as { error?: string };
         throw new Error(body.error || 'Failed to repair staffing conflicts');
       }
+
+      const payload = (await response.json()) as {
+        data?: {
+          targetDate?: string;
+          attempted?: number;
+          assigned?: number;
+          skipped?: Array<{ groupId: string; reason: string }>;
+        };
+      };
+
+      setLastBulkRun({
+        mode: 'repair_conflicts',
+        targetDate: payload.data?.targetDate ?? new Date(selectedDate).toISOString(),
+        attempted: payload.data?.attempted ?? 0,
+        assigned: payload.data?.assigned ?? 0,
+        skipped: payload.data?.skipped ?? [],
+      });
 
       await load(selectedDate);
     } catch (repairError) {
@@ -502,6 +545,21 @@ export default function AdminPlayGroupsPage() {
             </Button>
           </div>
         </div>
+        {lastBulkRun ? (
+          <div className="mt-3 rounded-md border px-3 py-2 text-sm">
+            <p className="font-medium">
+              {lastBulkRun.mode === 'repair_conflicts' ? 'Conflict repair run complete' : 'Auto-assignment run complete'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {new Date(lastBulkRun.targetDate).toLocaleDateString()} · attempted {lastBulkRun.attempted} · assigned {lastBulkRun.assigned} · skipped {lastBulkRun.skipped.length}
+            </p>
+            {lastBulkRun.skipped.slice(0, 3).map((entry) => (
+              <p key={`${entry.groupId}-${entry.reason}`} className="text-xs text-muted-foreground">
+                {entry.groupId}: {entry.reason}
+              </p>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <Card>
