@@ -9,6 +9,39 @@
 import { useSettings } from '@/providers/settings-provider';
 import type { AdminSettings } from '@/types/admin';
 
+function sanitizeDogModePhrase(value: string): string {
+  return value
+    .replace(/dog\s*mode\s*™?/gi, 'enrichment')
+    .replace(/calm\s*mode\s*™?/gi, 'calming experience')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([.,!?;:])/g, '$1')
+    .trim();
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function sanitizeSettingsStrings<T>(value: T): T {
+  if (typeof value === 'string') {
+    return sanitizeDogModePhrase(value) as T;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeSettingsStrings(item)) as T;
+  }
+
+  if (isPlainObject(value)) {
+    const next: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value)) {
+      next[key] = sanitizeSettingsStrings(item);
+    }
+    return next as T;
+  }
+
+  return value;
+}
+
 interface SiteContactInfo {
   phone: string;
   email: string;
@@ -39,17 +72,18 @@ interface SiteSettingsHookReturn {
  */
 export function useSiteSettings(): SiteSettingsHookReturn {
   const { settings, isLoading } = useSettings();
+  const sanitizedSettings = sanitizeSettingsStrings(settings);
 
   return {
     contactInfo: {
-      phone: settings?.contactPhone || '(315) 657-1332',
-      email: settings?.contactEmail || 'jgibbs@zainesstayandplay.com',
-      address: settings?.address || '123 Pet Paradise Lane',
-      city: settings?.city || 'Syracuse',
-      state: settings?.state || 'NY',
-      zip: settings?.zip || '13202',
+      phone: sanitizedSettings?.contactPhone || '(315) 657-1332',
+      email: sanitizedSettings?.contactEmail || 'jgibbs@zainesstayandplay.com',
+      address: sanitizedSettings?.address || '123 Pet Paradise Lane',
+      city: sanitizedSettings?.city || 'Syracuse',
+      state: sanitizedSettings?.state || 'NY',
+      zip: sanitizedSettings?.zip || '13202',
     },
-    businessHours: settings?.businessHours || {
+    businessHours: sanitizedSettings?.businessHours || {
       monday: { openTime: '06:00', closeTime: '20:00', isClosed: false },
       tuesday: { openTime: '06:00', closeTime: '20:00', isClosed: false },
       wednesday: { openTime: '06:00', closeTime: '20:00', isClosed: false },
@@ -58,14 +92,14 @@ export function useSiteSettings(): SiteSettingsHookReturn {
       saturday: { openTime: '08:00', closeTime: '18:00', isClosed: false },
       sunday: { openTime: '08:00', closeTime: '18:00', isClosed: false },
     },
-    businessName: settings?.businessProfileSettings.businessName || "Zaine's Stay & Play",
-    socialLinks: settings?.businessProfileSettings.socialLinks || {
+    businessName: sanitizedSettings?.businessProfileSettings.businessName || "Zaine's Stay & Play",
+    socialLinks: sanitizedSettings?.businessProfileSettings.socialLinks || {
       facebook:
         'https://www.facebook.com/people/Zaines-Stay-Play/61550036005682/',
       instagram: 'https://instagram.com/zainesstayandplay',
       twitter: 'https://twitter.com/zainesstayandplay',
     },
-    websiteProfile: settings?.websiteProfileSettings || {
+    websiteProfile: sanitizedSettings?.websiteProfileSettings || {
       siteUrl: 'https://zainesstayandplay.com',
       siteDescription:
         'Private, small-capacity dog boarding in Syracuse with owner-on-site care, three suites, and safety-first updates.',
@@ -83,7 +117,7 @@ export function useSiteSettings(): SiteSettingsHookReturn {
         'North Syracuse',
       ],
     },
-    trustCopy: settings?.trustCopySettings || {
+    trustCopy: sanitizedSettings?.trustCopySettings || {
       pricingDisclosure:
         'Premium but fair pricing includes clear subtotal, applicable tax, selected care items, and total shown before confirmation. No hidden fees, no surprise add-ons, or other undisclosed charges are introduced at checkout.',
       cancellationProcessing:
@@ -93,13 +127,13 @@ export function useSiteSettings(): SiteSettingsHookReturn {
       trustEvidenceClaim:
         'Only 3 private suites, owner onsite, camera-monitored safety, no harsh chemicals, and same-family dogs can stay together when approved.',
     },
-    availabilityRules: settings?.availabilityRules || {
+    availabilityRules: sanitizedSettings?.availabilityRules || {
       minNightsPerBooking: 1,
       maxNightsPerBooking: 365,
       advanceBookingWindowDays: 365,
       minimumLeadTimeDays: 0,
     },
-    pricingSettings: settings?.pricingSettings || {
+    pricingSettings: sanitizedSettings?.pricingSettings || {
       currency: 'USD',
       standardNightlyRate: 65,
       deluxeNightlyRate: 85,
@@ -108,7 +142,7 @@ export function useSiteSettings(): SiteSettingsHookReturn {
       twoPetDiscountPercent: 15,
       threePlusPetsDiscountPercent: 20,
     },
-    serviceSettings: settings?.serviceSettings || {
+    serviceSettings: sanitizedSettings?.serviceSettings || {
       serviceTiers: [
         {
           id: 'standard-suite',
@@ -139,7 +173,7 @@ export function useSiteSettings(): SiteSettingsHookReturn {
         },
       ],
     },
-    addOnsSettings: settings?.addOnsSettings || {
+    addOnsSettings: sanitizedSettings?.addOnsSettings || {
       addOns: [
         {
           id: 'premium-treats',
@@ -167,7 +201,7 @@ export function useSiteSettings(): SiteSettingsHookReturn {
         },
       ],
     },
-    testimonialsSettings: settings?.testimonialsSettings || {
+    testimonialsSettings: sanitizedSettings?.testimonialsSettings || {
       testimonials: [
         {
           id: 'testimonial-1',
