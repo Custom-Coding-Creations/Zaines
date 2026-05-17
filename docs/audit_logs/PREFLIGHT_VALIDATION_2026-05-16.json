@@ -1,0 +1,115 @@
+{
+  "routes": [
+    {
+      "path": "/",
+      "name": "Homepage",
+      "priority": "critical",
+      "url": "http://localhost:3000/",
+      "accessible": true,
+      "statusCode": 200,
+      "error": null,
+      "checkedAt": "2026-05-17T03:55:55.746Z"
+    },
+    {
+      "path": "/book",
+      "name": "Booking Flow",
+      "priority": "critical",
+      "url": "http://localhost:3000/book",
+      "accessible": true,
+      "statusCode": 200,
+      "error": null,
+      "checkedAt": "2026-05-17T03:55:55.746Z"
+    },
+    {
+      "path": "/pricing",
+      "name": "Pricing",
+      "priority": "critical",
+      "url": "http://localhost:3000/pricing",
+      "accessible": true,
+      "statusCode": 200,
+      "error": null,
+      "checkedAt": "2026-05-17T03:55:55.746Z"
+    },
+    {
+      "path": "/auth/signin",
+      "name": "Sign In",
+      "priority": "critical",
+      "url": "http://localhost:3000/auth/signin",
+      "accessible": true,
+      "statusCode": 200,
+      "error": null,
+      "checkedAt": "2026-05-17T03:55:55.747Z"
+    },
+    {
+      "path": "/dashboard",
+      "name": "Customer Dashboard",
+      "priority": "high",
+      "url": "http://localhost:3000/dashboard",
+      "accessible": true,
+      "statusCode": 200,
+      "error": null,
+      "checkedAt": "2026-05-17T03:55:55.747Z"
+    },
+    {
+      "path": "/about",
+      "name": "About",
+      "priority": "high",
+      "url": "http://localhost:3000/about",
+      "accessible": true,
+      "statusCode": 200,
+      "error": null,
+      "checkedAt": "2026-05-17T03:55:55.747Z"
+    },
+    {
+      "path": "/contact",
+      "name": "Contact",
+      "priority": "high",
+      "url": "http://localhost:3000/contact",
+      "accessible": true,
+      "statusCode": 200,
+      "error": null,
+      "checkedAt": "2026-05-17T03:55:55.747Z"
+    },
+    {
+      "path": "/services/boarding",
+      "name": "Boarding Service",
+      "priority": "medium",
+      "url": "http://localhost:3000/services/boarding",
+      "accessible": true,
+      "statusCode": 200,
+      "error": null,
+      "checkedAt": "2026-05-17T03:55:55.747Z"
+    },
+    {
+      "path": "/dog",
+      "name": "Dog Mode",
+      "priority": "medium",
+      "url": "http://localhost:3000/dog",
+      "accessible": true,
+      "statusCode": 200,
+      "error": null,
+      "checkedAt": "2026-05-17T03:55:55.747Z"
+    },
+    {
+      "path": "/faq",
+      "name": "FAQ",
+      "priority": "medium",
+      "url": "http://localhost:3000/faq",
+      "accessible": true,
+      "statusCode": 200,
+      "error": null,
+      "checkedAt": "2026-05-17T03:55:55.747Z"
+    }
+  ],
+  "timestamp": "2026-05-17T03:55:55.742Z",
+  "baseUrl": "http://localhost:3000",
+  "summary": {
+    "totalRoutes": 10,
+    "passCount": 10,
+    "failCount": 0,
+    "criticalRoutesPassing": 4,
+    "criticalRoutesTotal": 4,
+    "allCriticalRoutesPassing": true,
+    "readiness": "PASS"
+  }
+}
