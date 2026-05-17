@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Button } from "@/components/ui/button";
 import { AdminCameraCapture } from "@/components/admin/AdminCameraCapture";
 import { MobileNav } from "@/components/mobile-nav";
 import { UserNav } from "@/components/user-nav";
@@ -94,20 +93,17 @@ export function SiteHeader() {
             <Phone className="h-4 w-4" aria-hidden="true" />
             <span>{contactInfo.phone}</span>
           </a>
-          <Button
-            asChild
-            size="sm"
-            className="hidden md:inline-flex font-bold transition-all"
+          <Link
+            href="/book"
+            className="hidden md:inline-flex items-center rounded-md px-3 py-2 text-sm font-bold transition-all"
             style={{
               background: "var(--color-yellow)",
               color: "var(--color-navy)",
             }}
           >
-            <Link href="/book">
-              <span className="mr-1.5" aria-hidden="true">🐾</span>
-              Book a Playday
-            </Link>
-          </Button>
+            <span className="mr-1.5" aria-hidden="true">🐾</span>
+            Book a Playday
+          </Link>
           {showAdminCamera ? <AdminCameraCapture /> : null}
           <UserNav />
           <MobileNav />

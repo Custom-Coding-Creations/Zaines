@@ -53,6 +53,20 @@ function Button({
     loading?: boolean;
   }) {
   const Comp = asChild ? Slot.Root : "button";
+
+  // Radix Slot requires exactly one React element child.
+  // Avoid prepending extra nodes (like loading-only text) when using asChild.
+  const slotChildren = asChild
+    ? children
+    : (
+        <>
+          {loading ? (
+            <span className="sr-only">Loading…</span>
+          ) : null}
+          {children}
+        </>
+      );
+
   return (
     <Comp
       data-slot="button"
@@ -68,10 +82,7 @@ function Button({
       disabled={props.disabled || loading}
       {...props}
     >
-      {loading ? (
-        <span className="sr-only">Loading…</span>
-      ) : null}
-      {children}
+      {slotChildren}
     </Comp>
   );
 }
