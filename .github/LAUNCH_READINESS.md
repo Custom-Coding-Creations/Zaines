@@ -17,6 +17,29 @@ This document provides the authoritative launch readiness checklist for Funky To
 
 ## Pre-Launch Validation Framework
 
+### Phase 0: Hard Gates Evidence (Issue #66 Validation)
+
+**Status:** All hard gates PASS ✅ (May 16, 2026). Evidence aggregated and validated.
+
+| Gate | Status | Evidence File | Verdict |
+|------|--------|---------------|---------|
+| **Security** | ✅ PASS | `docs/audit_logs/ISSUE66_SECURITY_GATE.json` | Baseline non-regression: 0 critical, 2 high (stable), 80 console findings |
+| **Performance** | ✅ PASS | `docs/audit_logs/ISSUE66_PERFORMANCE_BUDGET.json` | All routes within budget: LCP <1.2s, DOM/Script/Style within limits |
+| **Accessibility** | ✅ PASS | `docs/audit_logs/PLAYWRIGHT_A11Y.json` | WCAG 2.1 AA: 0 critical/serious violations across 18 routes |
+| **Rollback Drill** | ✅ PASS | `docs/audit_logs/issue66_rollback_drill_timing.json` | Verified: 45s avg (Vercel 8s, Git 45s, DNS 2min), all verifications true |
+| **Pre-Flight** | ✅ PASS | `docs/audit_logs/PREFLIGHT_VALIDATION_2026-05-16.json` | Critical paths accessible: 10/10 routes pass (home, book, dashboard, etc.) |
+| **Aggregation** | ✅ PASS | `docs/audit_logs/LAUNCH_READINESS_EVIDENCE_2026-05-16.json` | Final adjudication: READY_FOR_STAGED_ROLLOUT |
+
+**Readiness Level:** `READY_FOR_STAGED_ROLLOUT`
+
+**How to Regenerate Evidence:**
+```bash
+pnpm run audit:launch:readiness      # Aggregates all 4 gates into final adjudication
+pnpm run audit:preflight             # Validates critical paths are accessible
+```
+
+---
+
 ### Phase 0: Quality Gates Baseline (G1-G10)
 
 **Status:** All gates must be PASS before proceeding to staged rollout.
