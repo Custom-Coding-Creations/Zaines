@@ -11,6 +11,7 @@ const autoAssignSchema = z.object({
   date: z.string().datetime().optional(),
   repairConflicts: z.boolean().optional(),
   groupIds: z.array(z.string().min(1)).optional(),
+  dryRun: z.boolean().optional(),
 });
 
 async function authorize() {
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
   const dayStart = startOfDay(targetDate);
   const dayEnd = endOfDay(targetDate);
   const repairConflicts = parsed.data.repairConflicts === true;
+  const dryRun = parsed.data.dryRun === true;
   const groupIdScope = new Set(parsed.data.groupIds ?? []);
 
   const [groups, staffMembers] = await Promise.all([
@@ -250,7 +252,7 @@ export async function POST(request: NextRequest) {
     newlyAssignedByStaff.set(selected.staffMemberId, current);
   }
 
-  if (assignments.length > 0) {
+  if (assignments.length > 0 && !dryRun) {
     await prisma.$transaction(
       assignments.map((assignment) =>
         prisma.playGroup.update({
@@ -290,7 +292,8 @@ export async function POST(request: NextRequest) {
     skipped,
     assignments,
     repairConflicts,
-    auditEventsRecorded: assignments.length,
+    dryRun,
+    auditEventsRecorded: dryRun ? 0 : assignments.length,
   };
 
   return NextResponse.json({ success: true, data: response } as ApiResponse<typeof response>);

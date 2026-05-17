@@ -138,7 +138,7 @@ type PlayGroupAuditEvent = {
 };
 
 type BulkStaffingRun = {
-  mode: 'auto_assign' | 'repair_conflicts';
+  mode: 'auto_assign' | 'repair_conflicts' | 'preview_repair_conflicts';
   targetDate: string;
   attempted: number;
   assigned: number;
@@ -656,6 +656,55 @@ export default function AdminPlayGroupsPage() {
     }
   }
 
+  async function previewActionableExceptions() {
+    const groupIds = staffingExceptions.filter((item) => item.canAutoFix).map((item) => item.groupId);
+    if (groupIds.length === 0) return;
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      const response = await fetch('/api/admin/play-groups/auto-assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: new Date(selectedDate).toISOString(),
+          repairConflicts: true,
+          groupIds,
+          dryRun: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error || 'Failed to preview actionable exceptions');
+      }
+
+      const payload = (await response.json()) as {
+        data?: {
+          targetDate?: string;
+          attempted?: number;
+          assigned?: number;
+          auditEventsRecorded?: number;
+          skipped?: Array<{ groupId: string; reason: string }>;
+        };
+      };
+
+      setLastBulkRun({
+        mode: 'preview_repair_conflicts',
+        targetDate: payload.data?.targetDate ?? new Date(selectedDate).toISOString(),
+        attempted: payload.data?.attempted ?? 0,
+        assigned: payload.data?.assigned ?? 0,
+        auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
+        skipped: payload.data?.skipped ?? [],
+      });
+    } catch (previewError) {
+      setError(previewError instanceof Error ? previewError.message : 'Failed to preview actionable exceptions');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const todayEligiblePets = eligiblePets.filter((entry) =>
     !groups.some((group) => group.assignments.some((assignment) => assignment.pet.id === entry.pet.id)),
   );
@@ -675,12 +724,24 @@ export default function AdminPlayGroupsPage() {
             <Button type="button" variant="outline" disabled={saving} onClick={() => void repairStaffingConflicts()}>
               {saving ? 'Running...' : 'Repair Staffing Conflicts'}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving || staffingExceptions.every((item) => !item.canAutoFix)}
+              onClick={() => void previewActionableExceptions()}
+            >
+              {saving ? 'Running...' : 'Preview Actionable Repairs'}
+            </Button>
           </div>
         </div>
         {lastBulkRun ? (
           <div className="mt-3 rounded-md border px-3 py-2 text-sm">
             <p className="font-medium">
-              {lastBulkRun.mode === 'repair_conflicts' ? 'Conflict repair run complete' : 'Auto-assignment run complete'}
+              {lastBulkRun.mode === 'repair_conflicts'
+                ? 'Conflict repair run complete'
+                : lastBulkRun.mode === 'preview_repair_conflicts'
+                  ? 'Conflict repair preview complete'
+                  : 'Auto-assignment run complete'}
             </p>
             <p className="text-xs text-muted-foreground">
               {new Date(lastBulkRun.targetDate).toLocaleDateString()} · attempted {lastBulkRun.attempted} · assigned {lastBulkRun.assigned} · audit events {lastBulkRun.auditEventsRecorded} · skipped {lastBulkRun.skipped.length}

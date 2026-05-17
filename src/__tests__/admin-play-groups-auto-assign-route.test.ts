@@ -312,4 +312,48 @@ describe('admin play groups auto-assign route', () => {
     expect(payload.data.assignments[0].groupId).toBe('group-1');
     expect(appendPlayGroupAuditEventMock).toHaveBeenCalledTimes(1);
   });
+
+  it('supports dry-run preview without persisting assignments or audit events', async () => {
+    authMock.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+    prismaMock.playGroup.findMany.mockResolvedValue([
+      {
+        id: 'group-1',
+        name: 'Preview Group',
+        timeSlot: '09:00-10:00',
+        energyLevel: 'moderate',
+        staffMemberId: null,
+      },
+    ]);
+
+    prismaMock.staffMember.findMany.mockResolvedValue([
+      {
+        id: 'staff-1',
+        role: 'handler',
+        certifications: ['Behavior Handling'],
+        schedules: [{ shiftStart: '08:00', shiftEnd: '16:00' }],
+        playGroups: [],
+      },
+    ]);
+
+    const response = await POST(new NextRequest('http://localhost/api/admin/play-groups/auto-assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: '2026-05-16T00:00:00.000Z',
+        repairConflicts: true,
+        groupIds: ['group-1'],
+        dryRun: true,
+      }),
+    }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.dryRun).toBe(true);
+    expect(payload.data.attempted).toBe(1);
+    expect(payload.data.assigned).toBe(1);
+    expect(payload.data.auditEventsRecorded).toBe(0);
+    expect(payload.data.assignments).toHaveLength(1);
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    expect(appendPlayGroupAuditEventMock).not.toHaveBeenCalled();
+  });
 });
