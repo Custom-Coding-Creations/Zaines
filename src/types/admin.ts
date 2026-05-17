@@ -327,6 +327,7 @@ export interface AdminQueueItem {
     | 'expiring_packages'
     | 'unassigned_play_groups'
     | 'actionable_staffing_exceptions'
+    | 'invalid_play_group_time_slots'
     | 'unscheduled_staff_today'
     | 'staffed_groups_without_shift'
     | 'overlapping_staff_shifts'

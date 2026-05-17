@@ -234,6 +234,7 @@ export async function GET() {
 
     const staffingExceptions = collectStaffingExceptions(todayPlayGroupsForStaffingExceptions);
     const staffedGroupsWithoutShiftCoverage = staffingExceptions.summary.withoutShiftCoverage;
+    const invalidPlayGroupTimeSlots = staffingExceptions.summary.invalidTimeSlot;
     const actionableStaffingExceptions = staffingExceptions.items.filter((item) => item.canAutoFix).length;
 
     const overlappingStaffShifts = countStaffWithOverlappingShifts(todaysStaffSchedules);
@@ -338,6 +339,17 @@ export async function GET() {
               : actionableStaffingExceptions > 0
                 ? 'attention'
                 : 'normal',
+        },
+        {
+          id: 'invalid_play_group_time_slots',
+          label: 'Invalid play group time slots',
+          count: invalidPlayGroupTimeSlots,
+          href: '/admin/play-groups',
+          description: 'Play groups with invalid time slot formats requiring manual correction.',
+          severity:
+            invalidPlayGroupTimeSlots > 0
+              ? 'critical'
+              : 'normal',
         },
         {
           id: 'unscheduled_staff_today',

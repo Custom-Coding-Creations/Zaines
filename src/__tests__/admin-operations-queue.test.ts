@@ -105,13 +105,14 @@ describe('GET /api/admin/operations/queue', () => {
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(body.data.items).toHaveLength(15);
+    expect(body.data.items).toHaveLength(16);
     expect(body.data.items.find((item: { id: string }) => item.id === 'failed_payments')?.count).toBe(5);
     expect(body.data.items.find((item: { id: string }) => item.id === 'pending_reminders')?.count).toBe(2);
     expect(body.data.items.find((item: { id: string }) => item.id === 'low_stock_items')?.count).toBe(1);
     expect(body.data.items.find((item: { id: string }) => item.id === 'expiring_packages')?.count).toBe(3);
     expect(body.data.items.find((item: { id: string }) => item.id === 'unassigned_play_groups')?.count).toBe(2);
     expect(body.data.items.find((item: { id: string }) => item.id === 'actionable_staffing_exceptions')?.count).toBe(1);
+    expect(body.data.items.find((item: { id: string }) => item.id === 'invalid_play_group_time_slots')?.count).toBe(0);
     expect(body.data.items.find((item: { id: string }) => item.id === 'unscheduled_staff_today')?.count).toBe(4);
     expect(body.data.items.find((item: { id: string }) => item.id === 'staffed_groups_without_shift')?.count).toBe(1);
     expect(body.data.items.find((item: { id: string }) => item.id === 'overlapping_staff_shifts')?.count).toBe(1);

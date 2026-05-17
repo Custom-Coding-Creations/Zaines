@@ -104,12 +104,14 @@ export default function AdminDashboardClient({
 
   const staffingSummaryItems = [
     queueById('actionable_staffing_exceptions'),
+    queueById('invalid_play_group_time_slots'),
     queueById('unassigned_play_groups'),
     queueById('staffed_groups_without_shift'),
     queueById('overlapping_staff_shifts'),
   ].filter((item): item is AdminQueueItem => Boolean(item));
 
   const staffingHasWork = staffingSummaryItems.some((item) => item.count > 0);
+  const invalidSlotCount = queueById('invalid_play_group_time_slots')?.count ?? 0;
 
   // Calculate KPIs from bookings
   function calculateKPIs(bookingList: AdminBookingResponse[]) {
@@ -491,7 +493,11 @@ export default function AdminDashboardClient({
                 : `Run Auto-Fix (${actionableStaffingGroupIds.length})`}
             </Button>
             {staffingHasWork ? (
-              <span className="text-xs text-amber-700">Action needed: use Fix Actionable Exceptions in Play Groups.</span>
+              <span className="text-xs text-amber-700">
+                {invalidSlotCount > 0
+                  ? 'Action needed: invalid time slots require manual correction in Play Groups before auto-fix.'
+                  : 'Action needed: use Fix Actionable Exceptions in Play Groups.'}
+              </span>
             ) : (
               <span className="text-xs text-emerald-700">Staffing exceptions are currently clear.</span>
             )}
