@@ -238,4 +238,61 @@ describe('admin play groups auto-assign route', () => {
     expect(payload.data.assigned).toBe(2);
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
   });
+
+  it('repairs only scoped exception groups when groupIds are provided', async () => {
+    authMock.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+    prismaMock.playGroup.findMany.mockResolvedValue([
+      {
+        id: 'group-1',
+        name: 'No Coverage',
+        timeSlot: '09:00-10:00',
+        energyLevel: 'moderate',
+        staffMemberId: 'staff-2',
+      },
+      {
+        id: 'group-2',
+        name: 'Also No Coverage',
+        timeSlot: '10:00-11:00',
+        energyLevel: 'high',
+        staffMemberId: 'staff-2',
+      },
+    ]);
+
+    prismaMock.staffMember.findMany.mockResolvedValue([
+      {
+        id: 'staff-1',
+        role: 'handler',
+        certifications: ['Behavior Handling'],
+        schedules: [{ shiftStart: '08:00', shiftEnd: '16:00' }],
+        playGroups: [],
+      },
+      {
+        id: 'staff-2',
+        role: 'groomer',
+        certifications: [],
+        schedules: [{ shiftStart: '12:00', shiftEnd: '17:00' }],
+        playGroups: [
+          { id: 'group-1', timeSlot: '09:00-10:00' },
+          { id: 'group-2', timeSlot: '10:00-11:00' },
+        ],
+      },
+    ]);
+
+    const response = await POST(new NextRequest('http://localhost/api/admin/play-groups/auto-assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: '2026-05-16T00:00:00.000Z',
+        repairConflicts: true,
+        groupIds: ['group-1'],
+      }),
+    }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.attempted).toBe(1);
+    expect(payload.data.assigned).toBe(1);
+    expect(payload.data.assignments).toHaveLength(1);
+    expect(payload.data.assignments[0].groupId).toBe('group-1');
+  });
 });

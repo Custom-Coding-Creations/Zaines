@@ -10,6 +10,7 @@ import type { ApiResponse } from '@/types/admin';
 const autoAssignSchema = z.object({
   date: z.string().datetime().optional(),
   repairConflicts: z.boolean().optional(),
+  groupIds: z.array(z.string().min(1)).optional(),
 });
 
 async function authorize() {
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
   const dayStart = startOfDay(targetDate);
   const dayEnd = endOfDay(targetDate);
   const repairConflicts = parsed.data.repairConflicts === true;
+  const groupIdScope = new Set(parsed.data.groupIds ?? []);
 
   const [groups, staffMembers] = await Promise.all([
     prisma.playGroup.findMany({
@@ -174,9 +176,13 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const scopedGroups = groupIdScope.size > 0
+    ? groups.filter((group) => groupIdScope.has(group.id))
+    : groups;
+
   const targetGroups = repairConflicts
-    ? groups.filter((group) => groupsNeedingRepair.has(group.id))
-    : groups.filter((group) => !group.staffMemberId);
+    ? scopedGroups.filter((group) => groupsNeedingRepair.has(group.id))
+    : scopedGroups.filter((group) => !group.staffMemberId);
   const newlyAssignedByStaff = new Map<string, TimeSlotRange[]>();
 
   const assignments: Array<{ groupId: string; staffMemberId: string; score: number }> = [];

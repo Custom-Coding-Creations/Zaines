@@ -601,6 +601,54 @@ export default function AdminPlayGroupsPage() {
     }
   }
 
+  async function autoFixActionableExceptions() {
+    const groupIds = staffingExceptions.filter((item) => item.canAutoFix).map((item) => item.groupId);
+    if (groupIds.length === 0) return;
+
+    try {
+      setSaving(true);
+      setError(null);
+
+      const response = await fetch('/api/admin/play-groups/auto-assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: new Date(selectedDate).toISOString(),
+          repairConflicts: true,
+          groupIds,
+        }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error || 'Failed to auto-fix actionable exceptions');
+      }
+
+      const payload = (await response.json()) as {
+        data?: {
+          targetDate?: string;
+          attempted?: number;
+          assigned?: number;
+          skipped?: Array<{ groupId: string; reason: string }>;
+        };
+      };
+
+      setLastBulkRun({
+        mode: 'repair_conflicts',
+        targetDate: payload.data?.targetDate ?? new Date(selectedDate).toISOString(),
+        attempted: payload.data?.attempted ?? 0,
+        assigned: payload.data?.assigned ?? 0,
+        skipped: payload.data?.skipped ?? [],
+      });
+
+      await load(selectedDate);
+    } catch (fixError) {
+      setError(fixError instanceof Error ? fixError.message : 'Failed to auto-fix actionable exceptions');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const todayEligiblePets = eligiblePets.filter((entry) =>
     !groups.some((group) => group.assignments.some((assignment) => assignment.pet.id === entry.pet.id)),
   );
@@ -718,6 +766,20 @@ export default function AdminPlayGroupsPage() {
           <CardTitle>Staffing Exceptions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={saving || staffingExceptions.every((item) => !item.canAutoFix)}
+              onClick={() => void autoFixActionableExceptions()}
+            >
+              {saving
+                ? 'Running...'
+                : `Fix Actionable Exceptions (${staffingExceptions.filter((item) => item.canAutoFix).length})`}
+            </Button>
+          </div>
+
           <div className="flex flex-wrap gap-2 text-xs">
             <Badge variant="outline">Total {staffingSummary.total}</Badge>
             <Badge variant="outline">Unassigned {staffingSummary.unassigned}</Badge>
