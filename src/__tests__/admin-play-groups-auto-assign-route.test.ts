@@ -179,4 +179,63 @@ describe('admin play groups auto-assign route', () => {
     expect(payload.data.assigned).toBe(2);
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
   });
+
+  it('repairs overlapping assignments by reassigning the conflicting group', async () => {
+    authMock.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+    prismaMock.playGroup.findMany.mockResolvedValue([
+      {
+        id: 'group-1',
+        name: 'Overlap A',
+        timeSlot: '09:00-10:30',
+        energyLevel: 'moderate',
+        staffMemberId: 'staff-1',
+      },
+      {
+        id: 'group-2',
+        name: 'Overlap B',
+        timeSlot: '10:00-11:00',
+        energyLevel: 'high',
+        staffMemberId: 'staff-1',
+      },
+      {
+        id: 'group-3',
+        name: 'Helper Group',
+        timeSlot: '12:00-13:00',
+        energyLevel: 'calm',
+        staffMemberId: null,
+      },
+    ]);
+
+    prismaMock.staffMember.findMany.mockResolvedValue([
+      {
+        id: 'staff-1',
+        role: 'handler',
+        certifications: ['Behavior Handling'],
+        schedules: [{ shiftStart: '08:00', shiftEnd: '16:00' }],
+        playGroups: [
+          { id: 'group-1', timeSlot: '09:00-10:30' },
+          { id: 'group-2', timeSlot: '10:00-11:00' },
+        ],
+      },
+      {
+        id: 'staff-2',
+        role: 'groomer',
+        certifications: [],
+        schedules: [{ shiftStart: '08:00', shiftEnd: '16:00' }],
+        playGroups: [],
+      },
+    ]);
+
+    const response = await POST(new NextRequest('http://localhost/api/admin/play-groups/auto-assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: '2026-05-16T00:00:00.000Z', repairConflicts: true }),
+    }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.repairConflicts).toBe(true);
+    expect(payload.data.assigned).toBe(2);
+    expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+  });
 });
