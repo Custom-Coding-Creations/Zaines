@@ -45,6 +45,27 @@ export async function GET() {
               name: true,
               breed: true,
               weight: true,
+              assessments: {
+                where: {
+                  overallResult: {
+                    in: ['approved', 'conditional'],
+                  },
+                },
+                orderBy: {
+                  assessmentDate: 'desc',
+                },
+                take: 1,
+                select: {
+                  id: true,
+                  assessmentDate: true,
+                  overallResult: true,
+                  sizeCompatibility: true,
+                  energyLevel: true,
+                  playStyle: true,
+                  reactivityLevel: true,
+                  validUntil: true,
+                },
+              },
             },
           },
         },
@@ -56,6 +77,7 @@ export async function GET() {
   const pets = bookings.flatMap((booking) =>
     booking.bookingPets.map(({ pet }) => ({
       pet,
+      latestAssessment: pet.assessments[0] ?? null,
       booking: {
         id: booking.id,
         bookingNumber: booking.bookingNumber,

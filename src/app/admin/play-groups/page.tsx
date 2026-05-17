@@ -22,7 +22,18 @@ type EligiblePet = {
     name: string;
     breed: string;
     weight: number;
+    assessments?: Array<{ id: string }>;
   };
+  latestAssessment: {
+    id: string;
+    assessmentDate: string;
+    overallResult: 'approved' | 'conditional';
+    sizeCompatibility: 'small_only' | 'medium_and_small' | 'any';
+    energyLevel: 'low' | 'moderate' | 'high';
+    playStyle: string;
+    reactivityLevel: number;
+    validUntil: string | null;
+  } | null;
   booking: {
     id: string;
     bookingNumber: string;
@@ -33,6 +44,93 @@ type EligiblePet = {
     email: string | null;
   };
 };
+
+type CompatibilityResult = {
+  score: number;
+  reason: string;
+};
+
+const sizeCategoryRanks: Record<'small' | 'medium' | 'large', number> = {
+  small: 1,
+  medium: 2,
+  large: 3,
+};
+
+function getPetSizeCategory(weight: number): 'small' | 'medium' | 'large' {
+  if (weight <= 25) return 'small';
+  if (weight <= 55) return 'medium';
+  return 'large';
+}
+
+function scoreCompatibility(entry: EligiblePet, group: PlayGroup): CompatibilityResult {
+  const assessment = entry.latestAssessment;
+  if (!assessment) {
+    return { score: 45, reason: 'No approved behavioral assessment on file' };
+  }
+
+  if (assessment.validUntil && new Date(assessment.validUntil) < new Date()) {
+    return { score: 40, reason: 'Assessment expired - review before assignment' };
+  }
+
+  const petSize = getPetSizeCategory(entry.pet.weight);
+  const groupEnergy = group.energyLevel;
+  const assessmentEnergy = assessment.energyLevel;
+  let score = assessment.overallResult === 'approved' ? 100 : 85;
+  const reasons: string[] = [];
+
+  if (group.sizeCategory !== 'mixed') {
+    const sizeMatch = group.sizeCategory === petSize;
+    if (!sizeMatch) {
+      score -= 20;
+      reasons.push('size mismatch');
+    }
+  }
+
+  if (assessment.sizeCompatibility === 'small_only' && (group.sizeCategory === 'large' || group.sizeCategory === 'mixed')) {
+    score -= 25;
+    reasons.push('assessment prefers small-only group');
+  }
+
+  if (assessment.sizeCompatibility === 'medium_and_small' && group.sizeCategory === 'large') {
+    score -= 15;
+    reasons.push('assessment avoids large-only groups');
+  }
+
+  const energyMismatch =
+    (groupEnergy === 'high' && assessmentEnergy === 'low') ||
+    (groupEnergy === 'calm' && assessmentEnergy === 'high');
+  if (energyMismatch) {
+    score -= 15;
+    reasons.push('energy mismatch');
+  }
+
+  if (assessment.reactivityLevel >= 4 && group.energyLevel === 'high') {
+    score -= 15;
+    reasons.push('high reactivity for high-energy group');
+  }
+
+  const boundedScore = Math.max(0, Math.min(100, score));
+  return {
+    score: boundedScore,
+    reason: reasons.length > 0 ? reasons.join(', ') : 'Strong behavioral fit',
+  };
+}
+
+function scoreBadgeVariant(score: number): 'default' | 'secondary' | 'outline' | 'destructive' {
+  if (score >= 80) return 'default';
+  if (score >= 60) return 'secondary';
+  if (score >= 45) return 'outline';
+  return 'destructive';
+}
+
+function getSortedPetOptions(entries: EligiblePet[], group: PlayGroup) {
+  return entries
+    .map((entry) => ({
+      ...entry,
+      compatibility: scoreCompatibility(entry, group),
+    }))
+    .sort((left, right) => right.compatibility.score - left.compatibility.score);
+}
 
 type PlayGroupAssignment = {
   id: string;
@@ -302,6 +400,14 @@ export default function AdminPlayGroupsPage() {
 
           {groups.map((group) => (
             <article key={group.id} className="rounded-md border p-4 space-y-3">
+              {(() => {
+                const sortedOptions = getSortedPetOptions(todayEligiblePets, group);
+                const selectedPetCompatibility = sortedOptions.find(
+                  (entry) => entry.pet.id === (petSelections[group.id] || ''),
+                )?.compatibility;
+
+                return (
+                  <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="font-medium">{group.name}</p>
@@ -331,13 +437,18 @@ export default function AdminPlayGroupsPage() {
                     }
                   >
                     <option value="">Select pet</option>
-                    {todayEligiblePets.map((entry) => (
+                    {sortedOptions.map((entry) => (
                       <option key={entry.pet.id} value={entry.pet.id}>
-                        {entry.pet.name} ({entry.pet.breed}) · {entry.owner.name || entry.owner.email} · {entry.booking.bookingNumber}
+                        [{entry.compatibility.score}] {entry.pet.name} ({entry.pet.breed}) · {entry.owner.name || entry.owner.email} · {entry.booking.bookingNumber}
                       </option>
                     ))}
                   </select>
                 </div>
+                {selectedPetCompatibility ? (
+                  <Badge variant={scoreBadgeVariant(selectedPetCompatibility.score)}>
+                    Fit {selectedPetCompatibility.score}: {selectedPetCompatibility.reason}
+                  </Badge>
+                ) : null}
                 <Button
                   variant="outline"
                   disabled={busyGroupId === group.id || group.assignments.length >= group.maxCapacity}
@@ -346,6 +457,19 @@ export default function AdminPlayGroupsPage() {
                   {busyGroupId === group.id ? 'Saving...' : 'Assign Pet'}
                 </Button>
               </div>
+
+              {sortedOptions.length > 0 ? (
+                <div className="rounded-md border border-muted bg-muted/20 p-2">
+                  <p className="text-xs font-medium text-muted-foreground">Top suggested fits</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {sortedOptions.slice(0, 3).map((entry) => (
+                      <Badge key={`${group.id}-${entry.pet.id}`} variant={scoreBadgeVariant(entry.compatibility.score)}>
+                        {entry.pet.name}: {entry.compatibility.score}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               {group.assignments.length > 0 ? (
                 <div className="space-y-2">
@@ -371,6 +495,9 @@ export default function AdminPlayGroupsPage() {
               ) : (
                 <p className="text-sm text-muted-foreground">No pets assigned yet.</p>
               )}
+                  </>
+                );
+              })()}
             </article>
           ))}
         </CardContent>
