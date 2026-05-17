@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { classifyAuthFailure } from '@/lib/api/auth-error-classification';
 
 type StaffSession = {
   user: {
@@ -21,14 +22,11 @@ type StaffSessionResult =
     };
 
 function buildAuthFailureResponse(error: unknown): NextResponse {
-  const authErrorType =
-    error && typeof error === 'object' && 'type' in error && typeof error.type === 'string'
-      ? error.type
-      : null;
+  const failureKind = classifyAuthFailure(error);
 
   // Invalid or expired session tokens should be treated as unauthenticated,
   // not as an infrastructure outage.
-  if (authErrorType === 'JWTSessionError' || authErrorType === 'SessionTokenError') {
+  if (failureKind === 'invalid_session') {
     return NextResponse.json(
       {
         error: 'Unauthorized',
@@ -39,7 +37,7 @@ function buildAuthFailureResponse(error: unknown): NextResponse {
   }
 
   // Missing secrets are deployment misconfiguration, not transient service failures.
-  if (authErrorType === 'MissingSecret') {
+  if (failureKind === 'misconfigured') {
     return NextResponse.json(
       {
         error: 'Authentication misconfigured',

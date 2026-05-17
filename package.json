@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint src scripts --ext .ts,.tsx,.js",
     "lint:agents": "node scripts/ci/enforce-agent-autonomy.cjs",
+    "auth:readiness": "node scripts/ci/check-auth-readiness.cjs",
     "hooks:install": "git config core.hooksPath .githooks",
     "format:check": "pnpm dlx prettier@3.6.2 --check \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
     "typecheck": "tsc --noEmit",

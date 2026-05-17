@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { classifyAuthFailure } from '@/lib/api/auth-error-classification';
 
 type FinanceAccessMode = 'read' | 'write';
 
@@ -14,12 +15,9 @@ type FinanceAccessResult =
     };
 
 function buildFinanceAuthFailureResponse(error: unknown): NextResponse {
-  const authErrorType =
-    error && typeof error === 'object' && 'type' in error && typeof error.type === 'string'
-      ? error.type
-      : null;
+  const failureKind = classifyAuthFailure(error);
 
-  if (authErrorType === 'JWTSessionError' || authErrorType === 'SessionTokenError') {
+  if (failureKind === 'invalid_session') {
     return NextResponse.json(
       {
         error: 'Unauthorized',
@@ -29,7 +27,7 @@ function buildFinanceAuthFailureResponse(error: unknown): NextResponse {
     );
   }
 
-  if (authErrorType === 'MissingSecret') {
+  if (failureKind === 'misconfigured') {
     return NextResponse.json(
       {
         error: 'Authentication misconfigured',
