@@ -104,6 +104,57 @@ describe("GET /api/availability", () => {
     expect(data).toHaveProperty("isAvailable", true);
   });
 
+  it("should return 400 for invalid date ranges", async () => {
+    const { isDatabaseConfigured } = await import("@/lib/prisma");
+    vi.mocked(isDatabaseConfigured).mockReturnValue(true);
+
+    const request = new NextRequest(
+      "http://localhost:3000/api/availability?checkIn=2026-03-10&checkOut=2026-03-05",
+    );
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data).toEqual(
+      expect.objectContaining({
+        errorCode: "AVAILABILITY_VALIDATION_ERROR",
+        retryable: false,
+      }),
+    );
+  });
+
+  it("should ignore bookings without suite tier instead of throwing", async () => {
+    const { isDatabaseConfigured, prisma } = await import("@/lib/prisma");
+    vi.mocked(isDatabaseConfigured).mockReturnValue(true);
+    vi.mocked(prisma.booking.findMany).mockResolvedValue([
+      {
+        id: "1",
+        suite: null,
+        bookingPets: [{ id: "pet-1" }],
+      },
+      {
+        id: "2",
+        suite: { tier: "Standard" },
+        bookingPets: [{ id: "pet-2" }],
+      },
+    ] as never);
+
+    const request = new NextRequest(
+      "http://localhost:3000/api/availability?checkIn=2026-03-01&checkOut=2026-03-05",
+    );
+
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.availability).toEqual({
+      standard: 9,
+      deluxe: 8,
+      luxury: 5,
+    });
+  });
+
   it("should calculate occupied suites correctly", async () => {
     const { isDatabaseConfigured, prisma } = await import("@/lib/prisma");
     vi.mocked(isDatabaseConfigured).mockReturnValue(true);
