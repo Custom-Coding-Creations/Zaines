@@ -58,6 +58,13 @@ interface StepPaymentProps {
     tax: number;
     total: number;
     packageCredit?: number;
+    holidaySurchargeTotal?: number;
+    appliedHolidaySurcharges?: Array<{
+      id: string;
+      name: string;
+      amount: number;
+      surchargeType: 'flat' | 'percentage';
+    }>;
     appliedPackage?: {
       packageId: string;
       packageName: string;
@@ -113,6 +120,7 @@ function PricingDisclosureCard({
   totalWithTax,
   packageCredit,
   appliedPackageName,
+  appliedHolidaySurcharges,
   disclosure,
   pricingDisclosureAccepted,
   onPricingDisclosureChange,
@@ -122,6 +130,7 @@ function PricingDisclosureCard({
   totalWithTax: number;
   packageCredit: number;
   appliedPackageName?: string | null;
+  appliedHolidaySurcharges: Array<{ id: string; name: string; amount: number }>;
   disclosure: string;
   pricingDisclosureAccepted: boolean;
   onPricingDisclosureChange: (accepted: boolean) => void;
@@ -144,6 +153,12 @@ function PricingDisclosureCard({
               <span>-${packageCredit.toFixed(2)}</span>
             </div>
           ) : null}
+          {appliedHolidaySurcharges.map((surcharge) => (
+            <div key={surcharge.id} className="flex justify-between text-amber-700">
+              <span>{surcharge.name}</span>
+              <span>${surcharge.amount.toFixed(2)}</span>
+            </div>
+          ))}
           <div className="flex justify-between border-t pt-2 text-base font-semibold">
             <span>Total before confirmation</span>
             <span>${totalWithTax.toFixed(2)}</span>
@@ -341,6 +356,7 @@ export function StepPayment({
   const subtotal = Math.round((pricingQuote?.subtotal || 0) * 100) / 100;
   const tax = Math.round((pricingQuote?.tax || 0) * 100) / 100;
   const packageCredit = Math.round((pricingQuote?.packageCredit || 0) * 100) / 100;
+  const appliedHolidaySurcharges = pricingQuote?.appliedHolidaySurcharges || [];
   const totalWithTax =
     Math.round((pricingQuote?.total || totalAmount) * 100) / 100;
   const disclosure = pricingQuote?.disclosure || BOOKING_PRICING_DISCLOSURE;
@@ -884,6 +900,7 @@ export function StepPayment({
             totalWithTax={totalWithTax}
             packageCredit={packageCredit}
             appliedPackageName={pricingQuote?.appliedPackage?.packageName || null}
+            appliedHolidaySurcharges={appliedHolidaySurcharges}
             disclosure={disclosure}
             pricingDisclosureAccepted={pricingDisclosureAccepted}
             onPricingDisclosureChange={handleDisclosureChange}
@@ -963,6 +980,7 @@ export function StepPayment({
           totalWithTax={totalWithTax}
           packageCredit={packageCredit}
           appliedPackageName={pricingQuote?.appliedPackage?.packageName || null}
+          appliedHolidaySurcharges={appliedHolidaySurcharges}
           disclosure={disclosure}
           pricingDisclosureAccepted={pricingDisclosureAccepted}
           onPricingDisclosureChange={handleDisclosureChange}

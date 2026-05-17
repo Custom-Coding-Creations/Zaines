@@ -29,6 +29,7 @@ interface BookingData {
     tax: number;
     total: number;
     packageCredit?: number;
+    holidaySurchargeTotal?: number;
     currency?: string;
   };
   petNames: string[];
@@ -225,6 +226,7 @@ function ConfirmationContent() {
   const tax = booking.pricing?.tax ?? 0;
   const total = booking.pricing?.total ?? booking.total;
   const packageCredit = booking.pricing?.packageCredit ?? 0;
+  const holidaySurchargeTotal = booking.pricing?.holidaySurchargeTotal ?? 0;
   const currency = booking.pricing?.currency || "USD";
   const shouldShowClaimBooking = status === "unauthenticated";
   const shouldShowLinkedBookingMessage = status === "authenticated";
@@ -319,6 +321,14 @@ function ConfirmationContent() {
                 <span className="text-muted-foreground">Package Credit:</span>
                 <span className="font-medium text-emerald-600">
                   -{currency} ${packageCredit.toFixed(2)}
+                </span>
+              </div>
+            ) : null}
+            {holidaySurchargeTotal > 0 ? (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Holiday Surcharge:</span>
+                <span className="font-medium text-amber-700">
+                  {currency} ${holidaySurchargeTotal.toFixed(2)}
                 </span>
               </div>
             ) : null}

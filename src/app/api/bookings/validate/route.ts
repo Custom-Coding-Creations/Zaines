@@ -135,6 +135,8 @@ export async function POST(request: NextRequest) {
       suiteType,
       petCount,
       settings.pricingSettings,
+      undefined,
+      settings.holidaySurcharges,
     );
     const packageRedemption = await getEligiblePackageRedemption(
       session?.user?.id,
@@ -152,6 +154,8 @@ export async function POST(request: NextRequest) {
           tax: adjustedPricing.tax,
           total: adjustedPricing.total,
           packageCredit: adjustedPricing.packageCredit,
+          holidaySurchargeTotal: pricing.holidaySurchargeTotal,
+          appliedHolidaySurcharges: pricing.appliedHolidaySurcharges,
           appliedPackage: packageRedemption
             ? {
                 packageId: packageRedemption.packageId,

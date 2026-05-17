@@ -31,6 +31,13 @@ type BookingValidationPricing = {
   tax: number;
   total: number;
   packageCredit?: number;
+  holidaySurchargeTotal?: number;
+  appliedHolidaySurcharges?: Array<{
+    id: string;
+    name: string;
+    amount: number;
+    surchargeType: 'flat' | 'percentage';
+  }>;
   appliedPackage?: {
     packageId: string;
     packageName: string;
