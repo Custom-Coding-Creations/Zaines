@@ -323,6 +323,7 @@ export interface AdminQueueItem {
     | 'unresolved_messages'
     | 'failed_payments'
     | 'pending_reminders'
+    | 'low_stock_items'
     | 'reconciliation_exceptions'
     | 'dispute_deadlines';
   label: string;

@@ -67,6 +67,11 @@ const adminSubNavItems: AdminSubNavItem[] = [
     match: (pathname) => pathname.startsWith("/admin/reminders"),
   },
   {
+    href: "/admin/inventory",
+    label: "Inventory",
+    match: (pathname) => pathname.startsWith("/admin/inventory"),
+  },
+  {
     href: "/admin/activities",
     label: "Activity Log",
     match: (pathname) => pathname.startsWith("/admin/activities"),

@@ -47,6 +47,7 @@ export async function GET() {
       unresolvedMessages,
       failedPayments,
       pendingReminders,
+      lowStockItems,
       reconciliationExceptions,
     ] = await Promise.all([
       prisma.booking.count({
@@ -90,6 +91,14 @@ export async function GET() {
           sent: false,
           scheduledFor: {
             lte: todayEnd,
+          },
+        },
+      }),
+      prisma.inventoryItem.count({
+        where: {
+          isActive: true,
+          currentStock: {
+            lte: prisma.inventoryItem.fields.reorderLevel,
           },
         },
       }),
@@ -160,6 +169,14 @@ export async function GET() {
           href: '/admin/reminders',
           description: 'Due reminders awaiting generation or dispatch.',
           severity: pendingReminders >= 10 ? 'critical' : pendingReminders > 0 ? 'attention' : 'normal',
+        },
+        {
+          id: 'low_stock_items',
+          label: 'Low-stock items',
+          count: lowStockItems,
+          href: '/admin/inventory',
+          description: 'Inventory items at or below reorder level.',
+          severity: lowStockItems >= 5 ? 'critical' : lowStockItems > 0 ? 'attention' : 'normal',
         },
         {
           id: 'reconciliation_exceptions',
