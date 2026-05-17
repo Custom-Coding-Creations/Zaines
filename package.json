@@ -26,6 +26,7 @@
     "audit:issue66:performance": "node scripts/audit/issue66_performance_budget.js",
     "audit:issue66:security": "node scripts/audit/issue66_security_gate.js",
     "audit:issue66:gates": "pnpm run audit:issue66:security && pnpm run audit:issue66:performance && pnpm run audit:ui:accessibility:playwright",
+    "audit:issue66:gates:ci": "pnpm run audit:issue66:performance && pnpm run audit:ui:accessibility:playwright",
     "lhci": "lhci autorun",
     "lhci:collect": "lhci collect",
     "lhci:assert": "lhci assert",

@@ -50,3 +50,30 @@ jobs:
         env:
           NODE_ENV: production
           SKIP_ENV_VALIDATION: true
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Start production server for hard gates
+        run: pnpm start &
+        env:
+          PORT: 3000
+          NODE_ENV: production
+          SKIP_ENV_VALIDATION: true
+          ISSUE66_BASE_URL: http://localhost:3000
+          DATABASE_URL: postgresql://user:pass@localhost:5432/db
+          AUTH_SECRET: test-secret-for-ci
+          NEXTAUTH_SECRET: test-secret-for-ci
+          ADMIN_AUTH_SECRET: test-admin-secret
+          CUSTOMER_AUTH_SECRET: test-customer-secret
+          AUTH_URL: http://localhost:3000
+          NEXTAUTH_URL: http://localhost:3000
+
+      - name: Wait for server to be ready
+        run: |
+          timeout 60 bash -c 'until curl -sf http://localhost:3000 > /dev/null; do sleep 1; done'
+
+      - name: Run hard quality gates
+        run: pnpm run audit:issue66:gates:ci
+        env:
+          ISSUE66_BASE_URL: http://localhost:3000
