@@ -6,8 +6,9 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
+      tabIndex={0}
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm",
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-3xl border border-border/70 py-6 shadow-sm focus-ring transition-shadow duration-300 hover:shadow-lg",
         className,
       )}
       {...props}

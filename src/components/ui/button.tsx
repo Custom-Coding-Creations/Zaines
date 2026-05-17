@@ -43,21 +43,36 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  loading = false,
+  "aria-label": ariaLabel,
+  children,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
+    loading?: boolean;
   }) {
   const Comp = asChild ? Slot.Root : "button";
-
   return (
     <Comp
       data-slot="button"
       data-variant={variant}
       data-size={size}
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(
+        buttonVariants({ variant, size, className }),
+        loading && "animate-pulse cursor-wait opacity-80"
+      )}
+      aria-busy={loading || undefined}
+      aria-live={loading ? "polite" : undefined}
+      aria-label={ariaLabel}
+      disabled={props.disabled || loading}
       {...props}
-    />
+    >
+      {loading ? (
+        <span className="sr-only">Loading…</span>
+      ) : null}
+      {children}
+    </Comp>
   );
 }
 
