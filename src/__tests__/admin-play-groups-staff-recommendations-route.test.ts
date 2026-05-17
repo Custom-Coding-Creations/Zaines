@@ -115,6 +115,24 @@ describe('admin play group staff recommendations route', () => {
 
   it('allows selecting an explicit recommended staff member', async () => {
     authMock.mockResolvedValue({ user: { id: 'admin-user', role: 'admin' } });
+    prismaMock.staffMember.findMany.mockResolvedValue([
+      {
+        id: 'staff-1',
+        role: 'handler',
+        certifications: ['Behavior Handling'],
+        user: { id: 'u1', name: 'Alex', email: 'alex@example.com' },
+        schedules: [{ id: 's1', shiftStart: '08:00', shiftEnd: '12:00' }],
+        playGroups: [{ id: 'pg-a', timeSlot: '07:00-08:00' }],
+      },
+      {
+        id: 'staff-2',
+        role: 'groomer',
+        certifications: [],
+        user: { id: 'u2', name: 'Sam', email: 'sam@example.com' },
+        schedules: [{ id: 's2', shiftStart: '08:00', shiftEnd: '13:00' }],
+        playGroups: [{ id: 'pg-b', timeSlot: '14:00-15:00' }],
+      },
+    ]);
     prismaMock.playGroup.update.mockResolvedValue({
       id: 'group-1',
       staffMember: {
@@ -158,6 +176,30 @@ describe('admin play group staff recommendations route', () => {
 
     expect(response.status).toBe(409);
     expect(payload.error).toContain('conflicting play group assignment');
+    expect(prismaMock.playGroup.update).not.toHaveBeenCalled();
+  });
+
+  it('blocks assignment when selected staff has no schedule coverage for the slot', async () => {
+    authMock.mockResolvedValue({ user: { id: 'admin-user', role: 'admin' } });
+    prismaMock.staffMember.findMany.mockResolvedValue([
+      {
+        id: 'staff-1',
+        role: 'handler',
+        certifications: ['Behavior Handling'],
+        user: { id: 'u1', name: 'Alex', email: 'alex@example.com' },
+        schedules: [{ id: 's1', shiftStart: '12:00', shiftEnd: '14:00' }],
+        playGroups: [],
+      },
+    ]);
+
+    const response = await POST(makeAssignRequest({ staffMemberId: 'staff-1' }), {
+      params: Promise.resolve({ id: 'group-1' }),
+    });
+    if (!response) throw new Error('Expected response');
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload.error).toContain('not scheduled');
     expect(prismaMock.playGroup.update).not.toHaveBeenCalled();
   });
 });

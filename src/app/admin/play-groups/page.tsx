@@ -416,6 +416,30 @@ export default function AdminPlayGroupsPage() {
     }
   }
 
+  async function autoAssignAllUnassigned() {
+    try {
+      setSaving(true);
+      setError(null);
+
+      const response = await fetch('/api/admin/play-groups/auto-assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: new Date(selectedDate).toISOString() }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error || 'Failed to auto-assign unassigned groups');
+      }
+
+      await load(selectedDate);
+    } catch (autoAssignError) {
+      setError(autoAssignError instanceof Error ? autoAssignError.message : 'Failed to auto-assign unassigned groups');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const todayEligiblePets = eligiblePets.filter((entry) =>
     !groups.some((group) => group.assignments.some((assignment) => assignment.pet.id === entry.pet.id)),
   );
@@ -427,6 +451,11 @@ export default function AdminPlayGroupsPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Build daily supervised groups, balance capacity, and assign checked-in pets.
         </p>
+        <div className="mt-3">
+          <Button type="button" variant="outline" disabled={saving} onClick={() => void autoAssignAllUnassigned()}>
+            {saving ? 'Running...' : 'Auto-Assign All Unassigned'}
+          </Button>
+        </div>
       </div>
 
       <Card>

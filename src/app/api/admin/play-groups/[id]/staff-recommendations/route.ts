@@ -247,6 +247,13 @@ export async function POST(
     );
   }
 
+  if (selected.reasons.includes('No matching shift for this play group time slot')) {
+    return NextResponse.json(
+      { error: 'Selected staff member is not scheduled for this play group time slot' },
+      { status: 409 },
+    );
+  }
+
   if (selected.score < 40) {
     return NextResponse.json(
       { error: 'No suitable staff recommendation available for auto-assignment' },
