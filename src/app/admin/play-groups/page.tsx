@@ -7,6 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  getScoreBadgeVariant,
+  scorePlayGroupCompatibility,
+} from '@/lib/play-groups/compatibility';
 
 type StaffOption = {
   id: string;
@@ -45,89 +49,28 @@ type EligiblePet = {
   };
 };
 
-type CompatibilityResult = {
-  score: number;
-  reason: string;
-};
-
-const sizeCategoryRanks: Record<'small' | 'medium' | 'large', number> = {
-  small: 1,
-  medium: 2,
-  large: 3,
-};
-
-function getPetSizeCategory(weight: number): 'small' | 'medium' | 'large' {
-  if (weight <= 25) return 'small';
-  if (weight <= 55) return 'medium';
-  return 'large';
-}
-
-function scoreCompatibility(entry: EligiblePet, group: PlayGroup): CompatibilityResult {
-  const assessment = entry.latestAssessment;
-  if (!assessment) {
-    return { score: 45, reason: 'No approved behavioral assessment on file' };
-  }
-
-  if (assessment.validUntil && new Date(assessment.validUntil) < new Date()) {
-    return { score: 40, reason: 'Assessment expired - review before assignment' };
-  }
-
-  const petSize = getPetSizeCategory(entry.pet.weight);
-  const groupEnergy = group.energyLevel;
-  const assessmentEnergy = assessment.energyLevel;
-  let score = assessment.overallResult === 'approved' ? 100 : 85;
-  const reasons: string[] = [];
-
-  if (group.sizeCategory !== 'mixed') {
-    const sizeMatch = group.sizeCategory === petSize;
-    if (!sizeMatch) {
-      score -= 20;
-      reasons.push('size mismatch');
-    }
-  }
-
-  if (assessment.sizeCompatibility === 'small_only' && (group.sizeCategory === 'large' || group.sizeCategory === 'mixed')) {
-    score -= 25;
-    reasons.push('assessment prefers small-only group');
-  }
-
-  if (assessment.sizeCompatibility === 'medium_and_small' && group.sizeCategory === 'large') {
-    score -= 15;
-    reasons.push('assessment avoids large-only groups');
-  }
-
-  const energyMismatch =
-    (groupEnergy === 'high' && assessmentEnergy === 'low') ||
-    (groupEnergy === 'calm' && assessmentEnergy === 'high');
-  if (energyMismatch) {
-    score -= 15;
-    reasons.push('energy mismatch');
-  }
-
-  if (assessment.reactivityLevel >= 4 && group.energyLevel === 'high') {
-    score -= 15;
-    reasons.push('high reactivity for high-energy group');
-  }
-
-  const boundedScore = Math.max(0, Math.min(100, score));
-  return {
-    score: boundedScore,
-    reason: reasons.length > 0 ? reasons.join(', ') : 'Strong behavioral fit',
-  };
-}
-
-function scoreBadgeVariant(score: number): 'default' | 'secondary' | 'outline' | 'destructive' {
-  if (score >= 80) return 'default';
-  if (score >= 60) return 'secondary';
-  if (score >= 45) return 'outline';
-  return 'destructive';
-}
-
 function getSortedPetOptions(entries: EligiblePet[], group: PlayGroup) {
   return entries
     .map((entry) => ({
       ...entry,
-      compatibility: scoreCompatibility(entry, group),
+      compatibility: scorePlayGroupCompatibility(
+        {
+          weight: entry.pet.weight,
+          assessment: entry.latestAssessment
+            ? {
+                overallResult: entry.latestAssessment.overallResult,
+                sizeCompatibility: entry.latestAssessment.sizeCompatibility,
+                energyLevel: entry.latestAssessment.energyLevel,
+                reactivityLevel: entry.latestAssessment.reactivityLevel,
+                validUntil: entry.latestAssessment.validUntil,
+              }
+            : null,
+        },
+        {
+          sizeCategory: group.sizeCategory,
+          energyLevel: group.energyLevel,
+        },
+      ),
     }))
     .sort((left, right) => right.compatibility.score - left.compatibility.score);
 }
@@ -303,6 +246,45 @@ export default function AdminPlayGroupsPage() {
     }
   }
 
+  async function autoFillGroup(group: PlayGroup) {
+    const sortedOptions = getSortedPetOptions(todayEligiblePets, group);
+    const remainingCapacity = Math.max(0, group.maxCapacity - group.assignments.length);
+    const candidates = sortedOptions.slice(0, remainingCapacity);
+
+    if (candidates.length === 0) {
+      setError('No available pets to auto-fill this group.');
+      return;
+    }
+
+    try {
+      setBusyGroupId(group.id);
+      setError(null);
+
+      for (const candidate of candidates) {
+        const response = await fetch(`/api/admin/play-groups/${group.id}/assignments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            petId: candidate.pet.id,
+            bookingId: candidate.booking.id,
+            behaviorNotes: `Auto-selected fit score: ${candidate.compatibility.score} (${candidate.compatibility.reason})`,
+          }),
+        });
+
+        if (!response.ok) {
+          const body = (await response.json()) as { error?: string };
+          throw new Error(body.error || 'Failed to auto-fill play group');
+        }
+      }
+
+      await load(selectedDate);
+    } catch (autoFillError) {
+      setError(autoFillError instanceof Error ? autoFillError.message : 'Failed to auto-fill play group');
+    } finally {
+      setBusyGroupId(null);
+    }
+  }
+
   const todayEligiblePets = eligiblePets.filter((entry) =>
     !groups.some((group) => group.assignments.some((assignment) => assignment.pet.id === entry.pet.id)),
   );
@@ -445,7 +427,7 @@ export default function AdminPlayGroupsPage() {
                   </select>
                 </div>
                 {selectedPetCompatibility ? (
-                  <Badge variant={scoreBadgeVariant(selectedPetCompatibility.score)}>
+                  <Badge variant={getScoreBadgeVariant(selectedPetCompatibility.score)}>
                     Fit {selectedPetCompatibility.score}: {selectedPetCompatibility.reason}
                   </Badge>
                 ) : null}
@@ -456,6 +438,13 @@ export default function AdminPlayGroupsPage() {
                 >
                   {busyGroupId === group.id ? 'Saving...' : 'Assign Pet'}
                 </Button>
+                <Button
+                  variant="outline"
+                  disabled={busyGroupId === group.id || group.assignments.length >= group.maxCapacity}
+                  onClick={() => void autoFillGroup(group)}
+                >
+                  {busyGroupId === group.id ? 'Saving...' : 'Auto-Fill Best Fits'}
+                </Button>
               </div>
 
               {sortedOptions.length > 0 ? (
@@ -463,7 +452,7 @@ export default function AdminPlayGroupsPage() {
                   <p className="text-xs font-medium text-muted-foreground">Top suggested fits</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {sortedOptions.slice(0, 3).map((entry) => (
-                      <Badge key={`${group.id}-${entry.pet.id}`} variant={scoreBadgeVariant(entry.compatibility.score)}>
+                      <Badge key={`${group.id}-${entry.pet.id}`} variant={getScoreBadgeVariant(entry.compatibility.score)}>
                         {entry.pet.name}: {entry.compatibility.score}
                       </Badge>
                     ))}
