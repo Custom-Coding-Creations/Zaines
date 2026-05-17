@@ -23,6 +23,11 @@ type ServicesTabProps = {
 
 const sectionKeys: (keyof import('@/types/admin').AdminSettings)[] = ['serviceSettings', 'addOnsSettings'];
 
+function createClientId(prefix: string): string {
+  const randomPart = globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2, 10);
+  return `${prefix}-${randomPart}`;
+}
+
 export function ServicesTab({ onDirtyChange }: ServicesTabProps) {
   const [activeSubTab, setActiveSubTab] = useState('tiers');
   
@@ -73,7 +78,7 @@ export function ServicesTab({ onDirtyChange }: ServicesTabProps) {
 
   function addServiceTier() {
     appendTier({
-      id: `tier-${Date.now()}`,
+      id: createClientId('tier'),
       name: '',
       description: '',
       baseNightlyRate: 0,
@@ -86,7 +91,7 @@ export function ServicesTab({ onDirtyChange }: ServicesTabProps) {
 
   function addAddOn() {
     appendAddOn({
-      id: `addon-${Date.now()}`,
+      id: createClientId('addon'),
       name: '',
       description: '',
       price: 0,

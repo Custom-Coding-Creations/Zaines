@@ -23,6 +23,11 @@ type TestimonialsTabProps = {
 
 const sectionKeys: (keyof import('@/types/admin').AdminSettings)[] = ['testimonialsSettings'];
 
+function createClientId(prefix: string): string {
+  const randomPart = globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2, 10);
+  return `${prefix}-${randomPart}`;
+}
+
 export function TestimonialsTab({ onDirtyChange }: TestimonialsTabProps) {
   const [serviceOptions, setServiceOptions] = useState<string[]>([]);
   
@@ -81,7 +86,7 @@ export function TestimonialsTab({ onDirtyChange }: TestimonialsTabProps) {
 
   function addTestimonial() {
     append({
-      id: `testimonial-${Date.now()}`,
+      id: createClientId('testimonial'),
       author: '',
       petName: '',
       rating: 5,

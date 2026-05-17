@@ -20,6 +20,27 @@ import type {
 } from '@/types/admin';
 import { fullSettingsDefaults } from '@/lib/config/admin-settings-defaults';
 
+type SettingsModel = {
+  findMany: (args: {
+    where: { key: { in: string[] } };
+  }) => Promise<Array<{ key: string; value: string }>>;
+  findUnique: (args: { where: { key: string } }) => Promise<{ value: string } | null>;
+  upsert: (args: {
+    where: { key: string };
+    update: { value: string };
+    create: { key: string; value: string };
+  }) => Promise<unknown>;
+};
+
+function getSettingsModel(): SettingsModel | null {
+  const settingsModel = (prisma as unknown as { settings?: SettingsModel }).settings;
+  if (!settingsModel) return null;
+  if (typeof settingsModel.findMany !== 'function') return null;
+  if (typeof settingsModel.findUnique !== 'function') return null;
+  if (typeof settingsModel.upsert !== 'function') return null;
+  return settingsModel;
+}
+
 const SETTINGS_KEYS: Record<string, string> = {
   AUTO_CONFIRM_BOOKINGS: 'admin.auto_confirm_bookings',
   PHOTO_NOTIFICATION_TYPE: 'admin.photo_notification_type',
@@ -70,16 +91,13 @@ export async function getAdminSettings(): Promise<AdminSettings> {
     return getDefaultSettings();
   }
 
-  if (
-    !("settings" in prisma) ||
-    !prisma.settings ||
-    typeof prisma.settings.findMany !== "function"
-  ) {
+  const settingsModel = getSettingsModel();
+  if (!settingsModel) {
     return getDefaultSettings();
   }
 
   try {
-    const settings = await prisma.settings.findMany({
+    const settings = await settingsModel.findMany({
       where: {
         key: {
           in: Object.values(SETTINGS_KEYS),
@@ -325,8 +343,11 @@ export async function getAdminSettings(): Promise<AdminSettings> {
 export async function getAdminSetting(key: keyof typeof SETTINGS_KEYS): Promise<string | null> {
   if (!isDatabaseConfigured()) return null;
 
+  const settingsModel = getSettingsModel();
+  if (!settingsModel) return null;
+
   try {
-    const setting = await prisma.settings.findUnique({
+    const setting = await settingsModel.findUnique({
       where: { key: SETTINGS_KEYS[key] },
     });
 
@@ -345,12 +366,17 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
     return getDefaultSettings();
   }
 
+  const settingsModel = getSettingsModel();
+  if (!settingsModel) {
+    return getDefaultSettings();
+  }
+
   try {
     const updatePromises: Promise<unknown>[] = [];
 
     if (updates.autoConfirmBookings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.AUTO_CONFIRM_BOOKINGS },
           update: { value: String(updates.autoConfirmBookings) },
           create: {
@@ -363,7 +389,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.photoNotificationType !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.PHOTO_NOTIFICATION_TYPE },
           update: { value: updates.photoNotificationType },
           create: {
@@ -376,7 +402,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.photoNotificationTime !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.PHOTO_NOTIFICATION_TIME },
           update: { value: updates.photoNotificationTime },
           create: {
@@ -389,7 +415,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.dashboardDateRange !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.DASHBOARD_DATE_RANGE },
           update: { value: updates.dashboardDateRange },
           create: {
@@ -402,7 +428,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.stripeCapabilityFlags !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.STRIPE_CAPABILITY_FLAGS },
           update: { value: JSON.stringify(updates.stripeCapabilityFlags) },
           create: {
@@ -416,7 +442,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
     // Phase 1: Business Hours & Contact Info
     if (updates.businessHours !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.BUSINESS_HOURS },
           update: { value: JSON.stringify(updates.businessHours) },
           create: {
@@ -429,7 +455,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.contactPhone !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.CONTACT_PHONE },
           update: { value: updates.contactPhone },
           create: {
@@ -442,7 +468,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.contactEmail !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.CONTACT_EMAIL },
           update: { value: updates.contactEmail },
           create: {
@@ -455,7 +481,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.address !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.ADDRESS },
           update: { value: updates.address },
           create: {
@@ -468,7 +494,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.city !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.CITY },
           update: { value: updates.city },
           create: {
@@ -481,7 +507,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.state !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.STATE },
           update: { value: updates.state },
           create: {
@@ -494,7 +520,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.zip !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.ZIP },
           update: { value: updates.zip },
           create: {
@@ -508,7 +534,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
     // Phase 3: Availability & Scheduling Rules
     if (updates.availabilityRules !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.AVAILABILITY_RULES },
           update: { value: JSON.stringify(updates.availabilityRules) },
           create: {
@@ -521,7 +547,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.smsSettings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.SMS_SETTINGS },
           update: { value: JSON.stringify(updates.smsSettings) },
           create: {
@@ -534,7 +560,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.smsBudgetSettings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.SMS_BUDGET_SETTINGS },
           update: { value: JSON.stringify(updates.smsBudgetSettings) },
           create: {
@@ -547,7 +573,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.packageExpirationSettings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.PACKAGE_EXPIRATION_SETTINGS },
           update: { value: JSON.stringify(updates.packageExpirationSettings) },
           create: {
@@ -560,7 +586,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.reminderSettings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.REMINDER_SETTINGS },
           update: { value: JSON.stringify(updates.reminderSettings) },
           create: {
@@ -573,7 +599,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.requiredVaccineSettings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.REQUIRED_VACCINE_SETTINGS },
           update: { value: JSON.stringify(updates.requiredVaccineSettings) },
           create: {
@@ -586,7 +612,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.holidaySurcharges !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.HOLIDAY_SURCHARGES },
           update: { value: JSON.stringify(updates.holidaySurcharges) },
           create: {
@@ -600,7 +626,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
     // Phase 4: Blackout Dates & Seasonal Pricing
     if (updates.blackoutDates !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.BLACKOUT_DATES },
           update: { value: JSON.stringify(updates.blackoutDates) },
           create: {
@@ -613,7 +639,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.seasonalPricingRules !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.SEASONAL_PRICING_RULES },
           update: { value: JSON.stringify(updates.seasonalPricingRules) },
           create: {
@@ -627,7 +653,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
     // Phase 5: Pricing & Fees Configuration
     if (updates.pricingSettings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.PRICING_SETTINGS },
           update: { value: JSON.stringify(updates.pricingSettings) },
           create: {
@@ -641,7 +667,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
     // Phase 6: Cancellation Policy Configuration
     if (updates.cancellationPolicySettings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.CANCELLATION_POLICY_SETTINGS },
           update: { value: JSON.stringify(updates.cancellationPolicySettings) },
           create: {
@@ -655,7 +681,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
     // Phase 7: Business Profile & Social Links
     if (updates.businessProfileSettings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.BUSINESS_PROFILE_SETTINGS },
           update: { value: JSON.stringify(updates.businessProfileSettings) },
           create: {
@@ -669,7 +695,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
     // Phase 8: Website Profile & Service Area
     if (updates.websiteProfileSettings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.WEBSITE_PROFILE_SETTINGS },
           update: { value: JSON.stringify(updates.websiteProfileSettings) },
           create: {
@@ -683,7 +709,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
     // Phase 9: Trust Copy Settings
     if (updates.trustCopySettings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.TRUST_COPY_SETTINGS },
           update: { value: JSON.stringify(updates.trustCopySettings) },
           create: {
@@ -697,7 +723,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
     // Phase 10: Service Tiers & Add-Ons Configuration
     if (updates.serviceSettings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.SERVICE_TIERS_SETTINGS },
           update: { value: JSON.stringify(updates.serviceSettings) },
           create: {
@@ -710,7 +736,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
 
     if (updates.addOnsSettings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.ADD_ONS_SETTINGS },
           update: { value: JSON.stringify(updates.addOnsSettings) },
           create: {
@@ -724,7 +750,7 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
     // Phase 11: Testimonials Configuration
     if (updates.testimonialsSettings !== undefined) {
       updatePromises.push(
-        prisma.settings.upsert({
+        settingsModel.upsert({
           where: { key: SETTINGS_KEYS.TESTIMONIALS_SETTINGS },
           update: { value: JSON.stringify(updates.testimonialsSettings) },
           create: {

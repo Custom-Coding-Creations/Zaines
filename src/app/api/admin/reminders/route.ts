@@ -42,8 +42,29 @@ export async function POST(request: NextRequest) {
     const action = body.action || 'run';
     const limit = Math.min(Math.max(body.limit ?? 50, 1), 200);
 
-    const generationResult = action === 'dispatch' ? { generated: 0 } : await generateAutomatedReminders();
-    const dispatchResult = action === 'generate' ? { dispatched: 0, queued: 0 } : await dispatchDueAutomatedReminders(limit);
+    let generationResult = { generated: 0 };
+    let dispatchResult = { dispatched: 0, queued: 0 };
+
+    try {
+      generationResult =
+        action === 'dispatch' ? { generated: 0 } : await generateAutomatedReminders();
+      dispatchResult =
+        action === 'generate' ? { dispatched: 0, queued: 0 } : await dispatchDueAutomatedReminders(limit);
+    } catch (workflowError) {
+      console.error(`Failed to run reminders workflow action: ${action}`, workflowError);
+      return NextResponse.json(
+        {
+          error: 'Reminder workflow unavailable',
+          code: 'REMINDER_WORKFLOW_UNAVAILABLE',
+          data: {
+            action,
+            ...generationResult,
+            ...dispatchResult,
+          },
+        },
+        { status: 503 },
+      );
+    }
 
     return NextResponse.json({
       success: true,

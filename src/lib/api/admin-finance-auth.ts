@@ -16,7 +16,21 @@ type FinanceAccessResult =
 export async function requireFinanceAccess(
   mode: FinanceAccessMode,
 ): Promise<FinanceAccessResult> {
-  const session = (await auth()) as { user?: { id?: string; role?: string; name?: string } } | null;
+  let session: { user?: { id?: string; role?: string; name?: string } } | null;
+  try {
+    session = (await auth()) as { user?: { id?: string; role?: string; name?: string } } | null;
+  } catch (error) {
+    console.error('Finance auth failure', error);
+    return {
+      response: NextResponse.json(
+        {
+          error: 'Authentication service unavailable',
+          code: 'ADMIN_FINANCE_AUTH_UNAVAILABLE',
+        },
+        { status: 503 },
+      ),
+    };
+  }
 
   if (!session?.user?.id) {
     return {

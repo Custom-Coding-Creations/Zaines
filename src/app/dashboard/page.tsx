@@ -10,6 +10,13 @@ import { ActivityFeed, generateActivityItems } from "@/components/dashboard/Acti
 import { Button } from "@/components/ui/button";
 import { getBookingStatusMeta } from "@/lib/dashboard-status";
 
+const dashboardDateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "numeric",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -20,9 +27,13 @@ function formatCurrency(value: number): string {
 
 function daysUntil(date: Date): number {
   const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const start = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const target = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
   return Math.ceil((target - start) / (1000 * 60 * 60 * 24));
+}
+
+function formatDashboardDate(date: Date): string {
+  return dashboardDateFormatter.format(date);
 }
 
 export default async function DashboardPage() {
@@ -298,7 +309,7 @@ export default async function DashboardPage() {
               <div className="mt-4 rounded-md border bg-muted/20 p-4">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Next check-in</p>
                 <p className="mt-1 text-xl font-semibold">
-                  {new Date(nextStay.checkInDate).toLocaleDateString()} ({daysToNextStay === 0 ? "Today" : `${daysToNextStay} day${daysToNextStay === 1 ? "" : "s"}`})
+                  {formatDashboardDate(new Date(nextStay.checkInDate))} ({daysToNextStay === 0 ? "Today" : `${daysToNextStay} day${daysToNextStay === 1 ? "" : "s"}`})
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {nextStay.bookingPets.length} pet{nextStay.bookingPets.length === 1 ? "" : "s"} in {nextStay.suite?.name || "assigned suite"}
@@ -312,7 +323,7 @@ export default async function DashboardPage() {
                       <div className="min-w-0">
                         <p className="font-medium">{booking.suite?.name || "Suite"}</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(booking.checkInDate).toLocaleDateString()} - {new Date(booking.checkOutDate).toLocaleDateString()}
+                          {formatDashboardDate(new Date(booking.checkInDate))} - {formatDashboardDate(new Date(booking.checkOutDate))}
                         </p>
                       </div>
                       <div className="min-w-0 sm:text-right">
@@ -390,7 +401,7 @@ export default async function DashboardPage() {
                 <div className="min-w-0">
                   <p className="break-all font-medium">{booking.bookingNumber}</p>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(booking.checkInDate).toLocaleDateString()} - {new Date(booking.checkOutDate).toLocaleDateString()} in {booking.suite?.name || "Suite"}
+                    {formatDashboardDate(new Date(booking.checkInDate))} - {formatDashboardDate(new Date(booking.checkOutDate))} in {booking.suite?.name || "Suite"}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 sm:justify-end">

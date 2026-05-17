@@ -3,6 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useMessages } from "@/hooks/useMessages";
 
+const messageTimeFormatter = new Intl.DateTimeFormat("en-US", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: true,
+  timeZone: "UTC",
+});
+
+function formatMessageTime(value: string | Date): string {
+  return messageTimeFormatter.format(new Date(value));
+}
+
 interface MessageThreadProps {
   bookingId: string;
   bookingNumber: string;
@@ -153,10 +164,7 @@ export function MessageThread({ bookingId, bookingNumber }: MessageThreadProps) 
         {/* Messages */}
         {messages.map((msg) => {
           const isCustomer = msg.senderType === "customer";
-          const sentTime = new Date(msg.sentAt).toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
+          const sentTime = formatMessageTime(msg.sentAt);
 
           return (
             <div

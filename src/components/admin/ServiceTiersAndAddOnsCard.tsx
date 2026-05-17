@@ -15,6 +15,11 @@ import { toast } from 'sonner';
 import { useInvalidateSettings } from '@/providers/settings-provider';
 import type { ServiceTier, AddOn, ServiceTiersSettings, AddOnsSettings } from '@/types/admin';
 
+function createClientId(prefix: string): string {
+  const randomPart = globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2, 10);
+  return `${prefix}-${randomPart}`;
+}
+
 // Validation schemas
 const serviceTierSchema = z.object({
   id: z.string().min(1, 'ID is required'),
@@ -149,7 +154,7 @@ export function ServiceTiersAndAddOnsCard({
   }
 
   // Generate unique ID for new tiers/add-ons
-  const generateId = (prefix: string) => `${prefix}-${Date.now()}`;
+  const generateId = (prefix: string) => createClientId(prefix);
 
   const handleAddTier = () => {
     appendTier({

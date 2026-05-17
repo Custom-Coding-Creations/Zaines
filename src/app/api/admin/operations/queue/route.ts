@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
 import type { AdminOperationsQueueResponse } from '@/types/admin';
-import { getAdminSettings } from '@/lib/api/admin-settings';
+import { getAdminSettings, getDefaultSettings } from '@/lib/api/admin-settings';
 import { requireStaffSession } from '@/lib/api/admin-auth';
 import { collectStaffingExceptions } from '@/lib/play-groups/staffing-exceptions';
 
@@ -72,7 +72,10 @@ export async function GET() {
 
     const todayStart = startOfToday();
     const todayEnd = endOfToday();
-    const settings = await getAdminSettings();
+    const settings = await getAdminSettings().catch((error) => {
+      console.error('Failed to load admin settings for operations queue', error);
+      return getDefaultSettings();
+    });
     const inventoryStore = prisma.inventoryItem as unknown as {
       findMany?: (args: {
         where: { isActive: boolean };
