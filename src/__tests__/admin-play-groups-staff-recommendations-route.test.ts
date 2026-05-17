@@ -25,6 +25,14 @@ vi.mock('@/lib/prisma', () => ({
 
 import { GET, POST } from '@/app/api/admin/play-groups/[id]/staff-recommendations/route';
 
+function makeAssignRequest(body: Record<string, unknown>) {
+  return new NextRequest('http://localhost/api/admin/play-groups/group-1/staff-recommendations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
 describe('admin play group staff recommendations route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -91,7 +99,7 @@ describe('admin play group staff recommendations route', () => {
       },
     });
 
-    const response = await POST(new NextRequest('http://localhost/api/admin/play-groups/group-1/staff-recommendations', { method: 'POST' }), {
+    const response = await POST(makeAssignRequest({}), {
       params: Promise.resolve({ id: 'group-1' }),
     });
     if (!response) throw new Error('Expected response');
@@ -101,6 +109,30 @@ describe('admin play group staff recommendations route', () => {
       expect.objectContaining({
         where: { id: 'group-1' },
         data: { staffMemberId: 'staff-1' },
+      }),
+    );
+  });
+
+  it('allows selecting an explicit recommended staff member', async () => {
+    authMock.mockResolvedValue({ user: { id: 'admin-user', role: 'admin' } });
+    prismaMock.playGroup.update.mockResolvedValue({
+      id: 'group-1',
+      staffMember: {
+        id: 'staff-2',
+        user: { id: 'u2', name: 'Sam', email: 'sam@example.com' },
+      },
+    });
+
+    const response = await POST(makeAssignRequest({ staffMemberId: 'staff-2' }), {
+      params: Promise.resolve({ id: 'group-1' }),
+    });
+    if (!response) throw new Error('Expected response');
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.playGroup.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'group-1' },
+        data: { staffMemberId: 'staff-2' },
       }),
     );
   });

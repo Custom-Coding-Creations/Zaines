@@ -338,6 +338,8 @@ export default function AdminPlayGroupsPage() {
       setError(null);
       const response = await fetch(`/api/admin/play-groups/${group.id}/staff-recommendations`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
       });
       if (!response.ok) {
         const body = (await response.json()) as { error?: string };
@@ -348,6 +350,30 @@ export default function AdminPlayGroupsPage() {
       await loadStaffRecommendations(group);
     } catch (assignError) {
       setError(assignError instanceof Error ? assignError.message : 'Failed to auto-assign staff lead');
+    } finally {
+      setBusyGroupId(null);
+    }
+  }
+
+  async function assignRecommendedStaff(group: PlayGroup, staffMemberId: string) {
+    try {
+      setBusyGroupId(group.id);
+      setError(null);
+      const response = await fetch(`/api/admin/play-groups/${group.id}/staff-recommendations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffMemberId }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error || 'Failed to assign recommended staff');
+      }
+
+      await load(selectedDate);
+      await loadStaffRecommendations(group);
+    } catch (assignError) {
+      setError(assignError instanceof Error ? assignError.message : 'Failed to assign recommended staff');
     } finally {
       setBusyGroupId(null);
     }
@@ -534,11 +560,22 @@ export default function AdminPlayGroupsPage() {
                   <p className="text-xs font-medium text-muted-foreground">Staff recommendations</p>
                   <div className="mt-2 space-y-1">
                     {staffRecommendations[group.id].slice(0, 3).map((recommendation) => (
-                      <p key={`${group.id}-${recommendation.staffMember.id}`} className="text-xs">
-                        {recommendation.staffMember.user.name || recommendation.staffMember.user.email || recommendation.staffMember.id}
-                        {' · '}score {recommendation.score}
-                        {' · '}role {recommendation.staffMember.role}
-                      </p>
+                      <div key={`${group.id}-${recommendation.staffMember.id}`} className="flex items-center justify-between gap-2 rounded border bg-background px-2 py-1 text-xs">
+                        <p>
+                          {recommendation.staffMember.user.name || recommendation.staffMember.user.email || recommendation.staffMember.id}
+                          {' · '}score {recommendation.score}
+                          {' · '}role {recommendation.staffMember.role}
+                        </p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={busyGroupId === group.id}
+                          onClick={() => void assignRecommendedStaff(group, recommendation.staffMember.id)}
+                        >
+                          Assign
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
 import {
@@ -6,6 +7,10 @@ import {
   type StaffRecommendation,
 } from '@/lib/play-groups/staff-recommendation';
 import type { ApiResponse } from '@/types/admin';
+
+const assignRecommendationSchema = z.object({
+  staffMemberId: z.string().min(1).optional(),
+});
 
 async function authorize() {
   const session = await auth();
@@ -184,7 +189,7 @@ export async function GET(
 }
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const authResult = await authorize();
@@ -195,11 +200,32 @@ export async function POST(
   }
 
   const { id } = await params;
+  const body = (await request.json().catch(() => ({}))) as unknown;
+  const parsedBody = assignRecommendationSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: parsedBody.error.issues },
+      { status: 400 },
+    );
+  }
+
   const result = await buildRecommendations(id);
   if ('error' in result) return result.error;
 
-  const best = result.recommendations[0];
-  if (!best || best.score < 40) {
+  const selected = parsedBody.data.staffMemberId
+    ? result.recommendations.find(
+        (recommendation) => recommendation.staffMember.id === parsedBody.data.staffMemberId,
+      )
+    : result.recommendations[0];
+
+  if (!selected) {
+    return NextResponse.json(
+      { error: 'Selected staff member is not available in recommendations' },
+      { status: 404 },
+    );
+  }
+
+  if (selected.score < 40) {
     return NextResponse.json(
       { error: 'No suitable staff recommendation available for auto-assignment' },
       { status: 409 },
@@ -209,7 +235,7 @@ export async function POST(
   const updated = await prisma.playGroup.update({
     where: { id },
     data: {
-      staffMemberId: best.staffMember.id,
+      staffMemberId: selected.staffMember.id,
     },
     include: {
       staffMember: {
@@ -230,7 +256,7 @@ export async function POST(
     success: true,
     data: {
       playGroup: updated,
-      selectedRecommendation: best,
+      selectedRecommendation: selected,
     },
-  } as ApiResponse<{ playGroup: typeof updated; selectedRecommendation: typeof best }>);
+  } as ApiResponse<{ playGroup: typeof updated; selectedRecommendation: typeof selected }>);
 }
