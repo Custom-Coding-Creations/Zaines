@@ -32,6 +32,7 @@ interface KPICard {
 }
 
 type DashboardStaffingFixSummary = {
+  mode: 'preview' | 'apply';
   attempted: number;
   assigned: number;
   auditEventsRecorded: number;
@@ -248,7 +249,7 @@ export default function AdminDashboardClient({
     }
   }, [dateRange]);
 
-  async function runDashboardStaffingAutoFix() {
+  async function runDashboardStaffingAutoFix(dryRun = false) {
     if (actionableStaffingGroupIds.length === 0) return;
 
     try {
@@ -262,6 +263,7 @@ export default function AdminDashboardClient({
           date: new Date().toISOString(),
           repairConflicts: true,
           groupIds: actionableStaffingGroupIds,
+          dryRun,
         }),
       });
 
@@ -280,6 +282,7 @@ export default function AdminDashboardClient({
       };
 
       setStaffingFixSummary({
+        mode: dryRun ? 'preview' : 'apply',
         attempted: payload.data?.attempted ?? 0,
         assigned: payload.data?.assigned ?? 0,
         auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
@@ -470,7 +473,18 @@ export default function AdminDashboardClient({
               variant="outline"
               size="sm"
               disabled={isFixingStaffing || actionableStaffingGroupIds.length === 0}
-              onClick={() => void runDashboardStaffingAutoFix()}
+              onClick={() => void runDashboardStaffingAutoFix(true)}
+            >
+              {isFixingStaffing
+                ? 'Running...'
+                : `Preview Auto-Fix (${actionableStaffingGroupIds.length})`}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isFixingStaffing || actionableStaffingGroupIds.length === 0}
+              onClick={() => void runDashboardStaffingAutoFix(false)}
             >
               {isFixingStaffing
                 ? 'Fixing...'
@@ -484,7 +498,7 @@ export default function AdminDashboardClient({
           </div>
           {staffingFixSummary ? (
             <p className="text-xs text-muted-foreground">
-              Last quick-fix run: attempted {staffingFixSummary.attempted} · assigned {staffingFixSummary.assigned} · audit events {staffingFixSummary.auditEventsRecorded} · skipped {staffingFixSummary.skipped}
+              Last {staffingFixSummary.mode === 'preview' ? 'preview' : 'quick-fix run'}: attempted {staffingFixSummary.attempted} · assigned {staffingFixSummary.assigned} · audit events {staffingFixSummary.auditEventsRecorded} · skipped {staffingFixSummary.skipped}
             </p>
           ) : null}
         </CardContent>
