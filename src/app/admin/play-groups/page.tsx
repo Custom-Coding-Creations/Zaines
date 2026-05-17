@@ -145,6 +145,24 @@ type BulkStaffingRun = {
   skipped: Array<{ groupId: string; reason: string }>;
 };
 
+type StaffingExceptionItem = {
+  groupId: string;
+  groupName: string;
+  date: string;
+  timeSlot: string;
+  staffMemberId: string | null;
+  staffName: string | null;
+  issues: Array<'unassigned' | 'invalid_time_slot' | 'staff_without_shift_coverage' | 'staff_overlap_conflict'>;
+};
+
+type StaffingExceptionSummary = {
+  total: number;
+  unassigned: number;
+  invalidTimeSlot: number;
+  withoutShiftCoverage: number;
+  overlapConflicts: number;
+};
+
 export default function AdminPlayGroupsPage() {
   const [groups, setGroups] = useState<PlayGroup[]>([]);
   const [staff, setStaff] = useState<StaffOption[]>([]);
@@ -158,18 +176,27 @@ export default function AdminPlayGroupsPage() {
   const [staffRecommendations, setStaffRecommendations] = useState<Record<string, StaffRecommendation[]>>({});
   const [auditEvents, setAuditEvents] = useState<PlayGroupAuditEvent[]>([]);
   const [lastBulkRun, setLastBulkRun] = useState<BulkStaffingRun | null>(null);
+  const [staffingExceptions, setStaffingExceptions] = useState<StaffingExceptionItem[]>([]);
+  const [staffingSummary, setStaffingSummary] = useState<StaffingExceptionSummary>({
+    total: 0,
+    unassigned: 0,
+    invalidTimeSlot: 0,
+    withoutShiftCoverage: 0,
+    overlapConflicts: 0,
+  });
 
   const load = async (date = selectedDate) => {
     try {
       setError(null);
-      const [groupsResponse, staffResponse, petsResponse, auditResponse] = await Promise.all([
+      const [groupsResponse, staffResponse, petsResponse, auditResponse, exceptionsResponse] = await Promise.all([
         fetch(`/api/admin/play-groups?date=${encodeURIComponent(date)}`),
         fetch('/api/admin/staff?includeInactive=false'),
         fetch('/api/admin/play-groups/eligible-pets'),
         fetch('/api/admin/play-groups/audit?limit=30'),
+        fetch(`/api/admin/play-groups/staffing-exceptions?date=${encodeURIComponent(date)}`),
       ]);
 
-      if (!groupsResponse.ok || !staffResponse.ok || !petsResponse.ok || !auditResponse.ok) {
+      if (!groupsResponse.ok || !staffResponse.ok || !petsResponse.ok || !auditResponse.ok || !exceptionsResponse.ok) {
         throw new Error('Failed to load play group data');
       }
 
@@ -177,6 +204,12 @@ export default function AdminPlayGroupsPage() {
       const staffPayload = (await staffResponse.json()) as { data?: StaffOption[] };
       const petsPayload = (await petsResponse.json()) as { data?: EligiblePet[] };
       const auditPayload = (await auditResponse.json()) as { data?: PlayGroupAuditEvent[] };
+      const exceptionsPayload = (await exceptionsResponse.json()) as {
+        data?: {
+          items?: StaffingExceptionItem[];
+          summary?: StaffingExceptionSummary;
+        };
+      };
 
       setGroups(groupsPayload.data ?? []);
       setStaffSelections((current) => {
@@ -191,6 +224,14 @@ export default function AdminPlayGroupsPage() {
       setStaff(staffPayload.data ?? []);
       setEligiblePets(petsPayload.data ?? []);
       setAuditEvents(auditPayload.data ?? []);
+      setStaffingExceptions(exceptionsPayload.data?.items ?? []);
+      setStaffingSummary(exceptionsPayload.data?.summary ?? {
+        total: 0,
+        unassigned: 0,
+        invalidTimeSlot: 0,
+        withoutShiftCoverage: 0,
+        overlapConflicts: 0,
+      });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load play groups');
     }
@@ -633,6 +674,35 @@ export default function AdminPlayGroupsPage() {
               <Button type="submit" disabled={saving}>{saving ? 'Creating...' : 'Create Play Group'}</Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Staffing Exceptions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2 text-xs">
+            <Badge variant="outline">Total {staffingSummary.total}</Badge>
+            <Badge variant="outline">Unassigned {staffingSummary.unassigned}</Badge>
+            <Badge variant="outline">Invalid Slots {staffingSummary.invalidTimeSlot}</Badge>
+            <Badge variant="outline">No Shift Coverage {staffingSummary.withoutShiftCoverage}</Badge>
+            <Badge variant="outline">Overlap Conflicts {staffingSummary.overlapConflicts}</Badge>
+          </div>
+
+          {staffingExceptions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No staffing exceptions for this day.</p>
+          ) : (
+            staffingExceptions.slice(0, 8).map((item) => (
+              <div key={item.groupId} className="rounded-md border px-3 py-2 text-sm">
+                <p className="font-medium">{item.groupName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {item.timeSlot} · {item.staffName || item.staffMemberId || 'Unassigned'}
+                </p>
+                <p className="text-xs text-muted-foreground">{item.issues.join(', ')}</p>
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
 
