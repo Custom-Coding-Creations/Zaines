@@ -76,43 +76,6 @@ const daycareFeatures = [
   },
 ];
 
-const pricingOptions = [
-  {
-    name: "Half Day",
-    configuredName: "Half Day Daycare",
-    price: "$28",
-    duration: "Up to 4 hours",
-    features: [
-      "Great for short schedules",
-      "Morning or afternoon",
-      "Fun & enrichment",
-    ],
-  },
-  {
-    name: "Full Day",
-    configuredName: "Full Day Daycare",
-    price: "$38",
-    duration: "Up to 10 hours",
-    popular: true,
-    features: [
-      "Full day of play",
-      "Enrichment activities",
-      "Photo updates",
-    ],
-  },
-  {
-    name: "5 Day Package",
-    configuredName: "5 Day Daycare Package",
-    price: "$171",
-    duration: "5 days",
-    features: [
-      "Use within 30 days",
-      "Anytime flexibility",
-      "Great flexibility",
-    ],
-  },
-];
-
 export default async function DaycarePage() {
   const settings = await getAdminSettings();
   
@@ -122,10 +85,10 @@ export default async function DaycarePage() {
     maximumFractionDigits: 0,
   });
 
-  // Create a map of configured service tiers for price lookup
-  const configuredServiceMap = new Map(
-    settings.serviceSettings.serviceTiers.map((tier) => [tier.name, tier]),
-  );
+  // Get active daycare-related service tiers from admin settings
+  const daycareTiers = settings.serviceSettings.serviceTiers
+    .filter((tier) => tier.isActive && tier.name.toLowerCase().includes("daycare"))
+    .sort((a, b) => a.displayOrder - b.displayOrder);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -275,62 +238,75 @@ export default async function DaycarePage() {
             </div>
           </FadeUp>
 
-          <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
-            {pricingOptions.map((option, index) => {
-              const configuredTier = configuredServiceMap.get(option.configuredName);
-              const displayPrice = configuredTier
-                ? formatter.format(configuredTier.baseNightlyRate)
-                : option.price;
-              
-              return (
-                <ScaleIn key={option.name} delay={index * 0.1}>
-                  <div
-                    className={`paw-card relative h-full p-6 ${
-                      option.popular ? "border-2 border-primary shadow-lg" : ""
-                    }`}
-                  >
-                    {option.popular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-sm font-bold text-white">
-                        Most Popular
-                      </div>
-                    )}
-                    <div className="mb-4 text-center">
-                      <h3 className="font-display mb-2 text-2xl font-bold text-foreground">
-                        {option.name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {option.duration}
-                      </p>
-                      <p className="mt-4 text-4xl font-bold text-primary">
-                        {displayPrice}
-                      </p>
-                    </div>
-                    <ul className="mb-6 space-y-2">
-                      {option.features.map((feature) => (
-                        <li
-                          key={feature}
-                          className="flex items-start gap-2 text-sm text-muted-foreground"
-                        >
-                          <CheckCircle2
-                            className="mt-0.5 h-5 w-5 shrink-0 text-green-600"
-                            aria-hidden="true"
-                          />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      asChild
-                      className="w-full"
-                      variant={option.popular ? "default" : "outline"}
+          {daycareTiers.length > 0 ? (
+            <div className={`mx-auto grid max-w-5xl gap-6 ${
+              daycareTiers.length === 1 ? 'md:grid-cols-1 max-w-md' :
+              daycareTiers.length === 2 ? 'md:grid-cols-2' :
+              'md:grid-cols-3'
+            }`}>
+              {daycareTiers.map((tier, index) => {
+                // Determine if this tier should be marked as popular (middle tier or index 1)
+                const isPopular = daycareTiers.length > 1 && index === 1;
+                
+                return (
+                  <ScaleIn key={tier.id} delay={index * 0.1}>
+                    <div
+                      className={`paw-card relative h-full p-6 ${
+                        isPopular ? "border-2 border-primary shadow-lg" : ""
+                      }`}
                     >
-                    <Link href="/book">Book Now</Link>
-                  </Button>
-                </div>
-              </ScaleIn>
-            );
-            })}
-          </div>
+                      {isPopular && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-sm font-bold text-white">
+                          Most Popular
+                        </div>
+                      )}
+                      <div className="mb-4 text-center">
+                        <h3 className="font-display mb-2 text-2xl font-bold text-foreground">
+                          {tier.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground min-h-[20px]">
+                          {tier.description.substring(0, 50)}
+                        </p>
+                        <p className="mt-4 text-4xl font-bold text-primary">
+                          {formatter.format(tier.baseNightlyRate)}
+                        </p>
+                      </div>
+                      <ul className="mb-6 space-y-2 min-h-[120px]">
+                        {tier.description.split('.').filter(s => s.trim()).slice(0, 3).map((feature, i) => (
+                          <li
+                            key={i}
+                            className="flex items-start gap-2 text-sm text-muted-foreground"
+                          >
+                            <CheckCircle2
+                              className="mt-0.5 h-5 w-5 shrink-0 text-green-600"
+                              aria-hidden="true"
+                            />
+                            <span>{feature.trim()}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <Button
+                        asChild
+                        className="w-full"
+                        variant={isPopular ? "default" : "outline"}
+                      >
+                        <Link href="/book">Book Now</Link>
+                      </Button>
+                    </div>
+                  </ScaleIn>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-lg text-muted-foreground mb-4">
+                Daycare pricing options are being configured.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Please contact us for current rates or check back soon.
+              </p>
+            </div>
+          )}
 
           <FadeUp delay={0.3}>
             <div className="mt-8 text-center">

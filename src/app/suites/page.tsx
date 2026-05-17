@@ -42,14 +42,17 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-const suites = [
-  {
-    name: "Standard Suite",
-    price: "$65",
-    period: "/ night",
+// Static marketing content for each suite type
+// This content is matched to configured service tiers by name
+const suiteMetadata: Record<string, {
+  size: string;
+  icon: typeof Home;
+  features: string[];
+  bestFor: string;
+}> = {
+  "Standard Suite": {
     size: "6' x 8'",
     icon: Home,
-    description: "Comfortable, clean, and secure",
     features: [
       "Comfortable raised bed with washable linens",
       "Climate controlled environment",
@@ -61,15 +64,9 @@ const suites = [
     ],
     bestFor: "Perfect for dogs who love routine and comfort",
   },
-  {
-    name: "Deluxe Suite",
-    price: "$85",
-    period: "/ night",
+  "Deluxe Suite": {
     size: "8' x 10'",
-    image: "/images/suites/deluxe.jpg",
-    popular: true,
     icon: Sparkles,
-    description: "Premium comfort with premium care",
     features: [
       "Luxury orthopedic bedding",
       "Climate controlled with air purification",
@@ -83,14 +80,9 @@ const suites = [
     ],
     bestFor: "Most dogs & families seeking peace of mind",
   },
-  {
-    name: "Luxury Suite",
-    price: "$120",
-    period: "/ night",
+  "Luxury Suite": {
     size: "10' x 12'",
-    image: "/images/suites/luxury.jpg",
     icon: Crown,
-    description: "VIP experience for VIP pups",
     features: [
       "Private outdoor patio with shade structure",
       "Luxury orthopedic memory foam bed",
@@ -107,7 +99,7 @@ const suites = [
     ],
     bestFor: "Discerning pet parents who want the absolute best",
   },
-];
+};
 
 const amenities = [
   {
@@ -144,9 +136,17 @@ const amenities = [
 
 export default async function SuitesPage() {
   const settings = await getAdminSettings();
-  const configuredServiceMap = new Map(
-    settings.serviceSettings.serviceTiers.map((tier) => [tier.name, tier]),
-  );
+  
+  const formatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: settings.pricingSettings.currency || "USD",
+    maximumFractionDigits: 0,
+  });
+
+  // Get active suite-related service tiers from admin settings
+  const suiteTiers = settings.serviceSettings.serviceTiers
+    .filter((tier) => tier.isActive && tier.name.toLowerCase().includes("suite"))
+    .sort((a, b) => a.displayOrder - b.displayOrder);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -175,7 +175,7 @@ export default async function SuitesPage() {
           <FadeUp>
             <div className="mb-16 text-center">
               <h2 className="mb-4 font-display text-3xl md:text-4xl font-semibold">
-                Three Levels of Luxury
+                {suiteTiers.length > 0 ? "Three Levels of Luxury" : "Luxury Suites"}
               </h2>
               <p className="text-lg text-foreground/60">
                 All suites include daily activities, professional supervision, and premium amenities
@@ -183,98 +183,110 @@ export default async function SuitesPage() {
             </div>
           </FadeUp>
 
-          <StaggerContainer>
-            {suites.map((suite) => {
-              const SuiteIcon = suite.icon;
-              const configuredSuite = configuredServiceMap.get(suite.name);
-              const displayPrice = configuredSuite
-                ? `$${configuredSuite.baseNightlyRate}`
-                : suite.price;
-              const imageUrl =
-                configuredSuite?.imageUrl ||
-                suite.image ||
-                "/images/suites/standard-placeholder.svg";
-              return (
-                <StaggerItem key={suite.name}>
-                  <div className={`relative group transition-all duration-300 ${
-                    suite.popular ? "md:scale-105" : ""
-                  }`}>
-                    {suite.popular && (
-                      <div className="absolute -inset-1 rounded-xl bg-primary/20 blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    )}
-                    <Card
-                      className={`relative flex h-full flex-col overflow-hidden border-border/50 transition-all duration-300 hover:border-primary/30 ${
-                        suite.popular ? "border-primary/50 shadow-lg" : ""
-                      }`}
-                    >
-                      {suite.popular && (
-                        <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground shadow-lg">
-                          Most Popular
-                        </Badge>
+          {suiteTiers.length > 0 ? (
+            <StaggerContainer>
+              {suiteTiers.map((tier, index) => {
+                const metadata = suiteMetadata[tier.name] || {
+                  size: "Contact us for details",
+                  icon: Home,
+                  features: tier.description.split('.').filter(s => s.trim()),
+                  bestFor: "Contact us for more information",
+                };
+                const SuiteIcon = metadata.icon;
+                const isPopular = suiteTiers.length > 1 && index === 1;
+                const imageUrl = tier.imageUrl || "/images/suites/standard-placeholder.svg";
+                
+                return (
+                  <StaggerItem key={tier.id}>
+                    <div className={`relative group transition-all duration-300 ${
+                      isPopular ? "md:scale-105" : ""
+                    }`}>
+                      {isPopular && (
+                        <div className="absolute -inset-1 rounded-xl bg-primary/20 blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       )}
-                      <CardHeader className="pb-4">
-                        <div className="mb-4 flex items-start justify-between">
-                          <div>
-                            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                              <SuiteIcon className="h-6 w-6 text-primary" />
+                      <Card
+                        className={`relative flex h-full flex-col overflow-hidden border-border/50 transition-all duration-300 hover:border-primary/30 ${
+                          isPopular ? "border-primary/50 shadow-lg" : ""
+                        }`}
+                      >
+                        {isPopular && (
+                          <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground shadow-lg">
+                            Most Popular
+                          </Badge>
+                        )}
+                        <CardHeader className="pb-4">
+                          <div className="mb-4 flex items-start justify-between">
+                            <div>
+                              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                                <SuiteIcon className="h-6 w-6 text-primary" />
+                              </div>
+                              <CardTitle className="font-display text-2xl md:text-3xl">
+                                {tier.name}
+                              </CardTitle>
+                              <CardDescription className="text-base mt-2">
+                                {tier.description.substring(0, 50)}
+                              </CardDescription>
                             </div>
-                            <CardTitle className="font-display text-2xl md:text-3xl">
-                              {suite.name}
-                            </CardTitle>
-                            <CardDescription className="text-base mt-2">
-                              {suite.description}
-                            </CardDescription>
                           </div>
-                        </div>
-                        <div className="flex items-baseline gap-1 mb-4">
-                          <span className="font-display text-4xl font-semibold text-primary">
-                            {displayPrice}
-                          </span>
-                          <span className="text-sm text-foreground/60">
-                            {suite.period}
-                          </span>
-                        </div>
-                        <div className="text-sm text-foreground/50 font-medium">
-                          Suite Size: {suite.size}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="flex flex-1 flex-col pt-0">
-                        <div className="mb-6 aspect-[16/10] overflow-hidden rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center">
-                          <img
-                            src={imageUrl}
-                            alt={`${suite.name} suite image`}
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                        <ul className="space-y-3 flex-1">
-                          {suite.features.map((feature) => (
-                            <li
-                              key={feature}
-                              className="flex items-start gap-3"
+                          <div className="flex items-baseline gap-1 mb-4">
+                            <span className="font-display text-4xl font-semibold text-primary">
+                              {formatter.format(tier.baseNightlyRate)}
+                            </span>
+                            <span className="text-sm text-foreground/60">
+                              / night
+                            </span>
+                          </div>
+                          <div className="text-sm text-foreground/50 font-medium">
+                            Suite Size: {metadata.size}
+                          </div>
+                        </CardHeader>
+                        <CardContent className="flex flex-1 flex-col pt-0">
+                          <div className="mb-6 aspect-[16/10] overflow-hidden rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center">
+                            <img
+                              src={imageUrl}
+                              alt={`${tier.name} suite image`}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                          <ul className="space-y-3 flex-1">
+                            {metadata.features.map((feature) => (
+                              <li
+                                key={feature}
+                                className="flex items-start gap-3"
+                              >
+                                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary flex-shrink-0" />
+                                <span className="text-sm text-foreground/70">
+                                  {feature}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="mt-8 flex justify-center">
+                            <Button
+                              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto sm:min-w-56"
+                              size="lg"
+                              asChild
                             >
-                              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary flex-shrink-0" />
-                              <span className="text-sm text-foreground/70">
-                                {feature}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                        <div className="mt-8 flex justify-center">
-                          <Button
-                            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto sm:min-w-56"
-                            size="lg"
-                            asChild
-                          >
-                            <Link href="/book?fresh=true">Reserve This Suite</Link>
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </StaggerItem>
-              );
-            })}
-          </StaggerContainer>
+                              <Link href="/book?fresh=true">Reserve This Suite</Link>
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </StaggerItem>
+                );
+              })}
+            </StaggerContainer>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-lg text-muted-foreground mb-4">
+                Our luxury suites are being configured.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Please contact us for current availability and rates.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -372,48 +384,53 @@ export default async function SuitesPage() {
       </FadeUp>
 
       {/* Schema.org Structured Data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "CollectionPage",
-            name: "Luxury Dog Boarding Suites",
-            description:
-              "Three levels of luxury dog boarding accommodations with 24/7 care and monitoring",
-            mainEntity: suites.map((suite) => ({
-              "@type": "Accommodation",
-              name: suite.name,
-              description: suite.description,
-              priceRange: suite.price,
-              petsAllowed: true,
-              amenityFeature: [
-                {
-                  "@type": "Text",
-                  text: "Climate Control",
-                },
-                {
-                  "@type": "Text",
-                  text: "24/7 Supervision",
-                },
-                {
-                  "@type": "Text",
-                  text: "Premium Bedding",
-                },
-                {
-                  "@type": "Text",
-                  text: "Daily Activities",
-                },
-              ],
-              floorSize: {
-                "@type": "QuantitativeValue",
-                value: suite.size,
-                unitCode: "FTK",
-              },
-            })),
-          }),
-        }}
-      />
+      {suiteTiers.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "CollectionPage",
+              name: "Luxury Dog Boarding Suites",
+              description:
+                "Three levels of luxury dog boarding accommodations with 24/7 care and monitoring",
+              mainEntity: suiteTiers.map((tier) => {
+                const metadata = suiteMetadata[tier.name];
+                return {
+                  "@type": "Accommodation",
+                  name: tier.name,
+                  description: tier.description,
+                  priceRange: `$${tier.baseNightlyRate}`,
+                  petsAllowed: true,
+                  amenityFeature: [
+                    {
+                      "@type": "Text",
+                      text: "Climate Control",
+                    },
+                    {
+                      "@type": "Text",
+                      text: "24/7 Supervision",
+                    },
+                    {
+                      "@type": "Text",
+                      text: "Premium Bedding",
+                    },
+                    {
+                      "@type": "Text",
+                      text: "Daily Activities",
+                    },
+                  ],
+                  floorSize: metadata ? {
+                    "@type": "QuantitativeValue",
+                    value: metadata.size,
+                    unitCode: "FTK",
+                  } : undefined,
+                };
+              }),
+            }),
+          }}
+        />
+      )}
     </div>
   );
 }

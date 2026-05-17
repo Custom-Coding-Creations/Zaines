@@ -1,39 +1,8 @@
 
-import * as React from "react";
-import { useRef, useEffect } from "react";
-
-export function ScrollReveal({ children, className, delay = 0 }: BaseProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = React.useState(false);
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-    const observer = new window.IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.18 }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 32 }}
-      animate={isVisible ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.62, delay }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
 "use client";
 
+import * as React from "react";
+import { useRef, useEffect } from "react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { type ReactNode } from "react";
 
