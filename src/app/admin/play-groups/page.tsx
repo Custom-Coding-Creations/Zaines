@@ -693,6 +693,7 @@ export default function AdminPlayGroupsPage() {
           attempted?: number;
           assigned?: number;
           auditEventsRecorded?: number;
+          skippedReasonCounts?: Record<string, number>;
           skipped?: Array<{ groupId: string; reason: string }>;
         };
       };
