@@ -85,6 +85,20 @@ export default function AdminDashboardClient({
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  const queueById = useCallback(
+    (id: AdminQueueItem['id']) => operationsQueue.find((item) => item.id === id),
+    [operationsQueue],
+  );
+
+  const staffingSummaryItems = [
+    queueById('actionable_staffing_exceptions'),
+    queueById('unassigned_play_groups'),
+    queueById('staffed_groups_without_shift'),
+    queueById('overlapping_staff_shifts'),
+  ].filter((item): item is AdminQueueItem => Boolean(item));
+
+  const staffingHasWork = staffingSummaryItems.some((item) => item.count > 0);
+
   // Calculate KPIs from bookings
   function calculateKPIs(bookingList: AdminBookingResponse[]) {
     const today = new Date();
@@ -346,6 +360,46 @@ export default function AdminDashboardClient({
               })}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Staffing Operations</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Live staffing signals and remediation entrypoints for today&apos;s play groups.
+          </p>
+
+          {staffingSummaryItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No staffing queue metrics available yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+              {staffingSummaryItems.map((item) => (
+                <div key={`staffing-${item.id}`} className="rounded-md border p-3">
+                  <div className="mb-1 flex items-center justify-between">
+                    <p className="text-sm font-medium">{item.label}</p>
+                    <Badge variant={item.severity === 'critical' ? 'destructive' : 'outline'}>
+                      {item.count}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3">
+            <Link href="/admin/play-groups" className="text-sm font-medium text-primary hover:underline">
+              Open Play Groups Staffing Console →
+            </Link>
+            {staffingHasWork ? (
+              <span className="text-xs text-amber-700">Action needed: use Fix Actionable Exceptions in Play Groups.</span>
+            ) : (
+              <span className="text-xs text-emerald-700">Staffing exceptions are currently clear.</span>
+            )}
+          </div>
         </CardContent>
       </Card>
 
