@@ -57,6 +57,12 @@ interface StepPaymentProps {
     subtotal: number;
     tax: number;
     total: number;
+    packageCredit?: number;
+    appliedPackage?: {
+      packageId: string;
+      packageName: string;
+      customerPackageId: string;
+    } | null;
     currency: string;
     pricingModelLabel: string;
     disclosure: string;
@@ -105,6 +111,8 @@ function PricingDisclosureCard({
   subtotal,
   tax,
   totalWithTax,
+  packageCredit,
+  appliedPackageName,
   disclosure,
   pricingDisclosureAccepted,
   onPricingDisclosureChange,
@@ -112,6 +120,8 @@ function PricingDisclosureCard({
   subtotal: number;
   tax: number;
   totalWithTax: number;
+  packageCredit: number;
+  appliedPackageName?: string | null;
   disclosure: string;
   pricingDisclosureAccepted: boolean;
   onPricingDisclosureChange: (accepted: boolean) => void;
@@ -128,6 +138,12 @@ function PricingDisclosureCard({
             <span>Tax</span>
             <span>${tax.toFixed(2)}</span>
           </div>
+          {packageCredit > 0 ? (
+            <div className="flex justify-between text-emerald-700">
+              <span>{appliedPackageName || 'Package credit'}</span>
+              <span>-${packageCredit.toFixed(2)}</span>
+            </div>
+          ) : null}
           <div className="flex justify-between border-t pt-2 text-base font-semibold">
             <span>Total before confirmation</span>
             <span>${totalWithTax.toFixed(2)}</span>
@@ -324,6 +340,7 @@ export function StepPayment({
   const hasSyncedSeededPaymentState = useRef(false);
   const subtotal = Math.round((pricingQuote?.subtotal || 0) * 100) / 100;
   const tax = Math.round((pricingQuote?.tax || 0) * 100) / 100;
+  const packageCredit = Math.round((pricingQuote?.packageCredit || 0) * 100) / 100;
   const totalWithTax =
     Math.round((pricingQuote?.total || totalAmount) * 100) / 100;
   const disclosure = pricingQuote?.disclosure || BOOKING_PRICING_DISCLOSURE;
@@ -865,6 +882,8 @@ export function StepPayment({
             subtotal={subtotal}
             tax={tax}
             totalWithTax={totalWithTax}
+            packageCredit={packageCredit}
+            appliedPackageName={pricingQuote?.appliedPackage?.packageName || null}
             disclosure={disclosure}
             pricingDisclosureAccepted={pricingDisclosureAccepted}
             onPricingDisclosureChange={handleDisclosureChange}
@@ -942,6 +961,8 @@ export function StepPayment({
           subtotal={subtotal}
           tax={tax}
           totalWithTax={totalWithTax}
+          packageCredit={packageCredit}
+          appliedPackageName={pricingQuote?.appliedPackage?.packageName || null}
           disclosure={disclosure}
           pricingDisclosureAccepted={pricingDisclosureAccepted}
           onPricingDisclosureChange={handleDisclosureChange}

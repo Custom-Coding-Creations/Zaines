@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { sendIncidentNotification } from '@/lib/notifications';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
 import type { ApiResponse } from '@/types/admin';
 
@@ -49,11 +50,20 @@ export async function POST(
             select: {
               email: true,
               name: true,
+              phone: true,
             },
           },
         },
       },
     },
+  });
+
+  await sendIncidentNotification({
+    toEmail: updated.booking?.user?.email,
+    toPhone: updated.booking?.user?.phone,
+    customerName: updated.booking?.user?.name,
+    petName: updated.pet.name,
+    bookingNumber: updated.booking?.bookingNumber,
   });
 
   return NextResponse.json({ success: true, data: updated } as ApiResponse<typeof updated>);

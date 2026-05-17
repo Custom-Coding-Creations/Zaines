@@ -17,6 +17,10 @@ import {
   BOOKING_PRICING_MODEL_LABEL,
   calculateBookingPrice,
 } from "@/lib/booking/pricing";
+import {
+  applyPackageCreditToPricing,
+  getEligiblePackageRedemption,
+} from "@/lib/booking/package-redemption";
 import { ensureDefaultSuites } from "@/lib/booking/default-suites";
 import { getAdminSettings } from "@/lib/api/admin-settings";
 import {
@@ -158,6 +162,9 @@ type BookingsTransactionClient = {
   pet: {
     findMany: (args: Record<string, unknown>) => Promise<Array<{ id: string }>>;
     create: (args: Record<string, unknown>) => Promise<{ id: string }>;
+  };
+  customerPackage: {
+    update: (args: Record<string, unknown>) => Promise<unknown>;
   };
   accountWaiver: {
     findMany: (args: Record<string, unknown>) => Promise<Array<{
@@ -486,13 +493,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate pricing
-    const pricing = calculateBookingPrice(
+    const basePricing = calculateBookingPrice(
       data.checkIn,
       data.checkOut,
       data.suiteType,
       data.petCount,
       adminSettings.pricingSettings,
     );
+    const packageRedemption = await getEligiblePackageRedemption(
+      session?.user?.id,
+      basePricing.subtotal,
+    );
+    const pricing = packageRedemption
+      ? applyPackageCreditToPricing(basePricing, packageRedemption.creditAmount)
+      : { ...basePricing, packageCredit: 0 };
 
     // Prepare booking number outside transaction
     const today = new Date();
@@ -809,6 +823,7 @@ export async function POST(request: NextRequest) {
           data: {
             userId: user!.id,
             suiteId: availableSuite.id,
+            packageId: packageRedemption?.packageId || null,
             bookingNumber,
             checkInDate,
             checkOutDate,
@@ -846,6 +861,20 @@ export async function POST(request: NextRequest) {
             },
           },
         });
+
+        if (packageRedemption) {
+          await tx.customerPackage.update({
+            where: { id: packageRedemption.customerPackageId },
+            data: {
+              sessionsUsed: { increment: 1 },
+              sessionsRemaining: packageRedemption.sessionsRemainingAfter,
+              status:
+                packageRedemption.sessionsRemainingAfter <= 0
+                  ? 'fully_used'
+                  : 'active',
+            },
+          });
+        }
 
         if (supportsWaiverPersistence) {
           await Promise.all(
@@ -1162,6 +1191,14 @@ export async function POST(request: NextRequest) {
           subtotal: responseSubtotal,
           tax: responseTax,
           total: responseTotal,
+          packageCredit: pricing.packageCredit,
+          appliedPackage: packageRedemption
+            ? {
+                packageId: packageRedemption.packageId,
+                packageName: packageRedemption.packageName,
+                customerPackageId: packageRedemption.customerPackageId,
+              }
+            : null,
           currency:
             adminSettings.pricingSettings?.currency || BOOKING_PRICING_CURRENCY,
           pricingModelLabel: BOOKING_PRICING_MODEL_LABEL,

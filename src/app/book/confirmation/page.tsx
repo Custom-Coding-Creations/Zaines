@@ -28,6 +28,7 @@ interface BookingData {
     subtotal: number;
     tax: number;
     total: number;
+    packageCredit?: number;
     currency?: string;
   };
   petNames: string[];
@@ -223,6 +224,7 @@ function ConfirmationContent() {
   const subtotal = booking.pricing?.subtotal ?? booking.total;
   const tax = booking.pricing?.tax ?? 0;
   const total = booking.pricing?.total ?? booking.total;
+  const packageCredit = booking.pricing?.packageCredit ?? 0;
   const currency = booking.pricing?.currency || "USD";
   const shouldShowClaimBooking = status === "unauthenticated";
   const shouldShowLinkedBookingMessage = status === "authenticated";
@@ -312,6 +314,14 @@ function ConfirmationContent() {
                 {currency} ${tax.toFixed(2)}
               </span>
             </div>
+            {packageCredit > 0 ? (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Package Credit:</span>
+                <span className="font-medium text-emerald-600">
+                  -{currency} ${packageCredit.toFixed(2)}
+                </span>
+              </div>
+            ) : null}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Total:</span>
               <span className="font-bold text-green-600">

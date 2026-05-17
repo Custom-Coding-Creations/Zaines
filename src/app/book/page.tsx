@@ -30,6 +30,12 @@ type BookingValidationPricing = {
   subtotal: number;
   tax: number;
   total: number;
+  packageCredit?: number;
+  appliedPackage?: {
+    packageId: string;
+    packageName: string;
+    customerPackageId: string;
+  } | null;
   currency: string;
   pricingModelLabel: string;
   disclosure: string;

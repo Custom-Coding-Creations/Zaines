@@ -6,6 +6,7 @@ import BookingConfirmation from "@/emails/BookingConfirmation";
 import PaymentReceipt from "@/emails/PaymentReceipt";
 import WelcomeEmail from "@/emails/WelcomeEmail";
 import PhotoDigest from "@/emails/PhotoDigest";
+import { getAdminSettings, updateAdminSettings } from "@/lib/api/admin-settings";
 
 // Use an explicit env override if provided, otherwise prefer a writable
 // system temp directory (works on serverless platforms like Vercel).
@@ -62,6 +63,184 @@ type SendResult = {
   provider: "resend" | "dev-queue";
   detail?: unknown;
 };
+
+export type NotificationSendResult = SendResult & {
+  sms?: {
+    sent: boolean;
+    provider:
+      | "disabled"
+      | "invalid-recipient"
+      | "budget-paused"
+      | "dev-log"
+      | "twilio";
+    detail?: unknown;
+  };
+};
+
+function normalizePhoneNumber(value?: string | null): string | null {
+  if (!value) return null;
+  const digits = value.replace(/\D/g, "");
+
+  if (digits.length === 10) {
+    return `+1${digits}`;
+  }
+
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return `+${digits}`;
+  }
+
+  if (value.trim().startsWith("+") && digits.length >= 10) {
+    return `+${digits}`;
+  }
+
+  return null;
+}
+
+async function appendToDevSmsLog(entry: unknown) {
+  await ensureQueueDir();
+  const smsLogPath = path.resolve(path.dirname(DEV_QUEUE_PATH), "sms-queue.log");
+  const line = JSON.stringify({ ts: new Date().toISOString(), entry }) + "\n";
+  await fs.promises.appendFile(smsLogPath, line, "utf8");
+}
+
+async function sendSmsViaTwilio(payload: {
+  to: string;
+  from: string;
+  body: string;
+}): Promise<{ ok: boolean; json?: unknown }> {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+  if (!accountSid || !authToken) {
+    throw new Error("Twilio credentials not configured");
+  }
+
+  const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+  const response = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        To: payload.to,
+        From: payload.from,
+        Body: payload.body,
+      }).toString(),
+    },
+  );
+
+  const json = await response.json().catch(() => null);
+  return { ok: response.ok, json };
+}
+
+export async function sendSmsNotification(payload: {
+  to?: string | null;
+  message: string;
+  category:
+    | "booking_confirmation"
+    | "payment_success"
+    | "payment_failure"
+    | "report_card"
+    | "incident";
+  bookingId?: string;
+}) {
+  const settings = await getAdminSettings();
+  if (!settings.smsSettings.enabled) {
+    return {
+      sent: false,
+      provider: "disabled" as const,
+      detail: "sms-disabled",
+    };
+  }
+
+  const normalizedTo = normalizePhoneNumber(payload.to);
+  if (!normalizedTo) {
+    return {
+      sent: false,
+      provider: "invalid-recipient" as const,
+      detail: "invalid-phone-number",
+    };
+  }
+
+  const normalizedFrom = normalizePhoneNumber(settings.smsSettings.fromNumber);
+  if (!normalizedFrom) {
+    return {
+      sent: false,
+      provider: "invalid-recipient" as const,
+      detail: "invalid-from-number",
+    };
+  }
+
+  const { monthlyBudgetLimit, currentMonthSpend, budgetAlertThreshold, pauseWhenExceeded } =
+    settings.smsBudgetSettings;
+  const estimatedCost = 0.015;
+  const projectedSpend = currentMonthSpend + estimatedCost;
+  const thresholdAmount = monthlyBudgetLimit * (budgetAlertThreshold / 100);
+
+  if (pauseWhenExceeded && projectedSpend > monthlyBudgetLimit) {
+    return {
+      sent: false,
+      provider: "budget-paused" as const,
+      detail: {
+        currentMonthSpend,
+        monthlyBudgetLimit,
+      },
+    };
+  }
+
+  const hasTwilioCredentials = Boolean(
+    process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN,
+  );
+
+  if (!hasTwilioCredentials) {
+    await appendToDevSmsLog({
+      ...payload,
+      to: normalizedTo,
+      from: normalizedFrom,
+      projectedSpend,
+      thresholdReached: projectedSpend >= thresholdAmount,
+    });
+
+    await updateAdminSettings({
+      smsBudgetSettings: {
+        ...settings.smsBudgetSettings,
+        currentMonthSpend: Math.round(projectedSpend * 100) / 100,
+      },
+    });
+
+    return {
+      sent: false,
+      provider: "dev-log" as const,
+      detail: {
+        thresholdReached: projectedSpend >= thresholdAmount,
+      },
+    };
+  }
+
+  const response = await sendSmsViaTwilio({
+    to: normalizedTo,
+    from: normalizedFrom,
+    body: payload.message,
+  });
+
+  if (response.ok) {
+    await updateAdminSettings({
+      smsBudgetSettings: {
+        ...settings.smsBudgetSettings,
+        currentMonthSpend: Math.round(projectedSpend * 100) / 100,
+      },
+    });
+  }
+
+  return {
+    sent: response.ok,
+    provider: "twilio" as const,
+    detail: response.json,
+  };
+}
 
 async function sendEmailViaResend(payload: {
   from: string;
@@ -264,7 +443,7 @@ export type Booking = {
   total?: number;
   suite?: { name?: string | null; tier?: string | null } | null;
   bookingPets?: Array<{ pet?: { name?: string | null } | null }>;
-  user?: { email?: string | null; name?: string | null };
+  user?: { email?: string | null; name?: string | null; phone?: string | null };
 };
 
 function formatDate(value?: Date): string {
@@ -289,7 +468,7 @@ function formatCurrency(value?: number): string {
 
 export async function sendBookingConfirmation(
   booking: Booking,
-): Promise<SendResult> {
+): Promise<NotificationSendResult> {
   const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
   const apiKey = process.env.RESEND_API_KEY;
   const to = booking?.user?.email;
@@ -300,6 +479,11 @@ export async function sendBookingConfirmation(
   const receiptUrl = booking?.id
     ? `${appBaseUrl}/book/confirmation?bookingId=${booking.id}`
     : appBaseUrl;
+  const safeCheckInDate = booking?.checkInDate || new Date();
+  const safeCheckOutDate = booking?.checkOutDate || new Date(safeCheckInDate);
+  if (!booking?.checkOutDate) {
+    safeCheckOutDate.setDate(safeCheckOutDate.getDate() + 1);
+  }
   const suiteLabel = booking?.suite?.name || booking?.suite?.tier || "Private Suite";
   const petNamesArray =
     booking?.bookingPets
@@ -307,6 +491,7 @@ export async function sendBookingConfirmation(
       .filter((name): name is string => typeof name === "string" && name.length > 0) || ["Your pet"];
   const petNamesString = petNamesArray.join(", ");
   const subject = `Booking ${booking?.bookingNumber} confirmation`;
+  const bookingNumber = booking?.bookingNumber || booking?.id || "your booking";
   
   // Calculate nights
   const checkIn = booking?.checkInDate;
@@ -321,8 +506,8 @@ export async function sendBookingConfirmation(
     BookingConfirmation({
       customerName: booking?.user?.name || "Guest",
       bookingNumber: booking?.bookingNumber || "Pending",
-      checkInDate: formatDate(booking?.checkInDate),
-      checkOutDate: formatDate(booking?.checkOutDate),
+      checkInDate: formatDate(safeCheckInDate),
+      checkOutDate: formatDate(safeCheckOutDate),
       suiteType: suiteLabel,
       suitePrice,
       nights,
@@ -333,8 +518,15 @@ export async function sendBookingConfirmation(
     })
   );
 
+  const sms = await sendSmsNotification({
+    to: booking?.user?.phone || null,
+    category: "booking_confirmation",
+    bookingId: booking?.id,
+    message: `Zaine's Stay & Play: ${bookingNumber} is reserved for ${petNamesString} from ${formatDate(booking?.checkInDate)} to ${formatDate(booking?.checkOutDate)}.`,
+  });
+
   if (!to) {
-    return { sent: false, provider: "dev-queue", detail: "no-recipient" };
+    return { sent: false, provider: "dev-queue", detail: "no-recipient", sms };
   }
 
   if (!apiKey) {
@@ -346,13 +538,13 @@ export async function sendBookingConfirmation(
       html,
       bookingId: booking?.id,
     });
-    return { sent: false, provider: "dev-queue" };
+    return { sent: false, provider: "dev-queue", sms };
   }
 
   try {
     const resp = await sendEmailViaResend({ from, to, subject, html });
     if (resp && resp.ok)
-      return { sent: true, provider: "resend", detail: resp.json };
+      return { sent: true, provider: "resend", detail: resp.json, sms };
     // non-ok response (validation etc.) — record to dev queue for manual inspection
     await appendToDevQueue({
       type: "booking_confirmation",
@@ -363,7 +555,7 @@ export async function sendBookingConfirmation(
       bookingId: booking?.id,
       response: resp.json,
     });
-    return { sent: false, provider: "dev-queue", detail: resp.json };
+    return { sent: false, provider: "dev-queue", detail: resp.json, sms };
   } catch (err) {
     // after retries, still failed — append to queue for manual retry later
     await appendToDevQueue({
@@ -375,7 +567,7 @@ export async function sendBookingConfirmation(
       bookingId: booking?.id,
       error: String(err),
     });
-    return { sent: false, provider: "dev-queue", detail: String(err) };
+    return { sent: false, provider: "dev-queue", detail: String(err), sms };
   }
 }
 
@@ -383,15 +575,24 @@ export async function sendPaymentNotification(
   bookingId: string,
   type: "success" | "failure",
   booking?: Booking,
-): Promise<SendResult> {
+): Promise<NotificationSendResult> {
   const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
   const apiKey = process.env.RESEND_API_KEY;
   const to = booking?.user?.email;
   const subject = `Booking ${booking?.bookingNumber || bookingId} payment ${type}`;
   const html = `<p>Your payment for booking ${booking?.bookingNumber || bookingId} has ${type}.</p>`;
+  const sms = await sendSmsNotification({
+    to: booking?.user?.phone || null,
+    category: type === "success" ? "payment_success" : "payment_failure",
+    bookingId,
+    message:
+      type === "success"
+        ? `Zaine's Stay & Play: Payment received for booking ${booking?.bookingNumber || bookingId}. Your reservation is confirmed.`
+        : `Zaine's Stay & Play: Payment failed for booking ${booking?.bookingNumber || bookingId}. Please revisit checkout to complete your reservation.`,
+  });
 
   if (!to) {
-    return { sent: false, provider: "dev-queue", detail: "no-recipient" };
+    return { sent: false, provider: "dev-queue", detail: "no-recipient", sms };
   }
 
   if (!apiKey) {
@@ -404,13 +605,13 @@ export async function sendPaymentNotification(
       bookingId,
       status: type,
     });
-    return { sent: false, provider: "dev-queue" };
+    return { sent: false, provider: "dev-queue", sms };
   }
 
   try {
     const resp = await sendEmailViaResend({ from, to, subject, html });
     if (resp && resp.ok)
-      return { sent: true, provider: "resend", detail: resp.json };
+      return { sent: true, provider: "resend", detail: resp.json, sms };
     await appendToDevQueue({
       type: "payment_notification",
       to,
@@ -421,7 +622,7 @@ export async function sendPaymentNotification(
       status: type,
       response: resp.json,
     });
-    return { sent: false, provider: "dev-queue", detail: resp.json };
+    return { sent: false, provider: "dev-queue", detail: resp.json, sms };
   } catch (err) {
     await appendToDevQueue({
       type: "payment_notification",
@@ -433,7 +634,7 @@ export async function sendPaymentNotification(
       status: type,
       error: String(err),
     });
-    return { sent: false, provider: "dev-queue", detail: String(err) };
+    return { sent: false, provider: "dev-queue", detail: String(err), sms };
   }
 }
 
@@ -829,5 +1030,139 @@ export async function sendPhotoDigest(payload: {
       error: String(err),
     });
     return { sent: false, provider: "dev-queue", detail: String(err) };
+  }
+}
+
+export async function sendReportCardNotification(payload: {
+  toEmail?: string | null;
+  toPhone?: string | null;
+  customerName?: string | null;
+  petName: string;
+  bookingNumber?: string | null;
+}) : Promise<NotificationSendResult> {
+  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
+  const apiKey = process.env.RESEND_API_KEY;
+  const to = payload.toEmail;
+  const subject = `Report card ready for ${payload.petName}`;
+  const html = `
+    <p>Hi ${escapeHtml(payload.customerName || "there")},</p>
+    <p>${escapeHtml(payload.petName)} has a new report card available${payload.bookingNumber ? ` for booking <strong>${escapeHtml(payload.bookingNumber)}</strong>` : ""}.</p>
+    <p>Sign in to your dashboard to review today's updates.</p>
+  `;
+
+  const sms = await sendSmsNotification({
+    to: payload.toPhone,
+    category: "report_card",
+    message: `Zaine's Stay & Play: ${payload.petName}'s new report card is ready${payload.bookingNumber ? ` for booking ${payload.bookingNumber}` : ""}. Check your dashboard for details.`,
+  });
+
+  if (!to || !apiKey) {
+    if (to) {
+      await appendToDevQueue({
+        type: "report_card_notification",
+        to,
+        from,
+        subject,
+        html,
+      });
+    }
+
+    return { sent: false, provider: "dev-queue", detail: to ? undefined : "no-recipient", sms };
+  }
+
+  try {
+    const resp = await sendEmailViaResend({ from, to, subject, html });
+    if (resp.ok) {
+      return { sent: true, provider: "resend", detail: resp.json, sms };
+    }
+
+    await appendToDevQueue({
+      type: "report_card_notification",
+      to,
+      from,
+      subject,
+      html,
+      response: resp.json,
+    });
+
+    return { sent: false, provider: "dev-queue", detail: resp.json, sms };
+  } catch (error) {
+    await appendToDevQueue({
+      type: "report_card_notification",
+      to,
+      from,
+      subject,
+      html,
+      error: String(error),
+    });
+
+    return { sent: false, provider: "dev-queue", detail: String(error), sms };
+  }
+}
+
+export async function sendIncidentNotification(payload: {
+  toEmail?: string | null;
+  toPhone?: string | null;
+  customerName?: string | null;
+  petName: string;
+  bookingNumber?: string | null;
+}) : Promise<NotificationSendResult> {
+  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
+  const apiKey = process.env.RESEND_API_KEY;
+  const to = payload.toEmail;
+  const subject = `Important update about ${payload.petName}`;
+  const html = `
+    <p>Hi ${escapeHtml(payload.customerName || "there")},</p>
+    <p>We logged an important incident update for ${escapeHtml(payload.petName)}${payload.bookingNumber ? ` during booking <strong>${escapeHtml(payload.bookingNumber)}</strong>` : ""}.</p>
+    <p>Please contact the front desk or review your dashboard for the latest details.</p>
+  `;
+
+  const sms = await sendSmsNotification({
+    to: payload.toPhone,
+    category: "incident",
+    message: `Zaine's Stay & Play: We recorded an incident update for ${payload.petName}${payload.bookingNumber ? ` during booking ${payload.bookingNumber}` : ""}. Please check your dashboard or contact us.`,
+  });
+
+  if (!to || !apiKey) {
+    if (to) {
+      await appendToDevQueue({
+        type: "incident_notification",
+        to,
+        from,
+        subject,
+        html,
+      });
+    }
+
+    return { sent: false, provider: "dev-queue", detail: to ? undefined : "no-recipient", sms };
+  }
+
+  try {
+    const resp = await sendEmailViaResend({ from, to, subject, html });
+    if (resp.ok) {
+      return { sent: true, provider: "resend", detail: resp.json, sms };
+    }
+
+    await appendToDevQueue({
+      type: "incident_notification",
+      to,
+      from,
+      subject,
+      html,
+      response: resp.json,
+    });
+
+    return { sent: false, provider: "dev-queue", detail: resp.json, sms };
+  } catch (error) {
+    await appendToDevQueue({
+      type: "incident_notification",
+      to,
+      from,
+      subject,
+      html,
+      error: String(error),
+    });
+
+    return { sent: false, provider: "dev-queue", detail: String(error), sms };
   }
 }

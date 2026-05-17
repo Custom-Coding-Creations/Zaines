@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { auth } from "@/lib/auth";
 import {
   createPublicErrorEnvelope,
   getCorrelationId,
@@ -12,6 +13,10 @@ import {
   BOOKING_PRICING_MODEL_LABEL,
   calculateBookingPrice,
 } from "@/lib/booking/pricing";
+import {
+  applyPackageCreditToPricing,
+  getEligiblePackageRedemption,
+} from "@/lib/booking/package-redemption";
 import { getAdminSettings } from "@/lib/api/admin-settings";
 
 const bookingValidationSchema = z.object({
@@ -86,6 +91,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const session = await auth();
     const settings = await getAdminSettings();
     const totalNights = Math.ceil(
       (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24),
@@ -130,14 +136,29 @@ export async function POST(request: NextRequest) {
       petCount,
       settings.pricingSettings,
     );
+    const packageRedemption = await getEligiblePackageRedemption(
+      session?.user?.id,
+      pricing.subtotal,
+    );
+    const adjustedPricing = packageRedemption
+      ? applyPackageCreditToPricing(pricing, packageRedemption.creditAmount)
+      : { ...pricing, packageCredit: 0 };
 
     return NextResponse.json(
       {
         valid: true,
         pricing: {
-          subtotal: pricing.subtotal,
-          tax: pricing.tax,
-          total: pricing.total,
+          subtotal: adjustedPricing.subtotal,
+          tax: adjustedPricing.tax,
+          total: adjustedPricing.total,
+          packageCredit: adjustedPricing.packageCredit,
+          appliedPackage: packageRedemption
+            ? {
+                packageId: packageRedemption.packageId,
+                packageName: packageRedemption.packageName,
+                customerPackageId: packageRedemption.customerPackageId,
+              }
+            : null,
           currency: settings.pricingSettings.currency || BOOKING_PRICING_CURRENCY,
           pricingModelLabel: BOOKING_PRICING_MODEL_LABEL,
           disclosure:
