@@ -5,6 +5,15 @@ import { classifyAuthFailure, getAuthErrorType } from '@/lib/api/auth-error-clas
 
 export const dynamic = 'force-dynamic';
 
+async function testTable(name: string, fn: () => Promise<unknown>): Promise<{ ok: boolean; error?: string; count?: number }> {
+  try {
+    const result = await fn();
+    return { ok: true, count: Array.isArray(result) ? result.length : typeof result === 'number' ? result : undefined };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 export async function GET(): Promise<NextResponse> {
   const checks: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
@@ -25,7 +34,7 @@ export async function GET(): Promise<NextResponse> {
     checks.authErrorMessage = error instanceof Error ? error.message : String(error);
   }
 
-  // Test database
+  // Test database connectivity
   if (isDatabaseConfigured()) {
     try {
       await prisma.$queryRaw`SELECT 1 as ok`;
@@ -34,12 +43,28 @@ export async function GET(): Promise<NextResponse> {
       checks.databaseOk = false;
       checks.databaseError = error instanceof Error ? error.message : String(error);
     }
+
+    // Test each table used by the failing endpoints
+    const tables: Record<string, { ok: boolean; error?: string; count?: number }> = {};
+    tables.timeSlotConfig = await testTable('timeSlotConfig', () => prisma.timeSlotConfig.count());
+    tables.playGroup = await testTable('playGroup', () => prisma.playGroup.count());
+    tables.booking = await testTable('booking', () => prisma.booking.count());
+    tables.staffMember = await testTable('staffMember', () => prisma.staffMember.count());
+    tables.reportCard = await testTable('reportCard', () => prisma.reportCard.count());
+    tables.incidentReport = await testTable('incidentReport', () => prisma.incidentReport.count());
+    tables.bookingPackage = await testTable('bookingPackage', () => prisma.bookingPackage.count());
+    tables.recurringBooking = await testTable('recurringBooking', () => prisma.recurringBooking.count());
+    tables.suite = await testTable('suite', () => prisma.suite.count());
+    tables.message = await testTable('message', () => prisma.message.count());
+    tables.payment = await testTable('payment', () => prisma.payment.count());
+    checks.tables = tables;
   } else {
     checks.databaseOk = false;
     checks.databaseError = 'DATABASE_URL not set';
   }
 
-  const status = checks.authOk && checks.databaseOk ? 200 : 503;
+  const allTablesOk = checks.tables ? Object.values(checks.tables as Record<string, { ok: boolean }>).every(t => t.ok) : false;
+  const status = checks.authOk && checks.databaseOk && allTablesOk ? 200 : 503;
   return NextResponse.json(checks, {
     status,
     headers: { 'Cache-Control': 'no-store' },
