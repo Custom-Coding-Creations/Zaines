@@ -12,6 +12,7 @@ import {
   AdminErrorState,
   AdminLoadingState,
 } from '@/components/admin/AdminAsyncState';
+import { safeJsonResponse } from '@/lib/safe-json-response';
 
 type BookingOption = {
   id: string;
@@ -110,13 +111,13 @@ export function PhotoUploadPanel({ initialBookingId = '' }: { initialBookingId?:
         fetch('/api/admin/photos?limit=30&includeUnassigned=true', { cache: 'no-store' }),
       ]);
 
-      const bookingsData = (await bookingsRes.json()) as {
+      const bookingsData = await safeJsonResponse<{
         bookings?: BookingOption[];
         data?: BookingOption[];
         error?: string;
-      };
-      const petsData = (await petsRes.json()) as { pets?: PetOption[]; error?: string };
-      const photosData = (await photosRes.json()) as { photos?: PhotoItem[]; error?: string };
+      }>(bookingsRes, {});
+      const petsData = await safeJsonResponse<{ pets?: PetOption[]; error?: string }>(petsRes, {});
+      const photosData = await safeJsonResponse<{ photos?: PhotoItem[]; error?: string }>(photosRes, {});
 
       if (!bookingsRes.ok) {
         throw new Error(bookingsData.error ?? 'Unable to load bookings');
@@ -191,7 +192,7 @@ export function PhotoUploadPanel({ initialBookingId = '' }: { initialBookingId?:
         body: formData,
       });
 
-      const data = (await res.json()) as { photo?: PhotoItem; error?: string };
+      const data = await safeJsonResponse<{ photo?: PhotoItem; error?: string }>(res, {});
       if (!res.ok || !data.photo) {
         throw new Error(data.error ?? 'Unable to upload photo');
       }
@@ -247,7 +248,7 @@ export function PhotoUploadPanel({ initialBookingId = '' }: { initialBookingId?:
         }),
       });
 
-      const data = (await response.json()) as { error?: string };
+      const data = await safeJsonResponse<{ error?: string }>(response, {});
       if (!response.ok) {
         throw new Error(data.error ?? 'Unable to update photo association');
       }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Calendar, Pill, Activity, Scale } from 'lucide-react';
+import { safeJsonResponse } from '@/lib/safe-json-response';
 
 interface TimelineItem {
   id: string;
@@ -38,7 +39,10 @@ export function HealthTimeline({ petId }: HealthTimelineProps) {
           throw new Error('Failed to fetch health timeline');
         }
 
-        const data = await response.json();
+        const data = await safeJsonResponse<{
+          timeline?: TimelineItem[];
+          alerts?: { critical: number; warning: number; info: number };
+        }>(response, {});
         setTimeline(data.timeline || []);
         setAlerts(data.alerts || { critical: 0, warning: 0, info: 0 });
       } catch (err) {

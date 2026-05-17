@@ -10,6 +10,7 @@ import React, { createContext, useContext } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AdminSettings } from '@/types/admin';
 import { fullSettingsDefaults } from '@/lib/config/admin-settings-defaults';
+import { safeJsonResponse } from '@/lib/safe-json-response';
 
 interface SettingsContextType {
   settings: AdminSettings | undefined;
@@ -46,10 +47,10 @@ async function fetchSettings(): Promise<AdminSettings> {
       throw new Error(`Failed to fetch settings: ${response.status}`);
     }
 
-    const data = (await response.json()) as {
+    const data = await safeJsonResponse<{
       success?: boolean;
       data?: AdminSettings;
-    };
+    }>(response, {});
 
     return data.data || getDefaultSettings();
   } catch (error) {

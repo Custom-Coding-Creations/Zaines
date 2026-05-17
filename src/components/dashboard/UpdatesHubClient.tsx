@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { safeJsonResponse } from "@/lib/safe-json-response";
 
 type BookingOption = {
   id: string;
@@ -175,11 +176,11 @@ export function UpdatesHubClient() {
       const response = await fetch(`/api/dashboard/updates?${params.toString()}`, {
         cache: "no-store",
       });
-      const data = (await response.json()) as {
+      const data = await safeJsonResponse<{
         items?: TimelineItem[];
         bookings?: BookingOption[];
         error?: string;
-      };
+      }>(response, {});
 
       if (!response.ok) {
         throw new Error(data.error ?? "Unable to load updates");
@@ -230,9 +231,9 @@ export function UpdatesHubClient() {
         }),
       });
 
-      const data = (await response.json()) as {
+      const data = await safeJsonResponse<{
         error?: string;
-      };
+      }>(response, {});
 
       if (!response.ok) {
         throw new Error(data.error ?? "Unable to send message");

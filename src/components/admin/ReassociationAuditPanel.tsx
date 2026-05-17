@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { safeJsonResponse } from "@/lib/safe-json-response";
 
 type AuditEvent = {
   id: string;
@@ -79,7 +80,7 @@ export function ReassociationAuditPanel() {
       const response = await fetch(`/api/admin/reassociation-audit?${queryString}`, {
         cache: "no-store",
       });
-      const data = (await response.json()) as { events?: AuditEvent[]; error?: string };
+      const data = await safeJsonResponse<{ events?: AuditEvent[]; error?: string }>(response, {});
 
       if (!response.ok) {
         throw new Error(data.error ?? "Unable to load reassociation audit events");

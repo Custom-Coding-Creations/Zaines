@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { safeJsonResponse } from "@/lib/safe-json-response";
 
 export function RepairBookingPetsButton({ bookingId }: { bookingId: string }) {
   const router = useRouter();
@@ -20,7 +21,10 @@ export function RepairBookingPetsButton({ bookingId }: { bookingId: string }) {
       const response = await fetch(`/api/admin/bookings/${bookingId}/repair-pets`, {
         method: "POST",
       });
-      const payload = (await response.json()) as { error?: string; message?: string; attachedCount?: number };
+      const payload = await safeJsonResponse<{ error?: string; message?: string; attachedCount?: number }>(
+        response,
+        {},
+      );
 
       if (!response.ok) {
         throw new Error(payload.error ?? "Unable to repair booking pet links.");

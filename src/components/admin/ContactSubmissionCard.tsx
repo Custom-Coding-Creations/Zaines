@@ -4,6 +4,7 @@ import { useState, type ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import { safeJsonResponse } from "@/lib/safe-json-response";
 
 type ConversationAttachment = {
   attachmentId: string;
@@ -72,7 +73,9 @@ export function ContactSubmissionCard(props: ContactSubmissionProps) {
       );
 
       if (response.ok) {
-        const data = (await response.json()) as { status: "open" | "resolved" };
+        const data = await safeJsonResponse<{ status: "open" | "resolved" }>(response, {
+          status,
+        });
         setStatus(data.status);
       }
     } catch (error) {
@@ -116,16 +119,16 @@ export function ContactSubmissionCard(props: ContactSubmissionProps) {
       );
 
       if (!response.ok) {
-        const payload = (await response.json().catch(() => ({}))) as {
+        const payload = await safeJsonResponse<{
           error?: string;
-        };
+        }>(response, {});
         throw new Error(payload.error || "Failed to send reply");
       }
 
-      const payload = (await response.json()) as {
+      const payload = await safeJsonResponse<{
         status: "open" | "resolved";
         conversation: ConversationMessage[];
-      };
+      }>(response, { status, conversation: messages });
 
       setMessages(payload.conversation);
       setStatus(payload.status);

@@ -5,6 +5,7 @@ import { ExternalLink, X, CreditCard, Calendar, DollarSign, User, FileText, Aler
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { safeJsonResponse } from '@/lib/safe-json-response';
 
 interface TransactionDetailModalProps {
   paymentId: string;
@@ -128,8 +129,11 @@ export function TransactionDetailModal({ paymentId, isOpen, onClose }: Transacti
       if (!response.ok) {
         throw new Error('Failed to fetch transaction detail');
       }
-      const data = await response.json();
-      setDetail(data as TransactionDetail);
+      const data = await safeJsonResponse<TransactionDetail | null>(response, null);
+      if (!data) {
+        throw new Error('Transaction detail response was empty');
+      }
+      setDetail(data);
     } catch (err) {
       console.error('Error loading transaction detail:', err);
       setError(err instanceof Error ? err.message : 'Failed to load transaction');

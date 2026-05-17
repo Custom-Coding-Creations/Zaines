@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { prisma, isDatabaseConfigured } from '@/lib/prisma';
+import { requireStaffSession } from '@/lib/api/admin-auth';
+import { isDatabaseConfigured } from '@/lib/prisma';
 import { createAdminBooking, getAdminBookings, checkSuiteAvailability } from '@/lib/api/admin-bookings';
 import type { AdminBookingFormData, ApiResponse } from '@/types/admin';
 
@@ -9,24 +9,11 @@ import type { AdminBookingFormData, ApiResponse } from '@/types/admin';
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 },
-      );
-    }
-
-    const role = (session.user as { id: string; role?: string }).role;
-    if (!role || !['staff', 'admin'].includes(role)) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 },
-      );
-    }
+    const authResult = await requireStaffSession();
+    if (authResult.error) return authResult.error;
 
     if (!isDatabaseConfigured()) {
-      return NextResponse.json({ bookings: [] });
+      return NextResponse.json({ success: true, data: [] } as ApiResponse<unknown[]>);
     }
 
     // Parse query parameters for filters
@@ -54,7 +41,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching bookings:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch bookings' },
+      {
+        error: 'Failed to fetch bookings',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 },
     );
   }
@@ -65,20 +55,11 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const authResult = await requireStaffSession();
+    if (authResult.error) return authResult.error;
+    const session = authResult.session;
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 },
-      );
-    }
-
-    const role = (session.user as { id: string; role?: string }).role;
-    if (!role || !['staff', 'admin'].includes(role)) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 },
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (!isDatabaseConfigured()) {
@@ -88,7 +69,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = (await request.json()) as AdminBookingFormData;
+    const body = (await request.json().catch(() => null)) as AdminBookingFormData | null;
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
 
     // Validate required fields
     if (!body.customerId || !body.petIds || !body.suiteId || !body.checkInDate || !body.checkOutDate) {
@@ -135,7 +119,7 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Failed to create booking';
     return NextResponse.json(
       { error: message },
-      { status: 400 },
+      { status: 500 },
     );
   }
 }

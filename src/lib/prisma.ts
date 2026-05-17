@@ -30,7 +30,16 @@ function createPool(): Pool {
       max: 0,
     });
   }
-  return new Pool({ connectionString: process.env.DATABASE_URL });
+
+  try {
+    return new Pool({ connectionString: process.env.DATABASE_URL });
+  } catch (error) {
+    console.error("Failed to initialize PostgreSQL pool", error);
+    return new Pool({
+      connectionString: "postgresql://localhost:5432/notconfigured",
+      max: 0,
+    });
+  }
 }
 
 // Create a connection pool

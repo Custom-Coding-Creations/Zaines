@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { safeJsonResponse } from "@/lib/safe-json-response";
 
 type PetProfileDefaults = {
   name: string;
@@ -93,7 +94,7 @@ export function PetProfileForm({ mode, petId, defaults }: PetProfileFormProps) {
       return;
     }
 
-    const body = (await response.json()) as { error?: string };
+      const body = await safeJsonResponse<{ error?: string }>(response, {});
     setError(body.error ?? "Failed to save pet profile.");
     setIsSaving(false);
   }

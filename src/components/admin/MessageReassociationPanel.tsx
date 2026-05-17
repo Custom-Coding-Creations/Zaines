@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { safeJsonResponse } from "@/lib/safe-json-response";
 
 type BookingOption = {
   id: string;
@@ -58,12 +59,12 @@ export function MessageReassociationPanel() {
         fetch("/api/admin/bookings", { cache: "no-store" }),
       ]);
 
-      const messagesData = (await messagesRes.json()) as { messages?: MessageItem[]; error?: string };
-      const bookingsData = (await bookingsRes.json()) as {
+      const messagesData = await safeJsonResponse<{ messages?: MessageItem[]; error?: string }>(messagesRes, {});
+      const bookingsData = await safeJsonResponse<{
         data?: BookingOption[];
         bookings?: BookingOption[];
         error?: string;
-      };
+      }>(bookingsRes, {});
 
       if (!messagesRes.ok) {
         throw new Error(messagesData.error ?? "Unable to load messages");
@@ -117,7 +118,7 @@ export function MessageReassociationPanel() {
         }),
       });
 
-      const data = (await response.json()) as { error?: string };
+      const data = await safeJsonResponse<{ error?: string }>(response, {});
       if (!response.ok) {
         throw new Error(data.error ?? "Unable to update message association");
       }

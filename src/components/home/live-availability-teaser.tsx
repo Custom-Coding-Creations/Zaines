@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FadeUp } from "@/components/motion";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Loader2, Timer } from "lucide-react";
+import { safeJsonResponse } from "@/lib/safe-json-response";
 
 type AvailabilityPayload = {
   availability: {
@@ -46,7 +47,9 @@ export function LiveAvailabilityTeaser() {
           return;
         }
 
-        const payload = (await response.json()) as AvailabilityPayload;
+        const payload = await safeJsonResponse<AvailabilityPayload>(response, {
+          availability: { standard: 0, deluxe: 0, luxury: 0 },
+        });
         setAvailability(payload.availability);
       } catch {
         setError(true);
