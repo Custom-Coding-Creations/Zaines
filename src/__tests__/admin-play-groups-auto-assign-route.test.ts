@@ -93,6 +93,8 @@ describe('admin play groups auto-assign route', () => {
     const payload = await response.json();
 
     expect(response.status).toBe(200);
+    expect(payload.data.plannedAssignments).toBe(2);
+    expect(payload.data.appliedAssignments).toBe(2);
     expect(payload.data.assigned).toBe(2);
     expect(payload.data.auditEventsRecorded).toBe(2);
     expect(payload.data.skippedReasonCounts).toEqual({});
@@ -136,6 +138,8 @@ describe('admin play groups auto-assign route', () => {
     const payload = await response.json();
 
     expect(response.status).toBe(200);
+    expect(payload.data.plannedAssignments).toBe(0);
+    expect(payload.data.appliedAssignments).toBe(0);
     expect(payload.data.assigned).toBe(0);
     expect(payload.data.auditEventsRecorded).toBe(0);
     expect(payload.data.skipped).toHaveLength(1);
@@ -191,6 +195,8 @@ describe('admin play groups auto-assign route', () => {
 
     expect(response.status).toBe(200);
     expect(payload.data.repairConflicts).toBe(true);
+    expect(payload.data.plannedAssignments).toBe(2);
+    expect(payload.data.appliedAssignments).toBe(2);
     expect(payload.data.assigned).toBe(2);
     expect(payload.data.auditEventsRecorded).toBe(2);
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
@@ -252,6 +258,8 @@ describe('admin play groups auto-assign route', () => {
 
     expect(response.status).toBe(200);
     expect(payload.data.repairConflicts).toBe(true);
+    expect(payload.data.plannedAssignments).toBe(2);
+    expect(payload.data.appliedAssignments).toBe(2);
     expect(payload.data.assigned).toBe(2);
     expect(payload.data.auditEventsRecorded).toBe(2);
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
@@ -310,6 +318,8 @@ describe('admin play groups auto-assign route', () => {
 
     expect(response.status).toBe(200);
     expect(payload.data.attempted).toBe(1);
+    expect(payload.data.plannedAssignments).toBe(1);
+    expect(payload.data.appliedAssignments).toBe(1);
     expect(payload.data.assigned).toBe(1);
     expect(payload.data.auditEventsRecorded).toBe(1);
     expect(payload.data.assignments).toHaveLength(1);
@@ -354,6 +364,8 @@ describe('admin play groups auto-assign route', () => {
     expect(response.status).toBe(200);
     expect(payload.data.dryRun).toBe(true);
     expect(payload.data.attempted).toBe(1);
+    expect(payload.data.plannedAssignments).toBe(1);
+    expect(payload.data.appliedAssignments).toBe(0);
     expect(payload.data.assigned).toBe(1);
     expect(payload.data.auditEventsRecorded).toBe(0);
     expect(payload.data.assignments).toHaveLength(1);

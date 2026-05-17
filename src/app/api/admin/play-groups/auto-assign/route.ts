@@ -288,6 +288,8 @@ export async function POST(request: NextRequest) {
   const response = {
     targetDate: dayStart.toISOString(),
     attempted: targetGroups.length,
+    plannedAssignments: assignments.length,
+    appliedAssignments: dryRun ? 0 : assignments.length,
     assigned: assignments.length,
     skipped,
     skippedReasonCounts: skipped.reduce<Record<string, number>>((counts, entry) => {

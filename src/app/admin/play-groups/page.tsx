@@ -141,6 +141,8 @@ type BulkStaffingRun = {
   mode: 'auto_assign' | 'repair_conflicts' | 'preview_repair_conflicts';
   targetDate: string;
   attempted: number;
+  plannedAssignments: number;
+  appliedAssignments: number;
   assigned: number;
   auditEventsRecorded: number;
   skippedReasonCounts: Record<string, number>;
@@ -515,6 +517,8 @@ export default function AdminPlayGroupsPage() {
         data?: {
           targetDate?: string;
           attempted?: number;
+          plannedAssignments?: number;
+          appliedAssignments?: number;
           assigned?: number;
           auditEventsRecorded?: number;
           skippedReasonCounts?: Record<string, number>;
@@ -526,6 +530,8 @@ export default function AdminPlayGroupsPage() {
         mode: 'auto_assign',
         targetDate: payload.data?.targetDate ?? new Date(selectedDate).toISOString(),
         attempted: payload.data?.attempted ?? 0,
+        plannedAssignments: payload.data?.plannedAssignments ?? payload.data?.assigned ?? 0,
+        appliedAssignments: payload.data?.appliedAssignments ?? payload.data?.assigned ?? 0,
         assigned: payload.data?.assigned ?? 0,
         auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
         skippedReasonCounts: payload.data?.skippedReasonCounts ?? {},
@@ -560,6 +566,8 @@ export default function AdminPlayGroupsPage() {
         data?: {
           targetDate?: string;
           attempted?: number;
+          plannedAssignments?: number;
+          appliedAssignments?: number;
           assigned?: number;
           auditEventsRecorded?: number;
           skippedReasonCounts?: Record<string, number>;
@@ -571,6 +579,8 @@ export default function AdminPlayGroupsPage() {
         mode: 'repair_conflicts',
         targetDate: payload.data?.targetDate ?? new Date(selectedDate).toISOString(),
         attempted: payload.data?.attempted ?? 0,
+        plannedAssignments: payload.data?.plannedAssignments ?? payload.data?.assigned ?? 0,
+        appliedAssignments: payload.data?.appliedAssignments ?? payload.data?.assigned ?? 0,
         assigned: payload.data?.assigned ?? 0,
         auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
         skippedReasonCounts: payload.data?.skippedReasonCounts ?? {},
@@ -638,6 +648,8 @@ export default function AdminPlayGroupsPage() {
         data?: {
           targetDate?: string;
           attempted?: number;
+          plannedAssignments?: number;
+          appliedAssignments?: number;
           assigned?: number;
           auditEventsRecorded?: number;
           skippedReasonCounts?: Record<string, number>;
@@ -649,6 +661,8 @@ export default function AdminPlayGroupsPage() {
         mode: 'repair_conflicts',
         targetDate: payload.data?.targetDate ?? new Date(selectedDate).toISOString(),
         attempted: payload.data?.attempted ?? 0,
+        plannedAssignments: payload.data?.plannedAssignments ?? payload.data?.assigned ?? 0,
+        appliedAssignments: payload.data?.appliedAssignments ?? payload.data?.assigned ?? 0,
         assigned: payload.data?.assigned ?? 0,
         auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
         skippedReasonCounts: payload.data?.skippedReasonCounts ?? {},
@@ -691,6 +705,8 @@ export default function AdminPlayGroupsPage() {
         data?: {
           targetDate?: string;
           attempted?: number;
+          plannedAssignments?: number;
+          appliedAssignments?: number;
           assigned?: number;
           auditEventsRecorded?: number;
           skippedReasonCounts?: Record<string, number>;
@@ -702,6 +718,8 @@ export default function AdminPlayGroupsPage() {
         mode: 'preview_repair_conflicts',
         targetDate: payload.data?.targetDate ?? new Date(selectedDate).toISOString(),
         attempted: payload.data?.attempted ?? 0,
+        plannedAssignments: payload.data?.plannedAssignments ?? payload.data?.assigned ?? 0,
+        appliedAssignments: payload.data?.appliedAssignments ?? payload.data?.assigned ?? 0,
         assigned: payload.data?.assigned ?? 0,
         auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
         skippedReasonCounts: payload.data?.skippedReasonCounts ?? {},
@@ -753,7 +771,7 @@ export default function AdminPlayGroupsPage() {
                   : 'Auto-assignment run complete'}
             </p>
             <p className="text-xs text-muted-foreground">
-              {new Date(lastBulkRun.targetDate).toLocaleDateString()} · attempted {lastBulkRun.attempted} · assigned {lastBulkRun.assigned} · audit events {lastBulkRun.auditEventsRecorded} · skipped {lastBulkRun.skipped.length}
+              {new Date(lastBulkRun.targetDate).toLocaleDateString()} · attempted {lastBulkRun.attempted} · planned {lastBulkRun.plannedAssignments} · applied {lastBulkRun.appliedAssignments} · audit events {lastBulkRun.auditEventsRecorded} · skipped {lastBulkRun.skipped.length}
             </p>
             {lastBulkRun.skipped.slice(0, 3).map((entry) => (
               <p key={`${entry.groupId}-${entry.reason}`} className="text-xs text-muted-foreground">

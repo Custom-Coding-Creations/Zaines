@@ -34,6 +34,8 @@ interface KPICard {
 type DashboardStaffingFixSummary = {
   mode: 'preview' | 'apply';
   attempted: number;
+  plannedAssignments: number;
+  appliedAssignments: number;
   assigned: number;
   auditEventsRecorded: number;
   skipped: number;
@@ -278,6 +280,8 @@ export default function AdminDashboardClient({
       const payload = (await response.json()) as {
         data?: {
           attempted?: number;
+          plannedAssignments?: number;
+          appliedAssignments?: number;
           assigned?: number;
           auditEventsRecorded?: number;
           skippedReasonCounts?: Record<string, number>;
@@ -288,6 +292,8 @@ export default function AdminDashboardClient({
       setStaffingFixSummary({
         mode: dryRun ? 'preview' : 'apply',
         attempted: payload.data?.attempted ?? 0,
+        plannedAssignments: payload.data?.plannedAssignments ?? payload.data?.assigned ?? 0,
+        appliedAssignments: payload.data?.appliedAssignments ?? payload.data?.assigned ?? 0,
         assigned: payload.data?.assigned ?? 0,
         auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
         skipped: payload.data?.skipped?.length ?? 0,
@@ -508,7 +514,7 @@ export default function AdminDashboardClient({
           {staffingFixSummary ? (
             <div className="space-y-1 text-xs text-muted-foreground">
               <p>
-                Last {staffingFixSummary.mode === 'preview' ? 'preview' : 'quick-fix run'}: attempted {staffingFixSummary.attempted} · assigned {staffingFixSummary.assigned} · audit events {staffingFixSummary.auditEventsRecorded} · skipped {staffingFixSummary.skipped}
+                Last {staffingFixSummary.mode === 'preview' ? 'preview' : 'quick-fix run'}: attempted {staffingFixSummary.attempted} · planned {staffingFixSummary.plannedAssignments} · applied {staffingFixSummary.appliedAssignments} · audit events {staffingFixSummary.auditEventsRecorded} · skipped {staffingFixSummary.skipped}
               </p>
               {Object.entries(staffingFixSummary.skippedReasonCounts)
                 .slice(0, 2)
