@@ -49,7 +49,7 @@ This document contains 4 launch-specific runbooks for the most likely incident s
    ```bash
    # Quick command to check error patterns
    curl -H "Authorization: Bearer $SENTRY_TOKEN" \
-     https://sentry.io/api/0/organizations/funkytown/issues/ \
+     https://sentry.io/api/0/organizations/zaines/issues/ \
      | jq '.[] | {title: .title, events: .stats[0][1], level: .level}' | head -20
    ```
 
@@ -122,7 +122,7 @@ vercel inspect <deployment-url>
 vercel rollback  # Rolls back to previous deployment
 
 # Monitor post-rollback
-curl https://funkytowncomics.com/api/health
+curl https://zaines.com/api/health
 # Should return: {"status": "healthy", "errorRate": "<0.5%"}
 ```
 
@@ -187,20 +187,20 @@ curl https://funkytowncomics.com/api/health
 
 1. **Acknowledge & Notify** (30 seconds)
    - Incident Commander + Backend Engineer paged
-   - Slack #launches: "🚨 INC-007: Checkout failing. Investigating."
+   - Slack #launches: "🚨 INC-007: Booking failing. Investigating."
    - Product Owner notified (revenue impact)
 
 2. **Assess Impact** (0-1 minute)
-   - [ ] What % of checkouts are failing? (95% success → 5% failing)
-   - [ ] Is it all checkouts or specific payment method?
-   - [ ] Is it all routes or specific product category?
+   - [ ] What % of bookings are failing? (95% success → 5% failing)
+   - [ ] Is it all bookings or specific service type?
+   - [ ] Is it all routes or specific booking step?
    - [ ] How long has it been failing? (1 min vs 10 min)
 
    ```bash
-   # Get checkout failure rate
+   # Get booking failure rate
    curl -H "Auth: Bearer $SENTRY_TOKEN" \
-     https://sentry.io/api/0/organizations/funkytown/events/ \
-     '?query=event.type:transaction checkout' | jq '.[] | {duration, status}'
+     https://sentry.io/api/0/organizations/zaines/events/ \
+     '?query=event.type:transaction booking' | jq '.[] | {duration, status}'
    ```
 
 ### Diagnosis (1-5 Minutes)
@@ -287,10 +287,10 @@ If Sentry shows validation errors in `src/app/api/checkout/validate.ts`:
 1. Immediate action: Rollback to previous deployment
    vercel rollback
 
-2. Verify checkout success recovered
+2. Verify booking success recovered
    curl -H "Correlation-ID: test" \
-     https://funkytowncomics.com/api/checkout/validate \
-     -d '{"cartValue": 100}'
+     https://zaines.com/api/booking/validate \
+     -d '{"serviceType": "daycare", "date": "2026-05-20"}'
 
 3. If recovered: proceed with Path 3
    If still failing: investigate infrastructure (Path 4)
@@ -330,11 +330,11 @@ If latency spike detected and not Square:
    → Is current deployment stuck? Restart it.
 
 2. Check CDN cache
-   → Purge cache for checkout endpoints
+   → Purge cache for booking endpoints
    vercel env pull  # Get current deployment
-   curl -X PURGE https://funkytowncomics.com/api/checkout
+   curl -X PURGE https://zaines.com/api/booking
 
-3. If still failing: DNS fallback to Square Online
+3. If still failing: DNS fallback to legacy system
    → This is nuclear option (preserve all data)
 ```
 
@@ -418,19 +418,19 @@ Q: Is it frontend or backend?
 
 # 2. Check database connections
 curl -H "Auth: $ADMIN_TOKEN" \
-  https://funkytowncomics.com/api/debug/db-connections
+  https://zaines.com/api/debug/db-connections
 # Output: { active: 45, max: 50, queries_slow: 3 }
 # Interpretation: 45/50 connections in use, 3 queries >1s
 
-# 3. Check Square API latency
+# 3. Check Stripe API latency
 curl -H "Auth: $ADMIN_TOKEN" \
-  https://funkytowncomics.com/api/debug/square-latency
+  https://zaines.com/api/debug/stripe-latency
 # Output: { p95: 2.1s, p99: 4.5s, timeouts: 2 }
-# Interpretation: Square API is slow today
+# Interpretation: Stripe API is slow today
 
 # 4. Check resource usage
 curl -H "Auth: $ADMIN_TOKEN" \
-  https://funkytowncomics.com/api/debug/resources
+  https://zaines.com/api/debug/resources
 # Output: { cpu: 78%, memory: 412MB, disk: 65% }
 # Interpretation: Approaching resource limits
 ```
@@ -491,7 +491,7 @@ vercel deploy
 
 ```bash
 # Check memory usage (should be <500MB)
-curl https://funkytowncomics.com/api/debug/memory
+curl https://zaines.com/api/debug/memory
 # Output: { heapUsed: 487MB, external: 2MB, arrayBuffers: 1MB }
 # Assessment: Close to limit, possible memory leak
 
@@ -501,7 +501,7 @@ vercel deploy --prod
 
 # Monitor memory trend
 for i in {1..10}; do
-  curl https://funkytowncomics.com/api/debug/memory
+  curl https://zaines.com/api/debug/memory
   sleep 60
 done
 ```

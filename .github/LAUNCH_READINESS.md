@@ -9,9 +9,9 @@
 
 ## Executive Summary
 
-This document provides the authoritative launch readiness checklist for Funky Town Comics & Vinyl operational go-live. All items must be validated and signed off by Quality Director before proceeding to staged exposure plan execution.
+This document provides the authoritative launch readiness checklist for Zaines Stay and Play operational go-live. All items must be validated and signed off by Quality Director before proceeding to staged exposure plan execution.
 
-**Goal:** Ensure 99.9% uptime, >99% checkout success, <1.5s P95 latency, and <0.1% error rate throughout staged rollout and beyond.
+**Goal:** Ensure 99.9% uptime, >99% booking success, <1.5s P95 latency, and <0.1% error rate throughout staged rollout and beyond.
 
 ---
 

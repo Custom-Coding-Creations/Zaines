@@ -1,6 +1,6 @@
-# Implementation Scorecard - Funky Town Comics & Vinyl Launch
+# Implementation Scorecard - Zaines Stay and Play Launch
 
-> **Project:** Headless Commerce Modernization  
+> **Project:** Headless Commerce Modernization (Dog Boarding & Daycare)  
 > **Date:** May 16, 2026  
 > **Authority:** Quality Director  
 > **Completion Status:** 98% (Launch-Ready)

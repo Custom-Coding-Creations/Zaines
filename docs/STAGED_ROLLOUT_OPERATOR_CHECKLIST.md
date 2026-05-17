@@ -357,13 +357,13 @@
 ### Launch Announcement (Phase 1 Start)
 
 ```
-📢 Funky Town Comics & Vinyl Headless Launch is LIVE 🚀
+📢 Zaines Stay and Play Headless Launch is LIVE 🚀
 
-New Platform: headless.funkytowncomics.com
+New Platform: headless.zainesapp.com
 Phase 1: 10% traffic (24-hour monitoring)
 Timeline: 5 days total (phases: 10% → 25% → 50% → 100%)
-Monitoring: Continuous (Error <1%, Checkout >99%, Latency <1.2s)
-Rollback: Ready (if needed, <5 min restore to Square Online)
+Monitoring: Continuous (Error <1%, Booking Success >99%, Latency <1.2s)
+Rollback: Ready (if needed, <5 min restore to legacy system)
 
 Questions? #launches channel or ask @IncidentCommander
 ```
