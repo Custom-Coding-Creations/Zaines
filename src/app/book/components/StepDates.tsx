@@ -357,7 +357,7 @@ export function StepDates({ data, onUpdate, onNext, onCancel }: StepDatesProps) 
         </CardTitle>
         <CardDescription>
           Choose your check-in/check-out dates and number of pets for private
-          boarding. Use calendar picker or enter dates as MM/DD/YYYY
+          boarding.
         </CardDescription>
         <p className="text-sm text-muted-foreground">
           Minimum stay: {minNights} night{minNights === 1 ? "" : "s"}
@@ -392,6 +392,102 @@ export function StepDates({ data, onUpdate, onNext, onCancel }: StepDatesProps) 
             <p className="text-xs text-muted-foreground">Select check-out date using the calendar picker</p>
           </div>
         </div>
+
+        {(dropoffSlots.length > 0 || pickupSlots.length > 0) && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {dropoffSlots.length > 0 ? (
+              <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Drop-off availability
+                </p>
+                <div className="space-y-2">
+                  {dropoffSlots.map((slot) => {
+                    const occupancy = Math.min(
+                      100,
+                      Math.round(
+                        (slot.used / Math.max(1, slot.maxCapacity)) * 100,
+                      ),
+                    );
+                    return (
+                      <div key={slot.id} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-medium text-foreground">{slot.label}</span>
+                          <span
+                            className={cn(
+                              "text-muted-foreground",
+                              slot.available ? "text-emerald-700" : "text-destructive",
+                            )}
+                          >
+                            {slot.remainingCapacity} left
+                          </span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={cn(
+                              "h-full rounded-full",
+                              occupancy >= 85
+                                ? "bg-destructive"
+                                : occupancy >= 65
+                                  ? "bg-amber-500"
+                                  : "bg-emerald-500",
+                            )}
+                            style={{ width: `${occupancy}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {pickupSlots.length > 0 ? (
+              <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Pickup availability
+                </p>
+                <div className="space-y-2">
+                  {pickupSlots.map((slot) => {
+                    const occupancy = Math.min(
+                      100,
+                      Math.round(
+                        (slot.used / Math.max(1, slot.maxCapacity)) * 100,
+                      ),
+                    );
+                    return (
+                      <div key={slot.id} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-medium text-foreground">{slot.label}</span>
+                          <span
+                            className={cn(
+                              "text-muted-foreground",
+                              slot.available ? "text-emerald-700" : "text-destructive",
+                            )}
+                          >
+                            {slot.remainingCapacity} left
+                          </span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={cn(
+                              "h-full rounded-full",
+                              occupancy >= 85
+                                ? "bg-destructive"
+                                : occupancy >= 65
+                                  ? "bg-amber-500"
+                                  : "bg-emerald-500",
+                            )}
+                            style={{ width: `${occupancy}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="serviceType">Service Type *</Label>
