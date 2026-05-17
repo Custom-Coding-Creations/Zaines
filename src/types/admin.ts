@@ -324,6 +324,7 @@ export interface AdminQueueItem {
     | 'failed_payments'
     | 'pending_reminders'
     | 'low_stock_items'
+    | 'expiring_packages'
     | 'reconciliation_exceptions'
     | 'dispute_deadlines';
   label: string;

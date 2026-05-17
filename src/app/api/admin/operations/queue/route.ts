@@ -48,6 +48,7 @@ export async function GET() {
       failedPayments,
       pendingReminders,
       lowStockItems,
+      expiringPackages,
       reconciliationExceptions,
     ] = await Promise.all([
       prisma.booking.count({
@@ -99,6 +100,15 @@ export async function GET() {
           isActive: true,
           currentStock: {
             lte: prisma.inventoryItem.fields.reorderLevel,
+          },
+        },
+      }),
+      prisma.customerPackage.count({
+        where: {
+          status: 'active',
+          expiresAt: {
+            gte: todayStart,
+            lte: new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000),
           },
         },
       }),
@@ -177,6 +187,14 @@ export async function GET() {
           href: '/admin/inventory',
           description: 'Inventory items at or below reorder level.',
           severity: lowStockItems >= 5 ? 'critical' : lowStockItems > 0 ? 'attention' : 'normal',
+        },
+        {
+          id: 'expiring_packages',
+          label: 'Expiring packages',
+          count: expiringPackages,
+          href: '/admin/packages',
+          description: 'Active customer packages expiring within the next 7 days.',
+          severity: expiringPackages >= 10 ? 'critical' : expiringPackages > 0 ? 'attention' : 'normal',
         },
         {
           id: 'reconciliation_exceptions',

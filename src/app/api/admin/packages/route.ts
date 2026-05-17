@@ -29,8 +29,17 @@ export async function GET() {
   const packages = await prisma.bookingPackage.findMany({
     include: {
       customerPackages: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
         orderBy: { purchaseDate: 'desc' },
-        take: 10,
+        take: 25,
       },
     },
     orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
