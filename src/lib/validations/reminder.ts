@@ -26,6 +26,20 @@ export const timeSlotConfigSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+export const bulkTimeSlotConfigSchema = z.object({
+  slots: z.array(timeSlotConfigSchema).min(1).max(50),
+  skipDuplicates: z.boolean().default(true),
+});
+
+export const copyDaySchema = z.object({
+  sourceDayOfWeek: z.number().int().min(0).max(6),
+  targetDays: z.array(z.number().int().min(0).max(6)).min(1).max(6),
+});
+
+export const bulkDeleteDaySchema = z.object({
+  dayOfWeek: z.number().int().min(0).max(6),
+});
+
 export const holidaySurchargeSchema = z.object({
   name: z.string().min(1).max(120),
   startDate: z.string().datetime(),
@@ -38,4 +52,7 @@ export const holidaySurchargeSchema = z.object({
 
 export type AutomatedReminderInput = z.infer<typeof automatedReminderSchema>;
 export type TimeSlotConfigInput = z.infer<typeof timeSlotConfigSchema>;
+export type BulkTimeSlotConfigInput = z.infer<typeof bulkTimeSlotConfigSchema>;
+export type CopyDayInput = z.infer<typeof copyDaySchema>;
+export type BulkDeleteDayInput = z.infer<typeof bulkDeleteDaySchema>;
 export type HolidaySurchargeInput = z.infer<typeof holidaySurchargeSchema>;
