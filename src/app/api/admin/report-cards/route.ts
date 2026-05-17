@@ -28,11 +28,12 @@ export async function GET(request: NextRequest) {
     if (petId) where.petId = petId;
     if (dateParam) {
       const start = new Date(dateParam);
-      if (!Number.isNaN(start.getTime())) {
-        const end = new Date(start);
-        end.setDate(end.getDate() + 1);
-        where.date = { gte: start, lt: end };
+      if (Number.isNaN(start.getTime())) {
+        return NextResponse.json({ error: 'Invalid date parameter' }, { status: 400 });
       }
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      where.date = { gte: start, lt: end };
     }
 
     const cards = await prisma.reportCard.findMany({

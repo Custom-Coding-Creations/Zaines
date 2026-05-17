@@ -50,6 +50,7 @@ import { GET as getIncidents } from "@/app/api/admin/incidents/route";
 import { GET as getReportCards } from "@/app/api/admin/report-cards/route";
 import { GET as getOccupancy } from "@/app/api/admin/occupancy/route";
 import { GET as getBookings } from "@/app/api/admin/bookings/route";
+import { GET as getRecurringBookings } from "@/app/api/admin/recurring-bookings/route";
 
 describe("admin endpoint hardening regression", () => {
   beforeEach(() => {
@@ -75,6 +76,7 @@ describe("admin endpoint hardening regression", () => {
       getReportCards(new NextRequest("http://localhost/api/admin/report-cards")),
       getOccupancy(),
       getBookings(new NextRequest("http://localhost/api/admin/bookings")),
+      getRecurringBookings(),
     ];
 
     const responses = await Promise.all(calls);

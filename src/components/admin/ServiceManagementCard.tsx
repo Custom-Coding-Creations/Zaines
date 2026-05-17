@@ -28,6 +28,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { AdminSettings } from '@/types/admin';
 import { useInvalidateSettings } from '@/providers/settings-provider';
 
+function createClientId(prefix: string): string {
+  const randomPart = globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2, 10);
+  return `${prefix}-${randomPart}`;
+}
+
 const serviceUpdateSchema = z.object({
   serviceTiers: z.array(
     z.object({
@@ -146,7 +151,7 @@ export function ServiceManagementCard({
 
   function addServiceType() {
     append({
-      id: `tier-${Date.now()}`,
+      id: createClientId('tier'),
       name: '',
       description: '',
       baseNightlyRate: 0,

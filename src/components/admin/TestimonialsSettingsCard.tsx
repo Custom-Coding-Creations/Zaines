@@ -15,6 +15,11 @@ import { toast } from 'sonner';
 import { useInvalidateSettings } from '@/providers/settings-provider';
 import type { AdminSettings } from '@/types/admin';
 
+function createClientId(prefix: string): string {
+  const randomPart = globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2, 10);
+  return `${prefix}-${randomPart}`;
+}
+
 const testimonialSchema = z.object({
   id: z.string().min(1),
   author: z.string().min(1, 'Author is required'),
@@ -111,7 +116,7 @@ export function TestimonialsSettingsCard() {
 
   function addTestimonial() {
     append({
-      id: `testimonial-${Date.now()}`,
+      id: createClientId('testimonial'),
       author: '',
       petName: '',
       rating: 5,

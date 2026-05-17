@@ -2,16 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFinanceTransactions } from '@/lib/api/admin-finance';
 import { requireFinanceAccess } from '@/lib/api/admin-finance-auth';
 
-function parseDate(value: string | null, boundary: 'start' | 'end'): Date | undefined {
-  if (!value) return undefined;
+type ParsedDate = { value?: Date; invalid: boolean };
+
+function parseDate(value: string | null, boundary: 'start' | 'end'): ParsedDate {
+  if (!value) return { invalid: false };
 
   const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
   const parsed = dateOnly
     ? new Date(`${value}T${boundary === 'start' ? '00:00:00.000' : '23:59:59.999'}Z`)
     : new Date(value);
 
-  if (Number.isNaN(parsed.getTime())) return undefined;
-  return parsed;
+  if (Number.isNaN(parsed.getTime())) return { invalid: true };
+  return { value: parsed, invalid: false };
 }
 
 export async function GET(request: NextRequest) {
@@ -20,9 +22,19 @@ export async function GET(request: NextRequest) {
     if (access.response) return access.response;
 
     const { searchParams } = new URL(request.url);
+    const startDate = parseDate(searchParams.get('startDate'), 'start');
+    const endDate = parseDate(searchParams.get('endDate'), 'end');
+
+    if (startDate.invalid || endDate.invalid) {
+      return NextResponse.json(
+        { error: 'Invalid date parameter' },
+        { status: 400 },
+      );
+    }
+
     const data = await getFinanceTransactions({
-      startDate: parseDate(searchParams.get('startDate'), 'start'),
-      endDate: parseDate(searchParams.get('endDate'), 'end'),
+      startDate: startDate.value,
+      endDate: endDate.value,
       status: searchParams.get('status') ?? undefined,
       search: searchParams.get('search') ?? undefined,
     });
@@ -34,8 +46,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching finance transactions:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch finance transactions' },
-      { status: 500 },
+      {
+        error: 'Finance transaction service unavailable',
+        code: 'FINANCE_TRANSACTIONS_UNAVAILABLE',
+      },
+      { status: 503 },
     );
   }
 }

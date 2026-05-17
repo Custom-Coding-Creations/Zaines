@@ -11,6 +11,12 @@ export async function GET(_request: NextRequest) {
     return NextResponse.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching finance exceptions:', error);
-    return NextResponse.json({ error: 'Failed to fetch finance exceptions' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Finance exceptions service unavailable',
+        code: 'FINANCE_EXCEPTIONS_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }
