@@ -325,6 +325,7 @@ export interface AdminQueueItem {
     | 'pending_reminders'
     | 'low_stock_items'
     | 'expiring_packages'
+    | 'unassigned_play_groups'
     | 'reconciliation_exceptions'
     | 'dispute_deadlines';
   label: string;

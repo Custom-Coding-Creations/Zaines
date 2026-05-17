@@ -49,6 +49,7 @@ export async function GET() {
       pendingReminders,
       lowStockItems,
       expiringPackages,
+      unassignedPlayGroups,
       reconciliationExceptions,
     ] = await Promise.all([
       prisma.booking.count({
@@ -110,6 +111,15 @@ export async function GET() {
             gte: todayStart,
             lte: new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000),
           },
+        },
+      }),
+      prisma.playGroup.count({
+        where: {
+          date: {
+            gte: todayStart,
+            lte: todayEnd,
+          },
+          staffMemberId: null,
         },
       }),
       prisma.payment.count({
@@ -195,6 +205,19 @@ export async function GET() {
           href: '/admin/packages',
           description: 'Active customer packages expiring within the next 7 days.',
           severity: expiringPackages >= 10 ? 'critical' : expiringPackages > 0 ? 'attention' : 'normal',
+        },
+        {
+          id: 'unassigned_play_groups',
+          label: 'Unassigned play groups',
+          count: unassignedPlayGroups,
+          href: '/admin/play-groups',
+          description: 'Today\'s play groups without an assigned staff lead.',
+          severity:
+            unassignedPlayGroups >= 3
+              ? 'critical'
+              : unassignedPlayGroups > 0
+                ? 'attention'
+                : 'normal',
         },
         {
           id: 'reconciliation_exceptions',
