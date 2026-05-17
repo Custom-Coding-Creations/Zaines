@@ -31,6 +31,13 @@ interface KPICard {
   };
 }
 
+type DashboardStaffingFixSummary = {
+  attempted: number;
+  assigned: number;
+  auditEventsRecorded: number;
+  skipped: number;
+};
+
 function statusBadgeVariant(
   status: string,
 ): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -87,6 +94,7 @@ export default function AdminDashboardClient({
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [actionableStaffingGroupIds, setActionableStaffingGroupIds] = useState<string[]>([]);
   const [isFixingStaffing, setIsFixingStaffing] = useState(false);
+  const [staffingFixSummary, setStaffingFixSummary] = useState<DashboardStaffingFixSummary | null>(null);
 
   const queueById = useCallback(
     (id: AdminQueueItem['id']) => operationsQueue.find((item) => item.id === id),
@@ -261,6 +269,22 @@ export default function AdminDashboardClient({
         const payload = (await response.json()) as { error?: string };
         throw new Error(payload.error || 'Failed to run staffing auto-fix');
       }
+
+      const payload = (await response.json()) as {
+        data?: {
+          attempted?: number;
+          assigned?: number;
+          auditEventsRecorded?: number;
+          skipped?: Array<{ groupId: string; reason: string }>;
+        };
+      };
+
+      setStaffingFixSummary({
+        attempted: payload.data?.attempted ?? 0,
+        assigned: payload.data?.assigned ?? 0,
+        auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
+        skipped: payload.data?.skipped?.length ?? 0,
+      });
 
       await fetchBookings();
     } catch (error) {
@@ -458,6 +482,11 @@ export default function AdminDashboardClient({
               <span className="text-xs text-emerald-700">Staffing exceptions are currently clear.</span>
             )}
           </div>
+          {staffingFixSummary ? (
+            <p className="text-xs text-muted-foreground">
+              Last quick-fix run: attempted {staffingFixSummary.attempted} · assigned {staffingFixSummary.assigned} · audit events {staffingFixSummary.auditEventsRecorded} · skipped {staffingFixSummary.skipped}
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 
