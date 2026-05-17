@@ -16,6 +16,46 @@ function endOfToday(): Date {
   return date;
 }
 
+function normalizeMinutes(value: string): number | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+  return hours * 60 + minutes;
+}
+
+function parseTimeSlot(timeSlot: string): { start: number; end: number } | null {
+  const cleaned = timeSlot.replace(/\s+/g, '');
+  const separator = cleaned.includes('-') ? '-' : cleaned.includes('to') ? 'to' : null;
+  if (!separator) return null;
+
+  const [startRaw, endRaw] = cleaned.split(separator);
+  if (!startRaw || !endRaw) return null;
+
+  const start = normalizeMinutes(startRaw);
+  const end = normalizeMinutes(endRaw);
+  if (start === null || end === null || end <= start) return null;
+
+  return { start, end };
+}
+
+function scheduleCoversSlot(
+  slot: { start: number; end: number } | null,
+  shiftStart: string,
+  shiftEnd: string,
+) {
+  if (!slot) return false;
+
+  const shiftStartMinutes = normalizeMinutes(shiftStart);
+  const shiftEndMinutes = normalizeMinutes(shiftEnd);
+  if (shiftStartMinutes === null || shiftEndMinutes === null || shiftEndMinutes <= shiftStartMinutes) {
+    return false;
+  }
+
+  return shiftStartMinutes <= slot.start && shiftEndMinutes >= slot.end;
+}
+
 export async function GET() {
   try {
     const session = await auth();
@@ -52,6 +92,7 @@ export async function GET() {
       unassignedPlayGroups,
       unscheduledStaffToday,
       reconciliationExceptions,
+      staffedGroupsToday,
     ] = await Promise.all([
       prisma.booking.count({
         where: {
@@ -143,7 +184,48 @@ export async function GET() {
           },
         },
       }),
+      prisma.playGroup.findMany({
+        where: {
+          date: {
+            gte: todayStart,
+            lte: todayEnd,
+          },
+          staffMemberId: {
+            not: null,
+          },
+        },
+        select: {
+          id: true,
+          timeSlot: true,
+          staffMember: {
+            select: {
+              id: true,
+              schedules: {
+                where: {
+                  date: {
+                    gte: todayStart,
+                    lte: todayEnd,
+                  },
+                },
+                select: {
+                  shiftStart: true,
+                  shiftEnd: true,
+                },
+              },
+            },
+          },
+        },
+      }),
     ]);
+
+    const staffedGroupsWithoutShiftCoverage = staffedGroupsToday.filter((group) => {
+      const slot = parseTimeSlot(group.timeSlot);
+      if (!slot) return true;
+
+      return !group.staffMember?.schedules.some((schedule) =>
+        scheduleCoversSlot(slot, schedule.shiftStart, schedule.shiftEnd),
+      );
+    }).length;
 
     const disputeDeadlines = settings.stripeCapabilityFlags.disputesEnabled
       ? await prisma.payment.count({
@@ -243,6 +325,19 @@ export async function GET() {
             unscheduledStaffToday >= 3
               ? 'critical'
               : unscheduledStaffToday > 0
+                ? 'attention'
+                : 'normal',
+        },
+        {
+          id: 'staffed_groups_without_shift',
+          label: 'Staffed groups outside shift',
+          count: staffedGroupsWithoutShiftCoverage,
+          href: '/admin/play-groups',
+          description: 'Play groups assigned to staff without matching shift coverage.',
+          severity:
+            staffedGroupsWithoutShiftCoverage >= 3
+              ? 'critical'
+              : staffedGroupsWithoutShiftCoverage > 0
                 ? 'attention'
                 : 'normal',
         },
