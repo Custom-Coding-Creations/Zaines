@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
+import { parseTimeSlotRange, shiftCoversRange, timeRangesOverlap } from '@/lib/play-groups/time-slot';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
 import { appendPlayGroupAuditEvent } from '@/lib/api/play-group-audit';
 import type { ApiResponse } from '@/types/admin';
@@ -33,54 +34,6 @@ function endOfDay(source: Date) {
   const value = new Date(source);
   value.setHours(23, 59, 59, 999);
   return value;
-}
-
-function normalizeMinutes(value: string): number | null {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
-  if (!match) return null;
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-  return hours * 60 + minutes;
-}
-
-function parseTimeSlot(timeSlot: string): { start: number; end: number } | null {
-  const cleaned = timeSlot.replace(/\s+/g, '');
-  const separator = cleaned.includes('-') ? '-' : cleaned.includes('to') ? 'to' : null;
-  if (!separator) return null;
-
-  const [startRaw, endRaw] = cleaned.split(separator);
-  if (!startRaw || !endRaw) return null;
-
-  const start = normalizeMinutes(startRaw);
-  const end = normalizeMinutes(endRaw);
-  if (start === null || end === null || end <= start) return null;
-
-  return { start, end };
-}
-
-function scheduleCoversSlot(
-  slot: { start: number; end: number } | null,
-  shiftStart: string,
-  shiftEnd: string,
-) {
-  if (!slot) return false;
-
-  const shiftStartMinutes = normalizeMinutes(shiftStart);
-  const shiftEndMinutes = normalizeMinutes(shiftEnd);
-  if (shiftStartMinutes === null || shiftEndMinutes === null || shiftEndMinutes <= shiftStartMinutes) {
-    return false;
-  }
-
-  return shiftStartMinutes <= slot.start && shiftEndMinutes >= slot.end;
-}
-
-function slotsOverlap(
-  left: { start: number; end: number } | null,
-  right: { start: number; end: number } | null,
-) {
-  if (!left || !right) return false;
-  return left.start < right.end && right.start < left.end;
 }
 
 export async function PUT(
@@ -127,7 +80,7 @@ export async function PUT(
   if (requestedStaffId) {
     const dayStart = startOfDay(group.date);
     const dayEnd = endOfDay(group.date);
-    const targetSlot = parseTimeSlot(group.timeSlot);
+    const targetSlot = parseTimeSlotRange(group.timeSlot);
     if (!targetSlot) {
       return NextResponse.json({ error: 'Invalid play group time slot format' }, { status: 400 });
     }
@@ -169,7 +122,7 @@ export async function PUT(
     }
 
     const scheduledForSlot = staff.schedules.some((schedule) =>
-      scheduleCoversSlot(targetSlot, schedule.shiftStart, schedule.shiftEnd),
+      shiftCoversRange(targetSlot, schedule.shiftStart, schedule.shiftEnd),
     );
     if (!scheduledForSlot) {
       return NextResponse.json(
@@ -180,7 +133,7 @@ export async function PUT(
 
     const hasConflict = staff.playGroups.some((assignedGroup) =>
       assignedGroup.id !== group.id &&
-      slotsOverlap(targetSlot, parseTimeSlot(assignedGroup.timeSlot)),
+      timeRangesOverlap(targetSlot, parseTimeSlotRange(assignedGroup.timeSlot)),
     );
 
     if (hasConflict) {

@@ -4,14 +4,13 @@ import { auth } from '@/lib/auth';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
 import { appendPlayGroupAuditEvent } from '@/lib/api/play-group-audit';
 import { scoreStaffRecommendation } from '@/lib/play-groups/staff-recommendation';
+import { parseTimeSlotRange, shiftCoversRange, timeRangesOverlap, type TimeSlotRange } from '@/lib/play-groups/time-slot';
 import type { ApiResponse } from '@/types/admin';
 
 const autoAssignSchema = z.object({
   date: z.string().datetime().optional(),
   repairConflicts: z.boolean().optional(),
 });
-
-type Slot = { start: number; end: number };
 
 async function authorize() {
   const session = await auth();
@@ -37,47 +36,6 @@ function endOfDay(source: Date) {
   const value = new Date(source);
   value.setHours(23, 59, 59, 999);
   return value;
-}
-
-function normalizeMinutes(value: string): number | null {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
-  if (!match) return null;
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-  return hours * 60 + minutes;
-}
-
-function parseTimeSlot(timeSlot: string): Slot | null {
-  const cleaned = timeSlot.replace(/\s+/g, '');
-  const separator = cleaned.includes('-') ? '-' : cleaned.includes('to') ? 'to' : null;
-  if (!separator) return null;
-
-  const [startRaw, endRaw] = cleaned.split(separator);
-  if (!startRaw || !endRaw) return null;
-
-  const start = normalizeMinutes(startRaw);
-  const end = normalizeMinutes(endRaw);
-  if (start === null || end === null || end <= start) return null;
-
-  return { start, end };
-}
-
-function scheduleCoversSlot(slot: Slot | null, shiftStart: string, shiftEnd: string) {
-  if (!slot) return false;
-
-  const shiftStartMinutes = normalizeMinutes(shiftStart);
-  const shiftEndMinutes = normalizeMinutes(shiftEnd);
-  if (shiftStartMinutes === null || shiftEndMinutes === null || shiftEndMinutes <= shiftStartMinutes) {
-    return false;
-  }
-
-  return shiftStartMinutes <= slot.start && shiftEndMinutes >= slot.end;
-}
-
-function slotsOverlap(left: Slot | null, right: Slot | null) {
-  if (!left || !right) return false;
-  return left.start < right.end && right.start < left.end;
 }
 
 export async function POST(request: NextRequest) {
@@ -156,7 +114,7 @@ export async function POST(request: NextRequest) {
   ]);
 
   const groupsById = new Map(groups.map((group) => [group.id, group]));
-  const groupSlots = new Map(groups.map((group) => [group.id, parseTimeSlot(group.timeSlot)]));
+  const groupSlots = new Map(groups.map((group) => [group.id, parseTimeSlotRange(group.timeSlot)]));
   const staffById = new Map(staffMembers.map((staffMember) => [staffMember.id, staffMember]));
 
   const groupsNeedingRepair = new Set<string>();
@@ -176,7 +134,7 @@ export async function POST(request: NextRequest) {
     }
 
     const scheduledForSlot = staffMember.schedules.some((schedule) =>
-      scheduleCoversSlot(groupSlot, schedule.shiftStart, schedule.shiftEnd),
+      shiftCoversRange(groupSlot, schedule.shiftStart, schedule.shiftEnd),
     );
     if (!scheduledForSlot) {
       groupsNeedingRepair.add(group.id);
@@ -190,21 +148,21 @@ export async function POST(request: NextRequest) {
         .map((playGroup) => groupsById.get(playGroup.id))
         .filter((group): group is NonNullable<typeof group> => Boolean(group))
         .sort((left, right) => {
-          const leftSlot = parseTimeSlot(left.timeSlot);
-          const rightSlot = parseTimeSlot(right.timeSlot);
+          const leftSlot = parseTimeSlotRange(left.timeSlot);
+          const rightSlot = parseTimeSlotRange(right.timeSlot);
           if (!leftSlot || !rightSlot) return 0;
           return leftSlot.start - rightSlot.start;
         });
 
-      let previousKept: { id: string; slot: Slot | null } | null = null;
+      let previousKept: { id: string; slot: TimeSlotRange | null } | null = null;
       for (const group of assignedGroups) {
-        const slot = parseTimeSlot(group.timeSlot);
+        const slot = parseTimeSlotRange(group.timeSlot);
         if (!slot) {
           groupsNeedingRepair.add(group.id);
           continue;
         }
 
-        if (previousKept && slotsOverlap(previousKept.slot, slot)) {
+        if (previousKept && timeRangesOverlap(previousKept.slot, slot)) {
           groupsNeedingRepair.add(group.id);
           continue;
         }
@@ -219,7 +177,7 @@ export async function POST(request: NextRequest) {
   const targetGroups = repairConflicts
     ? groups.filter((group) => groupsNeedingRepair.has(group.id))
     : groups.filter((group) => !group.staffMemberId);
-  const newlyAssignedByStaff = new Map<string, Slot[]>();
+  const newlyAssignedByStaff = new Map<string, TimeSlotRange[]>();
 
   const assignments: Array<{ groupId: string; staffMemberId: string; score: number }> = [];
   const skipped: Array<{ groupId: string; reason: string }> = [];
@@ -227,7 +185,7 @@ export async function POST(request: NextRequest) {
   const targetGroupIds = new Set(targetGroups.map((group) => group.id));
 
   for (const group of targetGroups) {
-    const groupSlot = parseTimeSlot(group.timeSlot);
+    const groupSlot = parseTimeSlotRange(group.timeSlot);
     if (!groupSlot) {
       skipped.push({ groupId: group.id, reason: 'Invalid group time slot format' });
       continue;
@@ -236,16 +194,16 @@ export async function POST(request: NextRequest) {
     const ranked = staffMembers
       .map((staffMember) => {
         const scheduledForSlot = staffMember.schedules.some((schedule) =>
-          scheduleCoversSlot(groupSlot, schedule.shiftStart, schedule.shiftEnd),
+          shiftCoversRange(groupSlot, schedule.shiftStart, schedule.shiftEnd),
         );
 
         const hasExistingConflict = staffMember.playGroups.some((assignedGroup) =>
           !targetGroupIds.has(assignedGroup.id) &&
-          slotsOverlap(groupSlot, parseTimeSlot(assignedGroup.timeSlot)),
+          timeRangesOverlap(groupSlot, parseTimeSlotRange(assignedGroup.timeSlot)),
         );
 
         const newAssignments = newlyAssignedByStaff.get(staffMember.id) ?? [];
-        const hasNewConflict = newAssignments.some((slot) => slotsOverlap(groupSlot, slot));
+        const hasNewConflict = newAssignments.some((slot) => timeRangesOverlap(groupSlot, slot));
 
         const recommendation = scoreStaffRecommendation(
           {

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
 import { appendPlayGroupAuditEvent } from '@/lib/api/play-group-audit';
+import { parseTimeSlotRange, shiftCoversRange, timeRangesOverlap } from '@/lib/play-groups/time-slot';
 import {
   scoreStaffRecommendation,
   type StaffRecommendation,
@@ -39,54 +40,6 @@ function endOfDay(source: Date) {
   return value;
 }
 
-function normalizeMinutes(value: string): number | null {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
-  if (!match) return null;
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-  return hours * 60 + minutes;
-}
-
-function parsePlayGroupTimeSlot(timeSlot: string): { start: number; end: number } | null {
-  const cleaned = timeSlot.replace(/\s+/g, '');
-  const separator = cleaned.includes('-') ? '-' : cleaned.includes('to') ? 'to' : null;
-  if (!separator) return null;
-
-  const [startRaw, endRaw] = cleaned.split(separator);
-  if (!startRaw || !endRaw) return null;
-
-  const start = normalizeMinutes(startRaw);
-  const end = normalizeMinutes(endRaw);
-  if (start === null || end === null || end <= start) return null;
-
-  return { start, end };
-}
-
-function scheduleCoversSlot(
-  slot: { start: number; end: number } | null,
-  shiftStart: string,
-  shiftEnd: string,
-) {
-  if (!slot) return false;
-
-  const shiftStartMinutes = normalizeMinutes(shiftStart);
-  const shiftEndMinutes = normalizeMinutes(shiftEnd);
-  if (shiftStartMinutes === null || shiftEndMinutes === null || shiftEndMinutes <= shiftStartMinutes) {
-    return false;
-  }
-
-  return shiftStartMinutes <= slot.start && shiftEndMinutes >= slot.end;
-}
-
-function slotsOverlap(
-  left: { start: number; end: number } | null,
-  right: { start: number; end: number } | null,
-) {
-  if (!left || !right) return false;
-  return left.start < right.end && right.start < left.end;
-}
-
 async function buildRecommendations(playGroupId: string) {
   const playGroup = await prisma.playGroup.findUnique({
     where: { id: playGroupId },
@@ -104,7 +57,7 @@ async function buildRecommendations(playGroupId: string) {
 
   const dayStart = startOfDay(playGroup.date);
   const dayEnd = endOfDay(playGroup.date);
-  const parsedSlot = parsePlayGroupTimeSlot(playGroup.timeSlot);
+  const parsedSlot = parseTimeSlotRange(playGroup.timeSlot);
 
   const staffMembers = await prisma.staffMember.findMany({
     where: { isActive: true },
@@ -145,13 +98,13 @@ async function buildRecommendations(playGroupId: string) {
   const recommendations = staffMembers
     .map((staffMember) => {
       const scheduledForSlot = staffMember.schedules.some((schedule) =>
-        scheduleCoversSlot(parsedSlot, schedule.shiftStart, schedule.shiftEnd),
+        shiftCoversRange(parsedSlot, schedule.shiftStart, schedule.shiftEnd),
       );
 
       const hasTimeConflict = staffMember.playGroups.some(
         (assignedGroup) =>
           assignedGroup.id !== playGroup.id &&
-          slotsOverlap(parsedSlot, parsePlayGroupTimeSlot(assignedGroup.timeSlot)),
+            timeRangesOverlap(parsedSlot, parseTimeSlotRange(assignedGroup.timeSlot)),
       );
 
       const recommendation: StaffRecommendation = scoreStaffRecommendation(
