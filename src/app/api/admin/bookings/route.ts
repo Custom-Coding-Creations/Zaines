@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     if (authResult.error) return authResult.error;
 
     if (!isDatabaseConfigured()) {
-      return NextResponse.json({ success: true, data: [] } as ApiResponse<unknown[]>);
+      return NextResponse.json({ success: true, data: [], bookings: [] } as ApiResponse<unknown[]> & { bookings: unknown[] });
     }
 
     // Parse query parameters for filters

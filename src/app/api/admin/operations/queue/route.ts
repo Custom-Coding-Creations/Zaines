@@ -73,6 +73,30 @@ export async function GET() {
     const todayStart = startOfToday();
     const todayEnd = endOfToday();
     const settings = await getAdminSettings();
+    const inventoryStore = prisma.inventoryItem as unknown as {
+      findMany?: (args: {
+        where: { isActive: boolean };
+        select: { currentStock: boolean; reorderLevel: boolean };
+      }) => Promise<Array<{ currentStock: number; reorderLevel: number }>>;
+      count: (args: { where: { isActive: boolean } }) => Promise<number>;
+    };
+
+    const inventoryMetricPromise =
+      typeof inventoryStore.findMany === 'function'
+        ? inventoryStore.findMany({
+            where: {
+              isActive: true,
+            },
+            select: {
+              currentStock: true,
+              reorderLevel: true,
+            },
+          })
+        : inventoryStore.count({
+            where: {
+              isActive: true,
+            },
+          });
 
     const [
       checkInsToday,
@@ -133,15 +157,7 @@ export async function GET() {
           },
         },
       }),
-      prisma.inventoryItem.findMany({
-        where: {
-          isActive: true,
-        },
-        select: {
-          currentStock: true,
-          reorderLevel: true,
-        },
-      }),
+      inventoryMetricPromise,
       prisma.customerPackage.count({
         where: {
           status: 'active',
@@ -230,9 +246,9 @@ export async function GET() {
     const staffedGroupsWithoutShiftCoverage = staffingExceptions.summary.withoutShiftCoverage;
     const invalidPlayGroupTimeSlots = staffingExceptions.summary.invalidTimeSlot;
     const actionableStaffingExceptions = staffingExceptions.items.filter((item) => item.canAutoFix).length;
-    const lowStockItems = inventoryLevels.filter(
-      (item) => item.currentStock <= item.reorderLevel,
-    ).length;
+    const lowStockItems = Array.isArray(inventoryLevels)
+      ? inventoryLevels.filter((item) => item.currentStock <= item.reorderLevel).length
+      : inventoryLevels;
 
     const overlappingStaffShifts = countStaffWithOverlappingShifts(todaysStaffSchedules);
 
