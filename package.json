@@ -22,6 +22,7 @@
     "test:watch": "vitest",
     "worker": "node scripts/worker.js",
     "audit:ui:accessibility": "node scripts/audit/accessibility_check.js",
+    "audit:admin:auth-health": "node scripts/audit/admin_auth_health_probe.js",
     "audit:ui:accessibility:basic": "node scripts/audit/accessibility_basic_check.js",
     "audit:ui:accessibility:playwright": "node scripts/audit/playwright_a11y.js",
     "audit:issue66:performance": "node scripts/audit/issue66_performance_budget.js",

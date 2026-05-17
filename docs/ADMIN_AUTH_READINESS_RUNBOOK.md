@@ -34,6 +34,28 @@ Response includes:
 
 This endpoint sends `Cache-Control: no-store` and does not expose secret values.
 
+## Continuous Monitoring
+
+Run the auth health probe on a schedule (for example every minute in your synthetic monitor or every 5 minutes in CI cron):
+
+- `pnpm audit:admin:auth-health -- --base-url https://zainesstayandplay.com`
+
+Probe behavior:
+
+- exits `0` only when endpoint returns `200` and `code=ADMIN_AUTH_READY`
+- exits `1` for degraded/misconfigured health payloads
+- exits `2` for transport/runtime probe failures
+
+Artifacts:
+
+- writes JSON evidence to `docs/audit_logs/ADMIN_AUTH_HEALTH_PROBE.json`
+
+Suggested alert policy:
+
+1. Page on 2 consecutive `exit=1` results in production.
+2. Page immediately on any `exit=2` result.
+3. Auto-create incident if `code=ADMIN_AUTH_MISCONFIGURED` or `code=ADMIN_AUTH_DATABASE_REQUIRED` persists for more than 5 minutes.
+
 ## Failure Codes and Meaning
 
 - `ADMIN_AUTH_READY`: auth runtime checks passed
