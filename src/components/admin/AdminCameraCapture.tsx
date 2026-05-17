@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Loader2, Sparkles } from "lucide-react";
 import { retryWithBackoff } from "@/lib/retry";
+import { safeJsonResponse } from "@/lib/safe-json-response";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -251,12 +252,12 @@ export function AdminCameraCapture() {
 
     try {
       const checkedInResponse = await fetch("/api/admin/bookings?status=checked_in", { cache: "no-store" });
-      const checkedInPayload = (await checkedInResponse.json()) as {
+      const checkedInPayload = await safeJsonResponse<{
         success?: boolean;
         data?: BookingOption[];
         bookings?: BookingOption[];
         error?: string;
-      };
+      }>(checkedInResponse, {});
 
       if (!checkedInResponse.ok) {
         throw new Error(checkedInPayload.error ?? "Unable to load checked-in bookings.");
@@ -271,10 +272,10 @@ export function AdminCameraCapture() {
           `/api/admin/bookings?status=confirmed&startDate=${today}&endDate=${today}`,
           { cache: "no-store" },
         );
-        const confirmedPayload = (await confirmedResponse.json()) as {
+        const confirmedPayload = await safeJsonResponse<{
           data?: BookingOption[];
           bookings?: BookingOption[];
-        };
+        }>(confirmedResponse, {});
         if (confirmedResponse.ok) {
           nextBookings = confirmedPayload.data ?? confirmedPayload.bookings ?? [];
         }
@@ -282,7 +283,7 @@ export function AdminCameraCapture() {
 
       // Occupancy feed can include currently checked-in pets even if bookings feed is stale.
       const occupancyResponse = await fetch("/api/admin/occupancy", { cache: "no-store" });
-      const occupancyPayload = (await occupancyResponse.json()) as {
+      const occupancyPayload = await safeJsonResponse<{
         suites?: Array<{
           bookings?: Array<{
             id: string;
@@ -292,7 +293,7 @@ export function AdminCameraCapture() {
             pets?: Array<{ id: string; name: string; breed: string } | null>;
           }>;
         }>;
-      };
+      }>(occupancyResponse, {});
 
       if (occupancyResponse.ok) {
         const occupancyBookings: BookingOption[] = (occupancyPayload.suites ?? [])
@@ -325,7 +326,7 @@ export function AdminCameraCapture() {
 
       if (needsPetHydration) {
         const petsResponse = await fetch('/api/admin/pets?limit=200', { cache: 'no-store' });
-        const petsPayload = (await petsResponse.json()) as { pets?: PetOption[] };
+        const petsPayload = await safeJsonResponse<{ pets?: PetOption[] }>(petsResponse, {});
         if (petsResponse.ok) {
           const pets = petsPayload.pets ?? [];
           nextBookings = nextBookings.map((booking) => {
@@ -484,7 +485,7 @@ export function AdminCameraCapture() {
         },
       );
 
-      const payload = (await response.json()) as { error?: string };
+      const payload = await safeJsonResponse<{ error?: string }>(response, {});
       if (!response.ok) {
         throw new Error(payload.error ?? "Unable to submit photo update.");
       }

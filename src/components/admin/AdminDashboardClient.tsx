@@ -18,6 +18,7 @@ import type {
   AdminOperationsQueueResponse,
   AdminQueueItem,
 } from '@/types/admin';
+import { safeJsonResponse } from '@/lib/safe-json-response';
 
 interface KPICard {
   label: string;
@@ -63,15 +64,12 @@ function getDateRange(
   dateRangeType: 'today' | 'today_tomorrow' | 'this_week',
 ): { startDate: Date; endDate: Date } {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
 
   let endDate = new Date(today);
   endDate.setHours(23, 59, 59, 999);
-
   if (dateRangeType === 'today_tomorrow') {
     endDate = new Date(today);
     endDate.setDate(endDate.getDate() + 1);
-    endDate.setHours(23, 59, 59, 999);
   } else if (dateRangeType === 'this_week') {
     const dayOfWeek = today.getDay();
     const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
@@ -214,19 +212,19 @@ export default function AdminDashboardClient({
         fetch(`/api/admin/play-groups/staffing-exceptions?date=${encodeURIComponent(new Date().toISOString().slice(0, 10))}`),
       ]);
 
-      const data = (await bookingsRes.json()) as {
+      const data = await safeJsonResponse<{
         success?: boolean;
         data?: AdminBookingResponse[];
-      };
-      const queueData = (await queueRes.json()) as {
+      }>(bookingsRes, {});
+      const queueData = await safeJsonResponse<{
         success?: boolean;
         data?: AdminOperationsQueueResponse;
-      };
-      const exceptionsPayload = (await staffingExceptionsRes.json()) as {
+      }>(queueRes, {});
+      const exceptionsPayload = await safeJsonResponse<{
         data?: {
           items?: Array<{ groupId: string; canAutoFix: boolean }>;
         };
-      };
+      }>(staffingExceptionsRes, {});
 
       if (data.data) {
         setBookings(data.data);
@@ -273,11 +271,11 @@ export default function AdminDashboardClient({
       });
 
       if (!response.ok) {
-        const payload = (await response.json()) as { error?: string };
+        const payload = await safeJsonResponse<{ error?: string }>(response, {});
         throw new Error(payload.error || 'Failed to run staffing auto-fix');
       }
 
-      const payload = (await response.json()) as {
+      const payload = await safeJsonResponse<{
         data?: {
           attempted?: number;
           plannedAssignments?: number;
@@ -287,7 +285,7 @@ export default function AdminDashboardClient({
           skippedReasonCounts?: Record<string, number>;
           skipped?: Array<{ groupId: string; reason: string }>;
         };
-      };
+      }>(response, {});
 
       setStaffingFixSummary({
         mode: dryRun ? 'preview' : 'apply',

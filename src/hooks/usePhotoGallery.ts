@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { computeAdaptivePollDelay } from "@/hooks/pollingScheduler";
+import { safeJsonResponse } from "@/lib/safe-json-response";
 
 interface Photo {
   id: string;
@@ -83,7 +84,11 @@ export function usePhotoGallery({
           throw new Error(`Failed to fetch photos: ${response.status}`);
         }
 
-        const data = (await response.json()) as PhotosApiResponse;
+        const data = await safeJsonResponse<PhotosApiResponse>(response, {
+          items: [],
+          hasMore: false,
+          nextCursor: null,
+        });
         const newPhotos = data.items.map((item) => ({
           ...item,
           uploadedAt: new Date(item.uploadedAt),

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { computeAdaptivePollDelay } from "@/hooks/pollingScheduler";
+import { safeJsonResponse } from "@/lib/safe-json-response";
 
 interface Activity {
   id: string;
@@ -92,11 +93,18 @@ export function useNotifications({
         throw new Error(`Notification poll failed: ${response.status}`);
       }
 
-      const data = await response.json();
-      const now = new Date(data.meta.timestamp);
+      const data = await safeJsonResponse<{
+        meta?: { timestamp?: string };
+        events?: {
+          activities?: Activity[];
+          photos?: Photo[];
+          messages?: Message[];
+        };
+      }>(response, {});
+      const now = new Date(data.meta?.timestamp ?? new Date().toISOString());
 
       // Process new activities
-      const newActivities: NotificationEvent[] = (data.events.activities || [])
+      const newActivities: NotificationEvent[] = (data.events?.activities || [])
         .filter((activity: Activity) => !seenEventIds.has(activity.id))
         .map((activity: Activity) => ({
           type: "activity" as const,
@@ -107,7 +115,7 @@ export function useNotifications({
         }));
 
       // Process new photos
-      const newPhotos: NotificationEvent[] = (data.events.photos || [])
+      const newPhotos: NotificationEvent[] = (data.events?.photos || [])
         .filter((photo: Photo) => !seenEventIds.has(photo.id))
         .map((photo: Photo) => ({
           type: "photo" as const,
@@ -118,7 +126,7 @@ export function useNotifications({
         }));
 
       // Process new messages
-      const newMessages: NotificationEvent[] = (data.events.messages || [])
+      const newMessages: NotificationEvent[] = (data.events?.messages || [])
         .filter((message: Message) => !seenEventIds.has(message.id))
         .map((message: Message) => ({
           type: "message" as const,

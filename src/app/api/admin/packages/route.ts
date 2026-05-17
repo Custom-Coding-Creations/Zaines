@@ -1,75 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireStaffSession } from '@/lib/api/admin-auth';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
 import { bookingPackageSchema } from '@/lib/validations/package';
 import type { ApiResponse } from '@/types/admin';
 
-async function authorize() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
-  }
-
-  const role = (session.user as { role?: string }).role;
-  if (!role || !['staff', 'admin'].includes(role)) {
-    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
-  }
-
-  return { session };
-}
-
 export async function GET() {
-  const authResult = await authorize();
-  if (authResult.error) return authResult.error;
+  try {
+    const authResult = await requireStaffSession();
+    if (authResult.error) return authResult.error;
 
-  if (!isDatabaseConfigured()) {
-    return NextResponse.json({ success: true, data: [] } as ApiResponse<unknown[]>);
-  }
+    if (!isDatabaseConfigured()) {
+      return NextResponse.json({ success: true, data: [] } as ApiResponse<unknown[]>);
+    }
 
-  const packages = await prisma.bookingPackage.findMany({
-    include: {
-      customerPackages: {
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+    const packages = await prisma.bookingPackage.findMany({
+      include: {
+        customerPackages: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
             },
           },
+          orderBy: { purchaseDate: 'desc' },
+          take: 25,
         },
-        orderBy: { purchaseDate: 'desc' },
-        take: 25,
       },
-    },
-    orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
-  });
+      orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
+    });
 
-  return NextResponse.json({ success: true, data: packages } as ApiResponse<typeof packages>);
+    return NextResponse.json({ success: true, data: packages } as ApiResponse<typeof packages>);
+  } catch (error) {
+    console.error('Failed to load packages', error);
+    return NextResponse.json({ error: 'Failed to load packages' }, { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
-  const authResult = await authorize();
-  if (authResult.error) return authResult.error;
+  try {
+    const authResult = await requireStaffSession();
+    if (authResult.error) return authResult.error;
 
-  if (!isDatabaseConfigured()) {
-    return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
-  }
+    if (!isDatabaseConfigured()) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
+    }
 
-  const body = (await request.json()) as unknown;
-  const parsed = bookingPackageSchema.safeParse(body);
+    const body = (await request.json()) as unknown;
+    const parsed = bookingPackageSchema.safeParse(body);
 
-  if (!parsed.success) {
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: parsed.error.issues },
+        { status: 400 },
+      );
+    }
+
+    const created = await prisma.bookingPackage.create({ data: parsed.data });
+
     return NextResponse.json(
-      { error: 'Validation failed', details: parsed.error.issues },
-      { status: 400 },
+      { success: true, data: created } as ApiResponse<typeof created>,
+      { status: 201 },
     );
+  } catch (error) {
+    console.error('Failed to create package', error);
+    return NextResponse.json({ error: 'Failed to create package' }, { status: 500 });
   }
-
-  const created = await prisma.bookingPackage.create({ data: parsed.data });
-
-  return NextResponse.json(
-    { success: true, data: created } as ApiResponse<typeof created>,
-    { status: 201 },
-  );
 }

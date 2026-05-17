@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { computeAdaptivePollDelay } from "@/hooks/pollingScheduler";
+import { safeJsonResponse } from "@/lib/safe-json-response";
 
 interface Message {
   id: string;
@@ -87,7 +88,11 @@ export function useMessages({
           throw new Error(`Failed to fetch messages: ${response.status}`);
         }
 
-        const data = (await response.json()) as MessagesApiResponse;
+        const data = await safeJsonResponse<MessagesApiResponse>(response, {
+          items: [],
+          hasMore: false,
+          nextCursor: null,
+        });
         const newMessages = data.items.map((item) => ({
           ...item,
           sentAt: new Date(item.sentAt),
@@ -152,7 +157,16 @@ export function useMessages({
           throw new Error(`Failed to send message: ${response.status}`);
         }
 
-        const newMessage = await response.json();
+        const newMessage = await safeJsonResponse<
+          Omit<Message, "sentAt"> & { sentAt: string }
+        >(response, {
+          id: "",
+          content,
+          senderType: "staff",
+          senderName: "Staff",
+          sentAt: new Date().toISOString(),
+          isRead: true,
+        });
         const message: Message = {
           ...newMessage,
           sentAt: new Date(newMessage.sentAt),

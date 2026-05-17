@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { computeAdaptivePollDelay } from "@/hooks/pollingScheduler";
+import { safeJsonResponse } from "@/lib/safe-json-response";
 
 interface Activity {
   id: string;
@@ -87,7 +88,11 @@ export function useActivityPolling({
           throw new Error(`Failed to fetch activities: ${response.status}`);
         }
 
-        const data = (await response.json()) as ActivitiesApiResponse;
+        const data = await safeJsonResponse<ActivitiesApiResponse>(response, {
+          items: [],
+          hasMore: false,
+          nextCursor: null,
+        });
         const newActivities = data.items.map((item) => ({
           ...item,
           performedAt: new Date(item.performedAt),

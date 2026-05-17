@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
 import type { AdminOperationsQueueResponse } from '@/types/admin';
 import { getAdminSettings } from '@/lib/api/admin-settings';
+import { requireStaffSession } from '@/lib/api/admin-auth';
 import { collectStaffingExceptions } from '@/lib/play-groups/staffing-exceptions';
 
 function startOfToday(): Date {
@@ -59,15 +59,8 @@ function countStaffWithOverlappingShifts(
 
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const role = (session.user as { role?: string }).role;
-    if (!role || !['staff', 'admin'].includes(role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const authResult = await requireStaffSession();
+    if (authResult.error) return authResult.error;
 
     if (!isDatabaseConfigured()) {
       const empty: AdminOperationsQueueResponse = {
@@ -88,7 +81,7 @@ export async function GET() {
       unresolvedMessages,
       failedPayments,
       pendingReminders,
-      lowStockItems,
+      inventoryLevels,
       expiringPackages,
       unassignedPlayGroups,
       unscheduledStaffToday,
@@ -140,12 +133,13 @@ export async function GET() {
           },
         },
       }),
-      prisma.inventoryItem.count({
+      prisma.inventoryItem.findMany({
         where: {
           isActive: true,
-          currentStock: {
-            lte: prisma.inventoryItem.fields.reorderLevel,
-          },
+        },
+        select: {
+          currentStock: true,
+          reorderLevel: true,
         },
       }),
       prisma.customerPackage.count({
@@ -236,6 +230,9 @@ export async function GET() {
     const staffedGroupsWithoutShiftCoverage = staffingExceptions.summary.withoutShiftCoverage;
     const invalidPlayGroupTimeSlots = staffingExceptions.summary.invalidTimeSlot;
     const actionableStaffingExceptions = staffingExceptions.items.filter((item) => item.canAutoFix).length;
+    const lowStockItems = inventoryLevels.filter(
+      (item) => item.currentStock <= item.reorderLevel,
+    ).length;
 
     const overlappingStaffShifts = countStaffWithOverlappingShifts(todaysStaffSchedules);
 

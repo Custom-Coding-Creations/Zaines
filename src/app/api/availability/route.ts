@@ -27,7 +27,7 @@ type AvailabilityPrisma = {
           };
         };
       };
-    }) => Promise<Array<{ suite: { tier: string }; bookingPets: Array<{ id: string }> }>>;
+    }) => Promise<Array<{ suite: { tier: string } | null; bookingPets: Array<{ id: string }> }>>;
   };
 };
 
@@ -104,6 +104,20 @@ export async function GET(request: NextRequest) {
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
 
+    if (
+      Number.isNaN(checkInDate.getTime()) ||
+      Number.isNaN(checkOutDate.getTime()) ||
+      checkOutDate <= checkInDate
+    ) {
+      return errorResponse({
+        status: 400,
+        errorCode: 'AVAILABILITY_VALIDATION_ERROR',
+        message: 'Invalid check-in/check-out date range.',
+        retryable: false,
+        correlationId,
+      });
+    }
+
     // Find all bookings that overlap with the requested dates
     const overlappingBookings = await availabilityPrisma.booking.findMany({
       where: {
@@ -160,9 +174,12 @@ export async function GET(request: NextRequest) {
     const occupiedCounts = overlappingBookings.reduce(
       (
         acc: Record<string, number>,
-        booking: { suite: { tier: string }; bookingPets?: Array<{ id: string }> },
+        booking: { suite: { tier: string } | null; bookingPets?: Array<{ id: string }> },
       ) => {
-        const tier = booking.suite.tier.toUpperCase();
+        const tier = booking.suite?.tier?.toUpperCase();
+        if (!tier) {
+          return acc;
+        }
         const occupiedPets = Array.isArray(booking.bookingPets)
           ? booking.bookingPets.length
           : 1;
