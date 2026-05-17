@@ -69,8 +69,13 @@ export async function POST(request: NextRequest) {
 
   const checkInDate = parseDate(parsed.data.checkIn);
   const checkOutDate = parseDate(parsed.data.checkOut);
+  const checkInDayEnd = checkInDate ? new Date(checkInDate) : null;
+  if (checkInDayEnd) {
+    // Treat checkout on check-in day as non-overlapping for date-based stays.
+    checkInDayEnd.setUTCHours(23, 59, 59, 999);
+  }
 
-  if (!checkInDate || !checkOutDate || checkOutDate <= checkInDate) {
+  if (!checkInDate || !checkOutDate || !checkInDayEnd || checkOutDate <= checkInDate) {
     return NextResponse.json(
       createPublicErrorEnvelope({
         errorCode: "INVALID_DATE_RANGE",
@@ -98,7 +103,7 @@ export async function POST(request: NextRequest) {
           },
           {
             checkOutDate: {
-              gt: checkInDate,
+              gt: checkInDayEnd,
               lte: checkOutDate,
             },
           },

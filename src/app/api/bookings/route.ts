@@ -458,6 +458,9 @@ export async function POST(request: NextRequest) {
 
     const checkInDate = new Date(data.checkIn);
     const checkOutDate = new Date(data.checkOut);
+    const checkInDayEnd = new Date(checkInDate);
+    // Treat checkout on check-in day as non-overlapping for date-based stays.
+    checkInDayEnd.setUTCHours(23, 59, 59, 999);
     const totalNights = Math.ceil(
       (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24),
     );
@@ -591,7 +594,7 @@ export async function POST(request: NextRequest) {
               },
               {
                 checkOutDate: {
-                  gt: checkInDate,
+                  gt: checkInDayEnd,
                   lte: checkOutDate,
                 },
               },

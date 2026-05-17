@@ -103,6 +103,9 @@ export async function GET(request: NextRequest) {
 
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
+    const checkInDayEnd = new Date(checkInDate);
+    // Treat checkout on check-in day as non-overlapping for date-based stays.
+    checkInDayEnd.setUTCHours(23, 59, 59, 999);
 
     if (
       Number.isNaN(checkInDate.getTime()) ||
@@ -135,7 +138,7 @@ export async function GET(request: NextRequest) {
           {
             // Booking ends during requested period
             checkOutDate: {
-              gt: checkInDate,
+              gt: checkInDayEnd,
               lte: checkOutDate,
             },
           },

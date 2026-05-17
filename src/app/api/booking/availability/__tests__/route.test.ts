@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "../route";
 import { DEFAULT_SUITES } from "@/lib/booking/default-suites";
+import { prisma } from "@/lib/prisma";
 
 let suiteCount = 3;
 let bookingCount = 0;
@@ -102,5 +103,33 @@ describe("POST /api/booking/availability", () => {
     expect(response.status).toBe(200);
     expect(data.isAvailable).toBe(true);
     expect(upsertSuite).toHaveBeenCalledTimes(DEFAULT_SUITES.length);
+  });
+
+  it("uses end-of-day check-in boundary for overlap checks", async () => {
+    const request = new NextRequest(
+      "http://localhost:3000/api/booking/availability",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          checkIn: "2026-05-18",
+          checkOut: "2026-05-29",
+          serviceType: "boarding",
+          partySize: 1,
+        }),
+      },
+    );
+
+    await POST(request);
+
+    const bookingCountMock = vi.mocked(prisma.booking.count);
+    expect(bookingCountMock).toHaveBeenCalledTimes(1);
+
+    const whereClause = bookingCountMock.mock.calls[0]?.[0]?.where as {
+      OR: Array<{ checkOutDate?: { gt?: Date } }>;
+    };
+    const checkOutGate = whereClause.OR[1]?.checkOutDate?.gt;
+
+    expect(checkOutGate).toBeInstanceOf(Date);
+    expect(checkOutGate?.toISOString()).toBe("2026-05-18T23:59:59.999Z");
   });
 });
