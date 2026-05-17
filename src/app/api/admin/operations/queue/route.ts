@@ -50,6 +50,7 @@ export async function GET() {
       lowStockItems,
       expiringPackages,
       unassignedPlayGroups,
+      unscheduledStaffToday,
       reconciliationExceptions,
     ] = await Promise.all([
       prisma.booking.count({
@@ -120,6 +121,19 @@ export async function GET() {
             lte: todayEnd,
           },
           staffMemberId: null,
+        },
+      }),
+      prisma.staffMember.count({
+        where: {
+          isActive: true,
+          schedules: {
+            none: {
+              date: {
+                gte: todayStart,
+                lte: todayEnd,
+              },
+            },
+          },
         },
       }),
       prisma.payment.count({
@@ -216,6 +230,19 @@ export async function GET() {
             unassignedPlayGroups >= 3
               ? 'critical'
               : unassignedPlayGroups > 0
+                ? 'attention'
+                : 'normal',
+        },
+        {
+          id: 'unscheduled_staff_today',
+          label: 'Unscheduled staff today',
+          count: unscheduledStaffToday,
+          href: '/admin/staff',
+          description: 'Active staff members with no shift scheduled for today.',
+          severity:
+            unscheduledStaffToday >= 3
+              ? 'critical'
+              : unscheduledStaffToday > 0
                 ? 'attention'
                 : 'normal',
         },

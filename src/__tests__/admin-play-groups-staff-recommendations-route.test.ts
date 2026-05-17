@@ -51,7 +51,7 @@ describe('admin play group staff recommendations route', () => {
         certifications: ['Behavior Handling'],
         user: { id: 'u1', name: 'Alex', email: 'alex@example.com' },
         schedules: [{ id: 's1', shiftStart: '08:00', shiftEnd: '12:00' }],
-        playGroups: [{ id: 'pg-a' }],
+        playGroups: [{ id: 'pg-a', timeSlot: '07:00-08:00' }],
       },
       {
         id: 'staff-2',
@@ -59,7 +59,7 @@ describe('admin play group staff recommendations route', () => {
         certifications: [],
         user: { id: 'u2', name: 'Sam', email: 'sam@example.com' },
         schedules: [{ id: 's2', shiftStart: '13:00', shiftEnd: '18:00' }],
-        playGroups: [],
+        playGroups: [{ id: 'pg-b', timeSlot: '14:00-15:00' }],
       },
     ]);
   });
@@ -135,5 +135,29 @@ describe('admin play group staff recommendations route', () => {
         data: { staffMemberId: 'staff-2' },
       }),
     );
+  });
+
+  it('blocks assignment when selected staff has overlapping play group time conflict', async () => {
+    authMock.mockResolvedValue({ user: { id: 'admin-user', role: 'admin' } });
+    prismaMock.staffMember.findMany.mockResolvedValue([
+      {
+        id: 'staff-1',
+        role: 'handler',
+        certifications: ['Behavior Handling'],
+        user: { id: 'u1', name: 'Alex', email: 'alex@example.com' },
+        schedules: [{ id: 's1', shiftStart: '08:00', shiftEnd: '12:00' }],
+        playGroups: [{ id: 'pg-overlap', timeSlot: '10:00-12:00' }],
+      },
+    ]);
+
+    const response = await POST(makeAssignRequest({ staffMemberId: 'staff-1' }), {
+      params: Promise.resolve({ id: 'group-1' }),
+    });
+    if (!response) throw new Error('Expected response');
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload.error).toContain('conflicting play group assignment');
+    expect(prismaMock.playGroup.update).not.toHaveBeenCalled();
   });
 });

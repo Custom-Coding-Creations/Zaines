@@ -6,6 +6,7 @@ export type StaffRecommendationInput = {
   certifications: string[];
   scheduledForSlot: boolean;
   groupsAssignedToday: number;
+  hasTimeConflict: boolean;
 };
 
 export type StaffRecommendationContext = {
@@ -34,6 +35,15 @@ export function scoreStaffRecommendation(
   context: StaffRecommendationContext,
 ): StaffRecommendation {
   const reasons: string[] = [];
+
+  if (input.hasTimeConflict) {
+    return {
+      staffMemberId: input.staffMemberId,
+      score: 0,
+      reasons: ['Conflicts with another assigned play group in this time slot'],
+    };
+  }
+
   let score = 100;
 
   if (!input.scheduledForSlot) {

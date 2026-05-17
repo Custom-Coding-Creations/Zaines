@@ -78,6 +78,14 @@ function scheduleCoversSlot(
   return shiftStartMinutes <= slot.start && shiftEndMinutes >= slot.end;
 }
 
+function slotsOverlap(
+  left: { start: number; end: number } | null,
+  right: { start: number; end: number } | null,
+) {
+  if (!left || !right) return false;
+  return left.start < right.end && right.start < left.end;
+}
+
 async function buildRecommendations(playGroupId: string) {
   const playGroup = await prisma.playGroup.findUnique({
     where: { id: playGroupId },
@@ -127,7 +135,7 @@ async function buildRecommendations(playGroupId: string) {
             lte: dayEnd,
           },
         },
-        select: { id: true },
+        select: { id: true, timeSlot: true },
       },
     },
     orderBy: [{ role: 'asc' }, { createdAt: 'desc' }],
@@ -139,6 +147,12 @@ async function buildRecommendations(playGroupId: string) {
         scheduleCoversSlot(parsedSlot, schedule.shiftStart, schedule.shiftEnd),
       );
 
+      const hasTimeConflict = staffMember.playGroups.some(
+        (assignedGroup) =>
+          assignedGroup.id !== playGroup.id &&
+          slotsOverlap(parsedSlot, parsePlayGroupTimeSlot(assignedGroup.timeSlot)),
+      );
+
       const recommendation: StaffRecommendation = scoreStaffRecommendation(
         {
           staffMemberId: staffMember.id,
@@ -146,6 +160,7 @@ async function buildRecommendations(playGroupId: string) {
           certifications: staffMember.certifications,
           scheduledForSlot,
           groupsAssignedToday: staffMember.playGroups.length,
+          hasTimeConflict,
         },
         {
           groupEnergyLevel: playGroup.energyLevel as 'calm' | 'moderate' | 'high',
@@ -222,6 +237,13 @@ export async function POST(
     return NextResponse.json(
       { error: 'Selected staff member is not available in recommendations' },
       { status: 404 },
+    );
+  }
+
+  if (selected.reasons.includes('Conflicts with another assigned play group in this time slot')) {
+    return NextResponse.json(
+      { error: 'Selected staff member has a conflicting play group assignment in this time slot' },
+      { status: 409 },
     );
   }
 
