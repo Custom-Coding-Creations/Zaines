@@ -52,4 +52,36 @@ describe("admin finance endpoint hardening", () => {
     expect(body.error).toBe("Invalid date parameter");
     expect(getFinanceTransactionsMock).not.toHaveBeenCalled();
   });
+
+  it("returns 503 with code when finance exceptions backend fails", async () => {
+    requireFinanceAccessMock.mockResolvedValue({
+      session: { user: { id: "staff-1", role: "staff", name: "Staff" } },
+    });
+    getFinanceExceptionsMock.mockRejectedValue(new Error("boom"));
+
+    const response = await getFinanceExceptionsRoute(
+      new NextRequest("http://localhost/api/admin/finance/exceptions"),
+    );
+
+    expect(response.status).toBe(503);
+    const body = (await response.json()) as { error?: string; code?: string };
+    expect(body.error).toBe("Finance exceptions service unavailable");
+    expect(body.code).toBe("FINANCE_EXCEPTIONS_UNAVAILABLE");
+  });
+
+  it("returns 503 with code when finance transactions backend fails", async () => {
+    requireFinanceAccessMock.mockResolvedValue({
+      session: { user: { id: "staff-1", role: "staff", name: "Staff" } },
+    });
+    getFinanceTransactionsMock.mockRejectedValue(new Error("boom"));
+
+    const response = await getFinanceTransactionsRoute(
+      new NextRequest("http://localhost/api/admin/finance/transactions"),
+    );
+
+    expect(response.status).toBe(503);
+    const body = (await response.json()) as { error?: string; code?: string };
+    expect(body.error).toBe("Finance transaction service unavailable");
+    expect(body.code).toBe("FINANCE_TRANSACTIONS_UNAVAILABLE");
+  });
 });
