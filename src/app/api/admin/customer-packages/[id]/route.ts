@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { getAdminSettings } from '@/lib/api/admin-settings';
+import { appendPackageAuditEvent } from '@/lib/api/package-audit';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
 import type { ApiResponse } from '@/types/admin';
 
@@ -130,6 +131,25 @@ export async function PATCH(
           email: true,
         },
       },
+    },
+  });
+
+  await appendPackageAuditEvent({
+    actorUserId: authResult.session.user.id,
+    actorName:
+      ((authResult.session.user as { name?: string | null }).name ||
+        (authResult.session.user as { email?: string | null }).email ||
+        'Staff') as string,
+    eventType: 'PACKAGE_UPDATED',
+    customerPackageId: updated.id,
+    targetUserId: updated.user.id,
+    packageId: updated.package.id,
+    metadata: {
+      extensionDays,
+      sessionAdjustment: parsed.data.sessionAdjustment ?? 0,
+      status: updated.status,
+      expiresAt: updated.expiresAt.toISOString(),
+      sessionsRemaining: updated.sessionsRemaining,
     },
   });
 

@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const { authMock, prismaMock } = vi.hoisted(() => ({
+const { authMock, prismaMock, appendPackageAuditEventMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
+  appendPackageAuditEventMock: vi.fn(async () => undefined),
   prismaMock: {
     user: {
       findUnique: vi.fn(),
@@ -23,6 +24,10 @@ vi.mock('@/lib/auth', () => ({
 vi.mock('@/lib/prisma', () => ({
   prisma: prismaMock,
   isDatabaseConfigured: vi.fn(() => true),
+}));
+
+vi.mock('@/lib/api/package-audit', () => ({
+  appendPackageAuditEvent: appendPackageAuditEventMock,
 }));
 
 import { POST } from '@/app/api/admin/customer-packages/route';
@@ -92,6 +97,12 @@ describe('POST /api/admin/customer-packages', () => {
       }),
     );
     expect(payload.data.package.name).toBe('10 Daycare Visits');
+    expect(appendPackageAuditEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: 'PACKAGE_GRANTED',
+        customerPackageId: 'customer-package-1',
+      }),
+    );
   });
 
   it('returns 404 when the customer email does not match an account', async () => {

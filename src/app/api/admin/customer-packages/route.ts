@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
+import { appendPackageAuditEvent } from '@/lib/api/package-audit';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
 import type { ApiResponse } from '@/types/admin';
 
@@ -88,6 +89,22 @@ export async function POST(request: NextRequest) {
           email: true,
         },
       },
+    },
+  });
+
+  await appendPackageAuditEvent({
+    actorUserId: authResult.session.user.id,
+    actorName:
+      ((authResult.session.user as { name?: string | null }).name ||
+        (authResult.session.user as { email?: string | null }).email ||
+        'Staff') as string,
+    eventType: 'PACKAGE_GRANTED',
+    customerPackageId: created.id,
+    targetUserId: created.user.id,
+    packageId: created.package.id,
+    metadata: {
+      expiresAt: created.expiresAt.toISOString(),
+      sessionsRemaining: created.sessionsRemaining,
     },
   });
 

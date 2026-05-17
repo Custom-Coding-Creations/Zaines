@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const { authMock, getAdminSettingsMock, prismaMock } = vi.hoisted(() => ({
+const { authMock, getAdminSettingsMock, prismaMock, appendPackageAuditEventMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
   getAdminSettingsMock: vi.fn(),
+  appendPackageAuditEventMock: vi.fn(async () => undefined),
   prismaMock: {
     customerPackage: {
       findUnique: vi.fn(),
@@ -23,6 +24,10 @@ vi.mock('@/lib/api/admin-settings', () => ({
 vi.mock('@/lib/prisma', () => ({
   prisma: prismaMock,
   isDatabaseConfigured: vi.fn(() => true),
+}));
+
+vi.mock('@/lib/api/package-audit', () => ({
+  appendPackageAuditEvent: appendPackageAuditEventMock,
 }));
 
 import { PATCH } from '@/app/api/admin/customer-packages/[id]/route';
@@ -89,6 +94,12 @@ describe('PATCH /api/admin/customer-packages/[id]', () => {
           sessionsUsed: 7,
           status: 'active',
         }),
+      }),
+    );
+    expect(appendPackageAuditEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: 'PACKAGE_UPDATED',
+        customerPackageId: 'customer-package-1',
       }),
     );
     expect(new Date(payload.data.expiresAt).toISOString()).toBe('2026-06-06T00:00:00.000Z');
