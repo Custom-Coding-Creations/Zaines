@@ -44,28 +44,54 @@ export async function POST(
     ? Math.abs(payload.quantity)
     : -Math.abs(payload.quantity);
 
-  const result = await prisma.$transaction(async (tx) => {
-    const item = await tx.inventoryItem.update({
-      where: { id },
-      data: {
-        currentStock: {
-          increment: quantityDelta,
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const existingItem = await tx.inventoryItem.findUnique({
+        where: { id },
+        select: { currentStock: true },
+      });
+
+      if (!existingItem) {
+        throw new Error('Inventory item not found');
+      }
+
+      const nextStock = existingItem.currentStock + quantityDelta;
+      if (nextStock < 0) {
+        throw new Error('Insufficient stock for this adjustment');
+      }
+
+      const item = await tx.inventoryItem.update({
+        where: { id },
+        data: {
+          currentStock: {
+            increment: quantityDelta,
+          },
         },
-      },
+      });
+
+      const log = await tx.inventoryLog.create({
+        data: {
+          itemId: id,
+          changeType: payload.changeType,
+          quantity: payload.quantity,
+          performedBy: payload.performedBy,
+          notes: payload.notes,
+        },
+      });
+
+      return { item, log };
     });
 
-    const log = await tx.inventoryLog.create({
-      data: {
-        itemId: id,
-        changeType: payload.changeType,
-        quantity: payload.quantity,
-        performedBy: payload.performedBy,
-        notes: payload.notes,
-      },
-    });
+    return NextResponse.json({ success: true, data: result } as ApiResponse<typeof result>);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Inventory item not found') {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
 
-    return { item, log };
-  });
+    if (error instanceof Error && error.message === 'Insufficient stock for this adjustment') {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
 
-  return NextResponse.json({ success: true, data: result } as ApiResponse<typeof result>);
+    return NextResponse.json({ error: 'Failed to update inventory' }, { status: 500 });
+  }
 }

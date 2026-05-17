@@ -13,6 +13,10 @@ export const inventoryItemSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+export const inventoryItemUpdateSchema = inventoryItemSchema
+  .partial()
+  .refine((payload) => Object.keys(payload).length > 0, 'At least one field is required');
+
 export const inventoryLogSchema = z.object({
   itemId: z.string().min(1),
   changeType: z.enum(['restock', 'used', 'adjustment', 'waste']),
@@ -22,4 +26,5 @@ export const inventoryLogSchema = z.object({
 });
 
 export type InventoryItemInput = z.infer<typeof inventoryItemSchema>;
+export type InventoryItemUpdateInput = z.infer<typeof inventoryItemUpdateSchema>;
 export type InventoryLogInput = z.infer<typeof inventoryLogSchema>;
