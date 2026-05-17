@@ -290,6 +290,10 @@ export async function POST(request: NextRequest) {
     attempted: targetGroups.length,
     assigned: assignments.length,
     skipped,
+    skippedReasonCounts: skipped.reduce<Record<string, number>>((counts, entry) => {
+      counts[entry.reason] = (counts[entry.reason] ?? 0) + 1;
+      return counts;
+    }, {}),
     assignments,
     repairConflicts,
     dryRun,

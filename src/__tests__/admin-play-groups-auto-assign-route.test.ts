@@ -95,6 +95,7 @@ describe('admin play groups auto-assign route', () => {
     expect(response.status).toBe(200);
     expect(payload.data.assigned).toBe(2);
     expect(payload.data.auditEventsRecorded).toBe(2);
+    expect(payload.data.skippedReasonCounts).toEqual({});
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
     expect(appendPlayGroupAuditEventMock).toHaveBeenCalledTimes(2);
     expect(appendPlayGroupAuditEventMock).toHaveBeenCalledWith(
@@ -138,6 +139,9 @@ describe('admin play groups auto-assign route', () => {
     expect(payload.data.assigned).toBe(0);
     expect(payload.data.auditEventsRecorded).toBe(0);
     expect(payload.data.skipped).toHaveLength(1);
+    expect(payload.data.skippedReasonCounts).toEqual({
+      'No suitable staff recommendation available': 1,
+    });
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
     expect(appendPlayGroupAuditEventMock).not.toHaveBeenCalled();
   });

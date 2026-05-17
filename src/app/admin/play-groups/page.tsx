@@ -143,6 +143,7 @@ type BulkStaffingRun = {
   attempted: number;
   assigned: number;
   auditEventsRecorded: number;
+  skippedReasonCounts: Record<string, number>;
   skipped: Array<{ groupId: string; reason: string }>;
 };
 
@@ -516,6 +517,7 @@ export default function AdminPlayGroupsPage() {
           attempted?: number;
           assigned?: number;
           auditEventsRecorded?: number;
+          skippedReasonCounts?: Record<string, number>;
           skipped?: Array<{ groupId: string; reason: string }>;
         };
       };
@@ -526,6 +528,7 @@ export default function AdminPlayGroupsPage() {
         attempted: payload.data?.attempted ?? 0,
         assigned: payload.data?.assigned ?? 0,
         auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
+        skippedReasonCounts: payload.data?.skippedReasonCounts ?? {},
         skipped: payload.data?.skipped ?? [],
       });
 
@@ -559,6 +562,7 @@ export default function AdminPlayGroupsPage() {
           attempted?: number;
           assigned?: number;
           auditEventsRecorded?: number;
+          skippedReasonCounts?: Record<string, number>;
           skipped?: Array<{ groupId: string; reason: string }>;
         };
       };
@@ -569,6 +573,7 @@ export default function AdminPlayGroupsPage() {
         attempted: payload.data?.attempted ?? 0,
         assigned: payload.data?.assigned ?? 0,
         auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
+        skippedReasonCounts: payload.data?.skippedReasonCounts ?? {},
         skipped: payload.data?.skipped ?? [],
       });
 
@@ -635,6 +640,7 @@ export default function AdminPlayGroupsPage() {
           attempted?: number;
           assigned?: number;
           auditEventsRecorded?: number;
+          skippedReasonCounts?: Record<string, number>;
           skipped?: Array<{ groupId: string; reason: string }>;
         };
       };
@@ -645,6 +651,7 @@ export default function AdminPlayGroupsPage() {
         attempted: payload.data?.attempted ?? 0,
         assigned: payload.data?.assigned ?? 0,
         auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
+        skippedReasonCounts: payload.data?.skippedReasonCounts ?? {},
         skipped: payload.data?.skipped ?? [],
       });
 
@@ -696,6 +703,7 @@ export default function AdminPlayGroupsPage() {
         attempted: payload.data?.attempted ?? 0,
         assigned: payload.data?.assigned ?? 0,
         auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
+        skippedReasonCounts: payload.data?.skippedReasonCounts ?? {},
         skipped: payload.data?.skipped ?? [],
       });
     } catch (previewError) {
@@ -751,6 +759,13 @@ export default function AdminPlayGroupsPage() {
                 {entry.groupId}: {entry.reason}
               </p>
             ))}
+            {Object.entries(lastBulkRun.skippedReasonCounts)
+              .slice(0, 2)
+              .map(([reason, count]) => (
+                <p key={`${reason}-${count}`} className="text-xs text-muted-foreground">
+                  {count} skipped: {reason}
+                </p>
+              ))}
           </div>
         ) : null}
       </div>

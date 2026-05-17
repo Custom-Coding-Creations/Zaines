@@ -37,6 +37,7 @@ type DashboardStaffingFixSummary = {
   assigned: number;
   auditEventsRecorded: number;
   skipped: number;
+  skippedReasonCounts: Record<string, number>;
 };
 
 function statusBadgeVariant(
@@ -279,6 +280,7 @@ export default function AdminDashboardClient({
           attempted?: number;
           assigned?: number;
           auditEventsRecorded?: number;
+          skippedReasonCounts?: Record<string, number>;
           skipped?: Array<{ groupId: string; reason: string }>;
         };
       };
@@ -289,6 +291,7 @@ export default function AdminDashboardClient({
         assigned: payload.data?.assigned ?? 0,
         auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
         skipped: payload.data?.skipped?.length ?? 0,
+        skippedReasonCounts: payload.data?.skippedReasonCounts ?? {},
       });
 
       await fetchBookings();
@@ -503,9 +506,16 @@ export default function AdminDashboardClient({
             )}
           </div>
           {staffingFixSummary ? (
-            <p className="text-xs text-muted-foreground">
-              Last {staffingFixSummary.mode === 'preview' ? 'preview' : 'quick-fix run'}: attempted {staffingFixSummary.attempted} · assigned {staffingFixSummary.assigned} · audit events {staffingFixSummary.auditEventsRecorded} · skipped {staffingFixSummary.skipped}
-            </p>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <p>
+                Last {staffingFixSummary.mode === 'preview' ? 'preview' : 'quick-fix run'}: attempted {staffingFixSummary.attempted} · assigned {staffingFixSummary.assigned} · audit events {staffingFixSummary.auditEventsRecorded} · skipped {staffingFixSummary.skipped}
+              </p>
+              {Object.entries(staffingFixSummary.skippedReasonCounts)
+                .slice(0, 2)
+                .map(([reason, count]) => (
+                  <p key={`${reason}-${count}`}>{count} skipped: {reason}</p>
+                ))}
+            </div>
           ) : null}
         </CardContent>
       </Card>
