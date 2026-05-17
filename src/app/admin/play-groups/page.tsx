@@ -163,6 +163,13 @@ type StaffingExceptionSummary = {
   overlapConflicts: number;
 };
 
+const staffingIssueLabels: Record<StaffingExceptionItem['issues'][number], string> = {
+  unassigned: 'Unassigned lead',
+  invalid_time_slot: 'Invalid time slot',
+  staff_without_shift_coverage: 'No shift coverage',
+  staff_overlap_conflict: 'Overlapping assignment',
+};
+
 export default function AdminPlayGroupsPage() {
   const [groups, setGroups] = useState<PlayGroup[]>([]);
   const [staff, setStaff] = useState<StaffOption[]>([]);
@@ -699,7 +706,9 @@ export default function AdminPlayGroupsPage() {
                 <p className="text-xs text-muted-foreground">
                   {item.timeSlot} · {item.staffName || item.staffMemberId || 'Unassigned'}
                 </p>
-                <p className="text-xs text-muted-foreground">{item.issues.join(', ')}</p>
+                <p className="text-xs text-muted-foreground">
+                  {item.issues.map((issue) => staffingIssueLabels[issue]).join(', ')}
+                </p>
               </div>
             ))
           )}
