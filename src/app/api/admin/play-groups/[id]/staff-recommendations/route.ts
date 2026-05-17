@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
+import { appendPlayGroupAuditEvent } from '@/lib/api/play-group-audit';
 import {
   scoreStaffRecommendation,
   type StaffRecommendation,
@@ -278,6 +279,24 @@ export async function POST(
           },
         },
       },
+    },
+  });
+
+  const actorUserId = authResult.session.user.id;
+  const actorName =
+    (authResult.session.user as { name?: string | null; email?: string | null }).name ||
+    (authResult.session.user as { name?: string | null; email?: string | null }).email ||
+    'Staff';
+
+  await appendPlayGroupAuditEvent({
+    actorUserId,
+    actorName,
+    eventType: 'STAFF_ASSIGNED',
+    playGroupId: id,
+    staffMemberId: selected.staffMember.id,
+    metadata: {
+      source: parsedBody.data.staffMemberId ? 'recommended_manual' : 'recommended_auto',
+      recommendationScore: selected.score,
     },
   });
 

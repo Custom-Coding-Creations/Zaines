@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
+import { appendPlayGroupAuditEvent } from '@/lib/api/play-group-audit';
 import { scoreStaffRecommendation } from '@/lib/play-groups/staff-recommendation';
 import type { ApiResponse } from '@/types/admin';
 
@@ -223,6 +224,28 @@ export async function POST(request: NextRequest) {
         prisma.playGroup.update({
           where: { id: assignment.groupId },
           data: { staffMemberId: assignment.staffMemberId },
+        }),
+      ),
+    );
+
+    const actorUserId = authResult.session.user.id;
+    const actorName =
+      (authResult.session.user as { name?: string | null; email?: string | null }).name ||
+      (authResult.session.user as { name?: string | null; email?: string | null }).email ||
+      'Staff';
+
+    await Promise.all(
+      assignments.map((assignment) =>
+        appendPlayGroupAuditEvent({
+          actorUserId,
+          actorName,
+          eventType: 'STAFF_AUTO_ASSIGNED',
+          playGroupId: assignment.groupId,
+          staffMemberId: assignment.staffMemberId,
+          metadata: {
+            recommendationScore: assignment.score,
+            source: 'bulk_auto_assign',
+          },
         }),
       ),
     );

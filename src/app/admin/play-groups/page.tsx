@@ -124,6 +124,19 @@ type StaffRecommendation = {
   reasons: string[];
 };
 
+type PlayGroupAuditEvent = {
+  id: string;
+  actorName: string;
+  sentAt: string;
+  payload: {
+    eventType: 'STAFF_ASSIGNED' | 'STAFF_UNASSIGNED' | 'STAFF_AUTO_ASSIGNED';
+    playGroupId: string;
+    staffMemberId: string | null;
+    metadata: Record<string, unknown>;
+    timestamp: string;
+  };
+};
+
 export default function AdminPlayGroupsPage() {
   const [groups, setGroups] = useState<PlayGroup[]>([]);
   const [staff, setStaff] = useState<StaffOption[]>([]);
@@ -135,23 +148,26 @@ export default function AdminPlayGroupsPage() {
   const [petSelections, setPetSelections] = useState<Record<string, string>>({});
   const [staffSelections, setStaffSelections] = useState<Record<string, string>>({});
   const [staffRecommendations, setStaffRecommendations] = useState<Record<string, StaffRecommendation[]>>({});
+  const [auditEvents, setAuditEvents] = useState<PlayGroupAuditEvent[]>([]);
 
   const load = async (date = selectedDate) => {
     try {
       setError(null);
-      const [groupsResponse, staffResponse, petsResponse] = await Promise.all([
+      const [groupsResponse, staffResponse, petsResponse, auditResponse] = await Promise.all([
         fetch(`/api/admin/play-groups?date=${encodeURIComponent(date)}`),
         fetch('/api/admin/staff?includeInactive=false'),
         fetch('/api/admin/play-groups/eligible-pets'),
+        fetch('/api/admin/play-groups/audit?limit=30'),
       ]);
 
-      if (!groupsResponse.ok || !staffResponse.ok || !petsResponse.ok) {
+      if (!groupsResponse.ok || !staffResponse.ok || !petsResponse.ok || !auditResponse.ok) {
         throw new Error('Failed to load play group data');
       }
 
       const groupsPayload = (await groupsResponse.json()) as { data?: PlayGroup[] };
       const staffPayload = (await staffResponse.json()) as { data?: StaffOption[] };
       const petsPayload = (await petsResponse.json()) as { data?: EligiblePet[] };
+      const auditPayload = (await auditResponse.json()) as { data?: PlayGroupAuditEvent[] };
 
       setGroups(groupsPayload.data ?? []);
       setStaffSelections((current) => {
@@ -165,6 +181,7 @@ export default function AdminPlayGroupsPage() {
       });
       setStaff(staffPayload.data ?? []);
       setEligiblePets(petsPayload.data ?? []);
+      setAuditEvents(auditPayload.data ?? []);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load play groups');
     }
@@ -714,6 +731,36 @@ export default function AdminPlayGroupsPage() {
               })()}
             </article>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Staffing Audit Trail</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {auditEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No staffing audit events yet.</p>
+          ) : (
+            auditEvents.map((event) => (
+              <div key={event.id} className="rounded-md border px-3 py-2 text-sm">
+                <p className="font-medium">
+                  {event.payload.eventType === 'STAFF_UNASSIGNED'
+                    ? 'Staff unassigned'
+                    : event.payload.eventType === 'STAFF_AUTO_ASSIGNED'
+                      ? 'Staff auto-assigned'
+                      : 'Staff assigned'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(event.sentAt).toLocaleString()} · {event.actorName}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Group {event.payload.playGroupId}
+                  {event.payload.staffMemberId ? ` · Staff ${event.payload.staffMemberId}` : ''}
+                </p>
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
     </div>

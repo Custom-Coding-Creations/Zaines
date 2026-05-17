@@ -24,6 +24,10 @@ vi.mock('@/lib/prisma', () => ({
   isDatabaseConfigured: vi.fn(() => true),
 }));
 
+vi.mock('@/lib/api/play-group-audit', () => ({
+  appendPlayGroupAuditEvent: vi.fn(),
+}));
+
 import { POST } from '@/app/api/admin/play-groups/auto-assign/route';
 
 describe('admin play groups auto-assign route', () => {

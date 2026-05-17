@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
+import { appendPlayGroupAuditEvent } from '@/lib/api/play-group-audit';
 import type { ApiResponse } from '@/types/admin';
 
 const updateStaffSchema = z.object({
@@ -117,6 +118,11 @@ export async function PUT(
   }
 
   const requestedStaffId = parsed.data.staffMemberId ?? null;
+  const actorUserId = authResult.session.user.id;
+  const actorName =
+    (authResult.session.user as { name?: string | null; email?: string | null }).name ||
+    (authResult.session.user as { name?: string | null; email?: string | null }).email ||
+    'Staff';
 
   if (requestedStaffId) {
     const dayStart = startOfDay(group.date);
@@ -202,6 +208,17 @@ export async function PUT(
           },
         },
       },
+    },
+  });
+
+  await appendPlayGroupAuditEvent({
+    actorUserId,
+    actorName,
+    eventType: requestedStaffId ? 'STAFF_ASSIGNED' : 'STAFF_UNASSIGNED',
+    playGroupId: group.id,
+    staffMemberId: requestedStaffId,
+    metadata: {
+      source: 'manual_reassignment',
     },
   });
 

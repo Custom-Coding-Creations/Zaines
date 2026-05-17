@@ -23,6 +23,10 @@ vi.mock('@/lib/prisma', () => ({
   isDatabaseConfigured: vi.fn(() => true),
 }));
 
+vi.mock('@/lib/api/play-group-audit', () => ({
+  appendPlayGroupAuditEvent: vi.fn(),
+}));
+
 import { PUT } from '@/app/api/admin/play-groups/[id]/staff/route';
 
 function makeRequest(body: Record<string, unknown>) {
