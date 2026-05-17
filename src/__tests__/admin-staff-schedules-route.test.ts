@@ -6,8 +6,10 @@ const { authMock, prismaMock } = vi.hoisted(() => ({
   prismaMock: {
     staffSchedule: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       findUnique: vi.fn(),
+      update: vi.fn(),
       delete: vi.fn(),
     },
   },
@@ -20,7 +22,7 @@ vi.mock('@/lib/prisma', () => ({
   isDatabaseConfigured: vi.fn(() => true),
 }));
 
-import { DELETE, GET, POST } from '@/app/api/admin/staff/[id]/schedules/route';
+import { DELETE, GET, POST, PUT } from '@/app/api/admin/staff/[id]/schedules/route';
 
 describe('admin staff schedules route', () => {
   beforeEach(() => {
@@ -40,6 +42,7 @@ describe('admin staff schedules route', () => {
 
   it('creates a schedule for a staff member', async () => {
     authMock.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+    prismaMock.staffSchedule.findFirst.mockResolvedValue(null);
     prismaMock.staffSchedule.create.mockResolvedValue({
       id: 'schedule-1',
       staffMemberId: 'staff-1',
@@ -66,6 +69,60 @@ describe('admin staff schedules route', () => {
     expect(prismaMock.staffSchedule.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ staffMemberId: 'staff-1', shiftStart: '08:00', shiftEnd: '12:00' }),
+      }),
+    );
+  });
+
+  it('rejects overlapping schedule creation', async () => {
+    authMock.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+    prismaMock.staffSchedule.findFirst.mockResolvedValue({ id: 'schedule-existing' });
+
+    const response = await POST(
+      new NextRequest('http://localhost/api/admin/staff/staff-1/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: '2026-05-16T00:00:00.000Z',
+          shiftStart: '09:00',
+          shiftEnd: '11:00',
+          breakMinutes: 15,
+        }),
+      }),
+      { params: Promise.resolve({ id: 'staff-1' }) },
+    );
+    if (!response) throw new Error('Expected response');
+
+    expect(response.status).toBe(409);
+    expect(prismaMock.staffSchedule.create).not.toHaveBeenCalled();
+  });
+
+  it('updates a schedule when there is no overlap', async () => {
+    authMock.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+    prismaMock.staffSchedule.findUnique.mockResolvedValue({ id: 'schedule-1', staffMemberId: 'staff-1' });
+    prismaMock.staffSchedule.findFirst.mockResolvedValue(null);
+    prismaMock.staffSchedule.update.mockResolvedValue({ id: 'schedule-1', shiftStart: '10:00', shiftEnd: '14:00' });
+
+    const response = await PUT(
+      new NextRequest('http://localhost/api/admin/staff/staff-1/schedules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scheduleId: 'schedule-1',
+          date: '2026-05-16T00:00:00.000Z',
+          shiftStart: '10:00',
+          shiftEnd: '14:00',
+          breakMinutes: 20,
+        }),
+      }),
+      { params: Promise.resolve({ id: 'staff-1' }) },
+    );
+    if (!response) throw new Error('Expected response');
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.staffSchedule.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'schedule-1' },
+        data: expect.objectContaining({ shiftStart: '10:00', shiftEnd: '14:00' }),
       }),
     );
   });
