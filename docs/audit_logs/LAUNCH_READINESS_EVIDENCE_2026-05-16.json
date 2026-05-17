@@ -1,0 +1,51 @@
+{
+  "generatedAt": "2026-05-17T03:55:11.577Z",
+  "gates": {
+    "security": {
+      "name": "Issue 66 Security Non-Regression",
+      "status": "PASS",
+      "mode": "unknown",
+      "critical": 0,
+      "high": 0,
+      "consoleFindings": 0
+    },
+    "performance": {
+      "name": "Issue 66 Performance Budget",
+      "status": "PASS",
+      "routeCount": 6,
+      "failedRoutes": 0
+    },
+    "accessibility": {
+      "name": "Playwright Accessibility (axe-core)",
+      "status": "PASS",
+      "totalViolations": 0,
+      "critical": 0,
+      "serious": 0,
+      "routeCount": 18,
+      "routeErrors": 0
+    },
+    "rollback": {
+      "name": "Rollback Drill Timing",
+      "status": "PASS",
+      "elapsedSeconds": 8,
+      "elapsedMinutes": 0.13,
+      "thresholdMinutes": 5,
+      "withinThreshold": true,
+      "verificationsPassed": true
+    }
+  },
+  "artifacts": {
+    "security": "ISSUE66_SECURITY_GATE.json",
+    "performance": "ISSUE66_PERFORMANCE_BUDGET.json",
+    "accessibility": "PLAYWRIGHT_A11Y.json",
+    "rollback": "issue66_rollback_drill_timing.json"
+  },
+  "summary": {
+    "allGatesPassing": true,
+    "blockers": [],
+    "warnings": [],
+    "readinessLevel": "READY_FOR_STAGED_ROLLOUT",
+    "gatesPassing": 4,
+    "gatesTotal": 4
+  }
+}
