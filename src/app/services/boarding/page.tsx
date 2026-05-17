@@ -53,7 +53,7 @@ export default function BoardingPage() {
                 </span>
               </h1>
               <p className="mb-8 text-lg leading-relaxed text-white/90 md:text-xl">
-                Overnight care with 24/7 supervision, Dog Mode™ enrichment technology, real-time updates, and all the comforts of home.
+                Overnight care with 24/7 supervision, personalized enrichment, real-time updates, and all the comforts of home.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Button

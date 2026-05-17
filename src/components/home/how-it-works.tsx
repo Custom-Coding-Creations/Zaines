@@ -26,7 +26,7 @@ const steps = [
     number: 4,
     icon: Sparkles,
     title: "Stay Connected",
-    description: "Track your pup's happiness through our app and Dog Mode™ tech.",
+    description: "Track your pup's happiness through our app with updates and activity summaries.",
   },
 ];
 

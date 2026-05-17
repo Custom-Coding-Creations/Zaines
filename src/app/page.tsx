@@ -1,7 +1,6 @@
 import { type Metadata } from "next";
 import { HeroSection } from "@/components/home/hero-section";
 import { TrustFeatureStrip } from "@/components/home/trust-feature-strip";
-import { DogModeShowcase } from "@/components/home/dog-mode-showcase";
 import { ServicesSection } from "@/components/home/services-section";
 import { HowItWorksSection } from "@/components/home/how-it-works";
 import { SafetyPromiseSection } from "@/components/home/safety-promise";
@@ -33,7 +32,6 @@ export default async function Home() {
 
       <HeroSection />
       <TrustFeatureStrip />
-      <DogModeShowcase />
       <ServicesSection />
       <HowItWorksSection />
       <SafetyPromiseSection />

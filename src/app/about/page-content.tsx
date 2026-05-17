@@ -34,7 +34,7 @@ const values = [
     icon: Star,
     title: "Innovation Through Technology",
     description:
-      "World's first Dog Mode™ system, real-time updates, and tech-forward communication that keeps you connected.",
+      "Thoughtful enrichment programs, real-time updates, and clear communication that keeps you connected.",
   },
   {
     icon: Users,
@@ -77,7 +77,7 @@ export default function AboutPageContent() {
               </h1>
               <p className="mb-2 text-lg leading-relaxed text-white/90 md:text-xl">
                 Syracuse's most innovative dog daycare — combining genuine love for dogs
-                with cutting-edge technology like Dog Mode™.
+                with modern care systems and experienced supervision.
               </p>
             </div>
           </FadeUp>
@@ -123,8 +123,8 @@ export default function AboutPageContent() {
                   </p>
                   <p>
                     That's why we've built Syracuse's first <strong className="text-foreground">tech-forward daycare</strong> with
-                    supervised play groups, real-time photo updates, and our revolutionary <strong className="text-primary">Dog Mode™</strong> interactive
-                    enrichment system that no other facility in the country offers.
+                    supervised play groups, real-time photo updates, and enrichment-first daily routines
+                    designed to reduce stress and keep dogs engaged.
                   </p>
                   <p>
                     From puppies learning social skills to senior dogs enjoying gentle playtime, we tailor the experience using both
@@ -197,8 +197,8 @@ export default function AboutPageContent() {
             {[
               {
                 icon: CheckCircle2,
-                title: "Dog Mode™ Technology",
-                description: "World's first dog-optimized interface for enrichment and stress reduction.",
+                title: "Enrichment-Focused Care",
+                description: "Structured routines and supervised engagement designed for comfort and confidence.",
               },
               {
                 icon: Calendar,
