@@ -175,6 +175,40 @@ export default function StaffDetailPage() {
     }
   }
 
+  async function updateSchedule(formData: FormData) {
+    if (!staff) return;
+
+    setScheduleBusy(true);
+    setError(null);
+    try {
+      const payload = {
+        scheduleId: String(formData.get('scheduleId') ?? ''),
+        date: new Date(String(formData.get('date') ?? '')).toISOString(),
+        shiftStart: String(formData.get('shiftStart') ?? ''),
+        shiftEnd: String(formData.get('shiftEnd') ?? ''),
+        breakMinutes: Number(formData.get('breakMinutes') ?? 0),
+        notes: String(formData.get('scheduleNotes') ?? ''),
+      };
+
+      const response = await fetch(`/api/admin/staff/${params.id}/schedules`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error ?? 'Failed to update schedule');
+      }
+
+      await loadSchedules(staff.id);
+    } catch (scheduleError) {
+      setError(scheduleError instanceof Error ? scheduleError.message : 'Failed to update schedule');
+    } finally {
+      setScheduleBusy(false);
+    }
+  }
+
   if (loading) return <p>Loading staff member...</p>;
   if (!staff) return <p>Staff member not found.</p>;
 
@@ -269,25 +303,49 @@ export default function StaffDetailPage() {
 
           {schedules.length === 0 ? <p className="text-sm text-muted-foreground">No shifts scheduled yet.</p> : null}
           {schedules.map((schedule) => (
-            <div key={schedule.id} className="flex items-center justify-between rounded border px-3 py-2">
-              <div>
-                <p className="text-sm font-medium">
-                  {new Date(schedule.date).toLocaleDateString()} · {schedule.shiftStart} - {schedule.shiftEnd}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Break {schedule.breakMinutes} min{schedule.notes ? ` · ${schedule.notes}` : ''}
-                </p>
+            <form key={schedule.id} action={updateSchedule} className="rounded border p-3 space-y-3">
+              <input type="hidden" name="scheduleId" value={schedule.id} />
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+                <div className="space-y-2">
+                  <Label htmlFor={`date-${schedule.id}`}>Date</Label>
+                  <Input
+                    id={`date-${schedule.id}`}
+                    name="date"
+                    type="date"
+                    defaultValue={new Date(schedule.date).toISOString().slice(0, 10)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`shift-start-${schedule.id}`}>Shift Start</Label>
+                  <Input id={`shift-start-${schedule.id}`} name="shiftStart" type="time" defaultValue={schedule.shiftStart} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`shift-end-${schedule.id}`}>Shift End</Label>
+                  <Input id={`shift-end-${schedule.id}`} name="shiftEnd" type="time" defaultValue={schedule.shiftEnd} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`break-${schedule.id}`}>Break Minutes</Label>
+                  <Input id={`break-${schedule.id}`} name="breakMinutes" type="number" min={0} max={240} defaultValue={schedule.breakMinutes} />
+                </div>
+                <div className="space-y-2 lg:col-span-5">
+                  <Label htmlFor={`notes-${schedule.id}`}>Notes</Label>
+                  <Input id={`notes-${schedule.id}`} name="scheduleNotes" defaultValue={schedule.notes ?? ''} />
+                </div>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={scheduleBusy}
-                onClick={() => void deleteSchedule(schedule.id)}
-              >
-                Remove
-              </Button>
-            </div>
+              <div className="flex gap-2">
+                <Button type="submit" size="sm" disabled={scheduleBusy}>{scheduleBusy ? 'Saving...' : 'Update Shift'}</Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={scheduleBusy}
+                  onClick={() => void deleteSchedule(schedule.id)}
+                >
+                  Remove
+                </Button>
+              </div>
+            </form>
           ))}
         </CardContent>
       </Card>
