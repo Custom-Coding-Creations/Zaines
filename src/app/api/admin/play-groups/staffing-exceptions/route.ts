@@ -169,6 +169,10 @@ export async function GET(request: NextRequest) {
         staffMemberId: group.staffMemberId,
         staffName: group.staffMember?.user.name ?? group.staffMember?.user.email ?? null,
         issues,
+        canAutoFix: !issues.includes('invalid_time_slot'),
+        recommendedAction: issues.includes('invalid_time_slot')
+          ? 'Correct time slot format before auto-assignment'
+          : 'Run auto-assign recommendation for this group',
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);

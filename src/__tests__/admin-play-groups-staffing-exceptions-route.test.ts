@@ -101,5 +101,13 @@ describe('admin play groups staffing exceptions route', () => {
     expect(payload.data.summary.invalidTimeSlot).toBe(1);
     expect(payload.data.summary.withoutShiftCoverage).toBe(1);
     expect(payload.data.summary.overlapConflicts).toBe(2);
+
+    const invalidSlot = payload.data.items.find((item: { groupId: string }) => item.groupId === 'group-invalid-slot');
+    expect(invalidSlot.canAutoFix).toBe(false);
+    expect(invalidSlot.recommendedAction).toContain('Correct time slot format');
+
+    const unassigned = payload.data.items.find((item: { groupId: string }) => item.groupId === 'group-unassigned');
+    expect(unassigned.canAutoFix).toBe(true);
+    expect(unassigned.recommendedAction).toContain('auto-assign recommendation');
   });
 });

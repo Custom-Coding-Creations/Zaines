@@ -153,6 +153,8 @@ type StaffingExceptionItem = {
   staffMemberId: string | null;
   staffName: string | null;
   issues: Array<'unassigned' | 'invalid_time_slot' | 'staff_without_shift_coverage' | 'staff_overlap_conflict'>;
+  canAutoFix: boolean;
+  recommendedAction: string;
 };
 
 type StaffingExceptionSummary = {
@@ -191,6 +193,7 @@ export default function AdminPlayGroupsPage() {
     withoutShiftCoverage: 0,
     overlapConflicts: 0,
   });
+  const [busyExceptionId, setBusyExceptionId] = useState<string | null>(null);
 
   const load = async (date = selectedDate) => {
     try {
@@ -572,6 +575,32 @@ export default function AdminPlayGroupsPage() {
     }
   }
 
+  async function autoFixStaffingException(item: StaffingExceptionItem) {
+    if (!item.canAutoFix) return;
+
+    try {
+      setBusyExceptionId(item.groupId);
+      setError(null);
+
+      const response = await fetch(`/api/admin/play-groups/${item.groupId}/staff-recommendations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error || 'Failed to auto-fix staffing exception');
+      }
+
+      await load(selectedDate);
+    } catch (autoFixError) {
+      setError(autoFixError instanceof Error ? autoFixError.message : 'Failed to auto-fix staffing exception');
+    } finally {
+      setBusyExceptionId(null);
+    }
+  }
+
   const todayEligiblePets = eligiblePets.filter((entry) =>
     !groups.some((group) => group.assignments.some((assignment) => assignment.pet.id === entry.pet.id)),
   );
@@ -709,6 +738,18 @@ export default function AdminPlayGroupsPage() {
                 <p className="text-xs text-muted-foreground">
                   {item.issues.map((issue) => staffingIssueLabels[issue]).join(', ')}
                 </p>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">{item.recommendedAction}</p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!item.canAutoFix || busyExceptionId === item.groupId}
+                    onClick={() => void autoFixStaffingException(item)}
+                  >
+                    {busyExceptionId === item.groupId ? 'Fixing...' : 'Auto-Fix'}
+                  </Button>
+                </div>
               </div>
             ))
           )}
