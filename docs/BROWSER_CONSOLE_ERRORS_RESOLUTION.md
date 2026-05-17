@@ -18,7 +18,7 @@ May 8, 2026
 
 **Files Updated:**
 - `src/hooks/useBookingWizard.ts` - Uses `typedStorage` for booking progress
-- `src/components/dog/DogModeExperience.tsx` - Uses `safe-storage` for telemetry
+- Legacy dog experience component - uses `safe-storage` for telemetry
 - Both now silently degrade to in-memory storage without console spam
 
 ---
@@ -98,7 +98,7 @@ Client-side console warning suppression:
 - Automatic fallback to memory storage
 - Booking progress preserved even in tracking prevention
 
-### 2. `src/components/dog/DogModeExperience.tsx`
+### 2. Legacy Dog Experience Component
 **Changes:**
 - Import `safeGetItem`, `safeSetItem`, `typedStorage` from `safe-storage`
 - Replace `window.sessionStorage.getItem()` with `safeGetItem()`
@@ -131,7 +131,7 @@ All modified files pass strict TypeScript checking:
 pnpm tsc --noEmit src/lib/safe-storage.ts
 pnpm tsc --noEmit src/lib/console-filter.ts
 pnpm tsc --noEmit src/hooks/useBookingWizard.ts
-pnpm tsc --noEmit src/components/dog/DogModeExperience.tsx
+pnpm tsc --noEmit
 pnpm tsc --noEmit src/components/providers.tsx
 ```
 
@@ -151,7 +151,7 @@ pnpm tsc --noEmit src/components/providers.tsx
 - [ ] Refresh page - progress should be restored
 - [ ] Check browser console - no storage warnings
 
-**Dog Mode (DogModeExperience):**
+**Legacy Dog Experience:**
 - [ ] Open `/dog` in private/incognito mode
 - [ ] Interact with schedule buttons
 - [ ] Verify NO storage console errors

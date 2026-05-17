@@ -10,14 +10,14 @@
 - **Suite Interiors** (3 suites × 5-8 shots each)
 - **Facility Areas** (reception, play areas, grooming, outdoor spaces)
 - **Team Portraits** (staff with dogs, candid working shots)
-- **Action Shots** (dogs playing, enrichment activities, Dog Mode™ demo)
+- **Action Shots** (dogs playing, enrichment activities, tech-enabled engagement demo)
 - **Detail Shots** (amenities, food prep, safety features)
 
 ### Video Content Required
 - **Virtual Facility Tour** (2-3 minute walkthrough)
 - **Day in the Life** (4-5 minute narrative)
 - **Testimonial Interviews** (3-5 customers, 30-60 seconds each)
-- **Dog Mode™ Demo** (1 minute feature showcase)
+- **Enrichment Technology Demo** (1 minute feature showcase)
 - **Team Introduction** (1 minute meet-the-team)
 
 ### Copywriting Required
@@ -60,7 +60,7 @@
 
 #### Dogs & Enrichment
 - [ ] Group play (5-7 dogs interacting naturally)
-- [ ] Dog Mode™ in action (dog engaging with TV/tech)
+- [ ] Enrichment technology in action (dog engaging with approved media/interactive setup)
 - [ ] One-on-one staff interaction
 - [ ] Dogs resting peacefully in suites
 - [ ] Mealtime (dogs excited for food)
@@ -95,7 +95,7 @@
   - Indoor play area action
   - Outdoor yard exploration
   - Grooming area
-  - Close with Dog Mode™ demo
+  - Close with enrichment technology demo
 
 #### 2. Customer Testimonials (Priority 2)
 - **Count:** 3-5 testimonials
@@ -104,10 +104,10 @@
 - **Questions to Ask:**
   - Why did you choose Zaine's?
   - What's your favorite feature?
-  - How has Dog Mode™ helped your pup?
+  - How have live updates and enrichment tools helped your pup?
   - Would you recommend us?
 
-#### 3. Dog Mode™ Feature Demo (Priority 3)
+#### 3. Enrichment Technology Feature Demo (Priority 3)
 - **Length:** 60 seconds
 - **Style:** Fast-paced, engaging cuts
 - **Show:** Dog watching DogTV, interactive elements, real-time updates app
@@ -137,7 +137,7 @@
 
 #### Homepage (Priority 1)
 - **Hero Headline:** Emotional, benefit-focused (10-15 words)
-- **Hero Subheadline:** Introduce Dog Mode™ + location (25-40 words)
+- **Hero Subheadline:** Introduce tech-forward care + location (25-40 words)
 - **Trust Bar:** 3-4 short value props (5-7 words each)
 - **How It Works:** 4 steps (headline + 25 words each)
 - **Testimonial Pull Quotes:** 3-5 quotes (20-30 words each)
@@ -147,7 +147,7 @@
   - Why Zaine's was started
   - What makes us different
   - Our mission and values
-  - The innovation behind Dog Mode™
+  - The innovation behind our tech-forward care model
 - **Team Bios:** 3-5 team members (50-75 words each)
 - **Facility Details:** Modern, safe, tech-enabled (150-200 words)
 
@@ -163,12 +163,12 @@
   - Health and safety
   - Drop-off and pick-up
   - Suites and amenities
-  - Dog Mode™ technology
+  - Real-time updates and enrichment technology
   - Policies (cancellation, vaccination)
 
 #### Blog Posts (Ongoing)
 - **10+ Posts:**
-  - "What is Dog Mode™? The Future of Dog Daycare"
+  - "How Tech-Forward Dog Daycare Improves Daily Care"
   - "5 Signs Your Dog Needs More Socialization"
   - "Dog-Friendly Activities in Syracuse, NY"
   - "Choosing the Right Suite for Your Pup"
