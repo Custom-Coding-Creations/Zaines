@@ -17,6 +17,7 @@
     "test:framework": "pnpm --dir .github/framework test",
     "test:e2e": "PLAYWRIGHT_TEST=1 playwright test",
     "drain:emails": "node scripts/drain-email-queue.js",
+    "reminders:run": "tsx scripts/run-reminders.ts",
     "test:watch": "vitest",
     "worker": "node scripts/worker.js",
     "audit:ui:accessibility": "node scripts/audit/accessibility_check.js",
