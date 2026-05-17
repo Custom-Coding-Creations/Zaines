@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
-import { parseTimeSlotRange, shiftCoversRange, timeRangesOverlap } from '@/lib/play-groups/time-slot';
+import { collectStaffingExceptions } from '@/lib/play-groups/staffing-exceptions';
 import type { ApiResponse } from '@/types/admin';
-
-type StaffingIssueType =
-  | 'unassigned'
-  | 'invalid_time_slot'
-  | 'staff_without_shift_coverage'
-  | 'staff_overlap_conflict';
 
 async function authorize() {
   const session = await auth();
@@ -101,89 +95,7 @@ export async function GET(request: NextRequest) {
     orderBy: [{ timeSlot: 'asc' }, { name: 'asc' }],
   });
 
-  const groupSlots = new Map(groups.map((group) => [group.id, parseTimeSlotRange(group.timeSlot)]));
-
-  const overlapGroupIds = new Set<string>();
-  const byStaff = new Map<string, typeof groups>();
-  for (const group of groups) {
-    if (!group.staffMemberId) continue;
-    const current = byStaff.get(group.staffMemberId) ?? [];
-    current.push(group);
-    byStaff.set(group.staffMemberId, current);
-  }
-
-  for (const staffGroups of byStaff.values()) {
-    const sorted = [...staffGroups].sort((left, right) => {
-      const leftSlot = groupSlots.get(left.id) ?? null;
-      const rightSlot = groupSlots.get(right.id) ?? null;
-      if (!leftSlot || !rightSlot) return 0;
-      return leftSlot.start - rightSlot.start;
-    });
-
-    for (let i = 1; i < sorted.length; i += 1) {
-      const previous = sorted[i - 1];
-      const current = sorted[i];
-      const previousSlot = groupSlots.get(previous.id) ?? null;
-      const currentSlot = groupSlots.get(current.id) ?? null;
-      if (timeRangesOverlap(previousSlot, currentSlot)) {
-        overlapGroupIds.add(previous.id);
-        overlapGroupIds.add(current.id);
-      }
-    }
-  }
-
-  const items = groups
-    .map((group) => {
-      const issues: StaffingIssueType[] = [];
-      const slot = groupSlots.get(group.id) ?? null;
-
-      if (!group.staffMemberId) {
-        issues.push('unassigned');
-      }
-
-      if (!slot) {
-        issues.push('invalid_time_slot');
-      }
-
-      if (group.staffMember && slot) {
-        const scheduledForSlot = group.staffMember.schedules.some((schedule) =>
-          shiftCoversRange(slot, schedule.shiftStart, schedule.shiftEnd),
-        );
-
-        if (!scheduledForSlot) {
-          issues.push('staff_without_shift_coverage');
-        }
-      }
-
-      if (overlapGroupIds.has(group.id)) {
-        issues.push('staff_overlap_conflict');
-      }
-
-      if (issues.length === 0) return null;
-
-      return {
-        groupId: group.id,
-        groupName: group.name,
-        date: group.date.toISOString(),
-        timeSlot: group.timeSlot,
-        staffMemberId: group.staffMemberId,
-        staffName: group.staffMember?.user.name ?? group.staffMember?.user.email ?? null,
-        issues,
-        canAutoFix: !issues.includes('invalid_time_slot'),
-        recommendedAction: issues.includes('invalid_time_slot')
-          ? 'Correct time slot format before auto-assignment'
-          : 'Run auto-assign recommendation for this group',
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== null);
-
-  const summary = {
-    total: items.length,
-    unassigned: items.filter((item) => item.issues.includes('unassigned')).length,
-    invalidTimeSlot: items.filter((item) => item.issues.includes('invalid_time_slot')).length,
-    withoutShiftCoverage: items.filter((item) => item.issues.includes('staff_without_shift_coverage')).length,
-    overlapConflicts: items.filter((item) => item.issues.includes('staff_overlap_conflict')).length,
-  };
+  const { items, summary } = collectStaffingExceptions(groups);
 
   return NextResponse.json({ success: true, data: { items, summary } } as ApiResponse<{ items: typeof items; summary: typeof summary }>);
 }

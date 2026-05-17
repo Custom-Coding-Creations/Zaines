@@ -326,6 +326,7 @@ export interface AdminQueueItem {
     | 'low_stock_items'
     | 'expiring_packages'
     | 'unassigned_play_groups'
+    | 'actionable_staffing_exceptions'
     | 'unscheduled_staff_today'
     | 'staffed_groups_without_shift'
     | 'overlapping_staff_shifts'

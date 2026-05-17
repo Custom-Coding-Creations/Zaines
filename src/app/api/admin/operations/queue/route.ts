@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { isDatabaseConfigured, prisma } from '@/lib/prisma';
 import type { AdminOperationsQueueResponse } from '@/types/admin';
 import { getAdminSettings } from '@/lib/api/admin-settings';
+import { collectStaffingExceptions } from '@/lib/play-groups/staffing-exceptions';
 
 function startOfToday(): Date {
   const date = new Date();
@@ -23,37 +24,6 @@ function normalizeMinutes(value: string): number | null {
   const minutes = Number(match[2]);
   if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
   return hours * 60 + minutes;
-}
-
-function parseTimeSlot(timeSlot: string): { start: number; end: number } | null {
-  const cleaned = timeSlot.replace(/\s+/g, '');
-  const separator = cleaned.includes('-') ? '-' : cleaned.includes('to') ? 'to' : null;
-  if (!separator) return null;
-
-  const [startRaw, endRaw] = cleaned.split(separator);
-  if (!startRaw || !endRaw) return null;
-
-  const start = normalizeMinutes(startRaw);
-  const end = normalizeMinutes(endRaw);
-  if (start === null || end === null || end <= start) return null;
-
-  return { start, end };
-}
-
-function scheduleCoversSlot(
-  slot: { start: number; end: number } | null,
-  shiftStart: string,
-  shiftEnd: string,
-) {
-  if (!slot) return false;
-
-  const shiftStartMinutes = normalizeMinutes(shiftStart);
-  const shiftEndMinutes = normalizeMinutes(shiftEnd);
-  if (shiftStartMinutes === null || shiftEndMinutes === null || shiftEndMinutes <= shiftStartMinutes) {
-    return false;
-  }
-
-  return shiftStartMinutes <= slot.start && shiftEndMinutes >= slot.end;
 }
 
 function countStaffWithOverlappingShifts(
@@ -123,7 +93,7 @@ export async function GET() {
       unassignedPlayGroups,
       unscheduledStaffToday,
       reconciliationExceptions,
-      staffedGroupsToday,
+      todayPlayGroupsForStaffingExceptions,
       todaysStaffSchedules,
     ] = await Promise.all([
       prisma.booking.count({
@@ -222,16 +192,15 @@ export async function GET() {
             gte: todayStart,
             lte: todayEnd,
           },
-          staffMemberId: {
-            not: null,
-          },
         },
         select: {
           id: true,
+          name: true,
+          date: true,
           timeSlot: true,
+          staffMemberId: true,
           staffMember: {
             select: {
-              id: true,
               schedules: {
                 where: {
                   date: {
@@ -263,14 +232,9 @@ export async function GET() {
       }),
     ]);
 
-    const staffedGroupsWithoutShiftCoverage = staffedGroupsToday.filter((group) => {
-      const slot = parseTimeSlot(group.timeSlot);
-      if (!slot) return true;
-
-      return !group.staffMember?.schedules.some((schedule) =>
-        scheduleCoversSlot(slot, schedule.shiftStart, schedule.shiftEnd),
-      );
-    }).length;
+    const staffingExceptions = collectStaffingExceptions(todayPlayGroupsForStaffingExceptions);
+    const staffedGroupsWithoutShiftCoverage = staffingExceptions.summary.withoutShiftCoverage;
+    const actionableStaffingExceptions = staffingExceptions.items.filter((item) => item.canAutoFix).length;
 
     const overlappingStaffShifts = countStaffWithOverlappingShifts(todaysStaffSchedules);
 
@@ -359,6 +323,19 @@ export async function GET() {
             unassignedPlayGroups >= 3
               ? 'critical'
               : unassignedPlayGroups > 0
+                ? 'attention'
+                : 'normal',
+        },
+        {
+          id: 'actionable_staffing_exceptions',
+          label: 'Actionable staffing exceptions',
+          count: actionableStaffingExceptions,
+          href: '/admin/play-groups',
+          description: 'Play groups with fixable staffing exceptions ready for auto-remediation.',
+          severity:
+            actionableStaffingExceptions >= 3
+              ? 'critical'
+              : actionableStaffingExceptions > 0
                 ? 'attention'
                 : 'normal',
         },

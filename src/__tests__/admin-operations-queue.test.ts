@@ -71,17 +71,21 @@ describe('GET /api/admin/operations/queue', () => {
     prismaMock.playGroup.findMany.mockResolvedValueOnce([
       {
         id: 'group-1',
+        name: 'No Coverage',
+        date: new Date('2026-05-16T00:00:00.000Z'),
+        staffMemberId: 'staff-1',
         timeSlot: '09:00-11:00',
         staffMember: {
-          id: 'staff-1',
           schedules: [{ shiftStart: '12:00', shiftEnd: '16:00' }],
         },
       },
       {
         id: 'group-2',
+        name: 'Covered',
+        date: new Date('2026-05-16T00:00:00.000Z'),
+        staffMemberId: 'staff-2',
         timeSlot: '13:00-14:00',
         staffMember: {
-          id: 'staff-2',
           schedules: [{ shiftStart: '12:00', shiftEnd: '16:00' }],
         },
       },
@@ -101,12 +105,13 @@ describe('GET /api/admin/operations/queue', () => {
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(body.data.items).toHaveLength(14);
+    expect(body.data.items).toHaveLength(15);
     expect(body.data.items.find((item: { id: string }) => item.id === 'failed_payments')?.count).toBe(5);
     expect(body.data.items.find((item: { id: string }) => item.id === 'pending_reminders')?.count).toBe(2);
     expect(body.data.items.find((item: { id: string }) => item.id === 'low_stock_items')?.count).toBe(1);
     expect(body.data.items.find((item: { id: string }) => item.id === 'expiring_packages')?.count).toBe(3);
     expect(body.data.items.find((item: { id: string }) => item.id === 'unassigned_play_groups')?.count).toBe(2);
+    expect(body.data.items.find((item: { id: string }) => item.id === 'actionable_staffing_exceptions')?.count).toBe(1);
     expect(body.data.items.find((item: { id: string }) => item.id === 'unscheduled_staff_today')?.count).toBe(4);
     expect(body.data.items.find((item: { id: string }) => item.id === 'staffed_groups_without_shift')?.count).toBe(1);
     expect(body.data.items.find((item: { id: string }) => item.id === 'overlapping_staff_shifts')?.count).toBe(1);
