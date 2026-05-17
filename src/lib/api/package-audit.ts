@@ -12,6 +12,15 @@ export type PackageAuditEventInput = {
   metadata?: Record<string, unknown>;
 };
 
+export type PackageAuditEventPayload = {
+  eventType: 'PACKAGE_GRANTED' | 'PACKAGE_UPDATED';
+  customerPackageId: string;
+  targetUserId: string;
+  packageId: string;
+  metadata: Record<string, unknown>;
+  timestamp: string;
+};
+
 export function buildPackageAuditContent(input: PackageAuditEventInput): string {
   return `${PACKAGE_AUDIT_PREFIX}${JSON.stringify({
     eventType: input.eventType,
@@ -21,6 +30,38 @@ export function buildPackageAuditContent(input: PackageAuditEventInput): string 
     metadata: input.metadata ?? {},
     timestamp: new Date().toISOString(),
   })}`;
+}
+
+export function parsePackageAuditContent(content: string): PackageAuditEventPayload | null {
+  if (!content.startsWith(PACKAGE_AUDIT_PREFIX)) {
+    return null;
+  }
+
+  const jsonContent = content.slice(PACKAGE_AUDIT_PREFIX.length);
+  try {
+    const parsed = JSON.parse(jsonContent) as Partial<PackageAuditEventPayload>;
+
+    if (
+      (parsed.eventType !== 'PACKAGE_GRANTED' && parsed.eventType !== 'PACKAGE_UPDATED') ||
+      typeof parsed.customerPackageId !== 'string' ||
+      typeof parsed.targetUserId !== 'string' ||
+      typeof parsed.packageId !== 'string' ||
+      typeof parsed.timestamp !== 'string'
+    ) {
+      return null;
+    }
+
+    return {
+      eventType: parsed.eventType,
+      customerPackageId: parsed.customerPackageId,
+      targetUserId: parsed.targetUserId,
+      packageId: parsed.packageId,
+      metadata: typeof parsed.metadata === 'object' && parsed.metadata !== null ? parsed.metadata as Record<string, unknown> : {},
+      timestamp: parsed.timestamp,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function appendPackageAuditEvent(input: PackageAuditEventInput): Promise<void> {

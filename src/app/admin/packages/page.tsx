@@ -48,6 +48,20 @@ type PackageAdjustmentDraft = {
   status: CustomerPackageItem['status'];
 };
 
+type PackageAuditEvent = {
+  id: string;
+  actorName: string;
+  sentAt: string;
+  payload: {
+    eventType: 'PACKAGE_GRANTED' | 'PACKAGE_UPDATED';
+    customerPackageId: string;
+    targetUserId: string;
+    packageId: string;
+    metadata: Record<string, unknown>;
+    timestamp: string;
+  };
+};
+
 export default function AdminPackagesPage() {
   const [rows, setRows] = useState<PackageItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +71,7 @@ export default function AdminPackagesPage() {
   const [query, setQuery] = useState('');
   const [grantEmail, setGrantEmail] = useState('');
   const [grantPackageId, setGrantPackageId] = useState('');
+  const [auditEvents, setAuditEvents] = useState<PackageAuditEvent[]>([]);
   const [drafts, setDrafts] = useState<Record<string, PackageAdjustmentDraft>>({});
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -64,11 +79,16 @@ export default function AdminPackagesPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/admin/packages');
-      if (!response.ok) throw new Error('Failed to load packages');
-      const payload = (await response.json()) as { data?: PackageItem[] };
-      setRows(payload.data ?? []);
-      setGrantPackageId((current) => current || payload.data?.[0]?.id || '');
+      const [packagesResponse, auditResponse] = await Promise.all([
+        fetch('/api/admin/packages'),
+        fetch('/api/admin/packages/audit?limit=40'),
+      ]);
+      if (!packagesResponse.ok || !auditResponse.ok) throw new Error('Failed to load packages');
+      const packagesPayload = (await packagesResponse.json()) as { data?: PackageItem[] };
+      const auditPayload = (await auditResponse.json()) as { data?: PackageAuditEvent[] };
+      setRows(packagesPayload.data ?? []);
+      setAuditEvents(auditPayload.data ?? []);
+      setGrantPackageId((current) => current || packagesPayload.data?.[0]?.id || '');
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : 'Failed to load packages');
     } finally {
@@ -264,6 +284,31 @@ export default function AdminPackagesPage() {
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Package Audit Trail</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {auditEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No package override audit events yet.</p>
+          ) : (
+            auditEvents.map((event) => (
+              <div key={event.id} className="rounded-md border px-3 py-2 text-sm">
+                <p className="font-medium">
+                  {event.payload.eventType === 'PACKAGE_GRANTED' ? 'Package granted' : 'Package updated'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(event.sentAt).toLocaleString()} · {event.actorName}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Package ID {event.payload.packageId} · Customer package {event.payload.customerPackageId}
+                </p>
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
 
