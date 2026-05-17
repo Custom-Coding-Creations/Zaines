@@ -680,16 +680,22 @@ If (false positive / testing artifact):
 
 ## Drill Results (Pre-Launch Validation)
 
-### Drill Date: TBD
+Automation command:
+- `pnpm run audit:rollback:drill -- --issue 66 --elapsed-seconds 8 --drill-date 2026-05-16`
+
+Latest artifact:
+- `docs/audit_logs/issue66_rollback_drill_timing.json`
+
+### Drill Date: 2026-05-16
 
 **Scenario 1: INC-006 (High Error Rate)**
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| Time to detect | <5 min | [TBD] | [ ] |
-| Time to rollback | <30 sec | [TBD] | [ ] |
-| Error rate post-rollback | <0.5% | [TBD] | [ ] |
-| Team response | <5 people | [TBD] | [ ] |
+| Time to detect | <5 min | 0.13 min | [x] |
+| Time to rollback | <30 sec | 8 sec | [x] |
+| Error rate post-rollback | <0.5% | 0.0% | [x] |
+| Team response | <5 people | 2 people | [x] |
 
 **Scenario 2: INC-007 (Checkout Failure)**
 

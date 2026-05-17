@@ -72,8 +72,8 @@ This document provides the authoritative launch readiness checklist for Funky To
 | Option 1 (Vercel instant): ≤30s | `[ ]` | Procedure tested in staging | DevOps Engineer |
 | Option 2 (Git revert): ≤3min | `[ ]` | Tested: git revert, push, Vercel deploy | Tech Lead |
 | Option 3 (DNS fallback): ≤5min | `[ ]` | DNS provider configured, tested | DevOps Engineer |
-| Rollback drill completed | `[ ]` | Latest drill results in `docs/audit_logs/` | QA Engineer |
-| Drill timing ≤5 minutes | `[ ]` | Drill elapsed time documented | QA Engineer |
+| Rollback drill completed | `[x]` | `docs/audit_logs/issue66_rollback_drill_timing.json` | QA Engineer |
+| Drill timing ≤5 minutes | `[x]` | Elapsed 0.13 minutes (`docs/audit_logs/issue66_rollback_drill_timing.json`) | QA Engineer |
 | Post-rollback validation checklist | `[ ]` | Automated health checks identified | SRE Engineer |
 
 **Owner Sign-Off:**

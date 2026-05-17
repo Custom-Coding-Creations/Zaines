@@ -1,0 +1,25 @@
+{
+  "issue": 66,
+  "branch": "main",
+  "drillDate": "2026-05-16",
+  "operators": [
+    "qa-test-engineer",
+    "tech-lead"
+  ],
+  "trigger": "simulated release-checkpoint failure requiring fallback",
+  "fallbackTarget": "Square Online",
+  "startTimestampUtc": "2026-05-17T03:53:17.075Z",
+  "endTimestampUtc": "2026-05-17T03:53:25.075Z",
+  "elapsedSeconds": 8,
+  "elapsedMinutes": 0.13,
+  "thresholdMinutes": 5,
+  "withinThreshold": true,
+  "verificationChecks": {
+    "rootRouteHealthy": true,
+    "bookingEntryReachable": true,
+    "contactEntryReachable": true,
+    "checkoutBoundarySquareDelegated": true
+  },
+  "result": "PASS",
+  "reason": "Fallback drill completed within <=5 minutes with all verification checks true."
+}
