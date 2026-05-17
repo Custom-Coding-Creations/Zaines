@@ -3,28 +3,10 @@
 const { JSDOM } = require("jsdom");
 const axe = require("axe-core");
 const fs = require("fs");
+const { PUBLIC_AUDIT_ROUTES } = require("./shared-routes");
 
 const BASE = process.argv[2] || "http://localhost:3000";
-const ROUTES = [
-  "/",
-  "/about",
-  "/contact",
-  "/book",
-  "/dog",
-  "/dog/calm",
-  "/faq",
-  "/gallery",
-  "/policies",
-  "/pricing",
-  "/privacy",
-  "/reviews",
-  "/services/boarding",
-  "/services/daycare",
-  "/services/grooming",
-  "/services/training",
-  "/suites",
-  "/auth/signin",
-];
+const ROUTES = PUBLIC_AUDIT_ROUTES;
 
 async function fetchHtml(url) {
   const res = await fetch(url);

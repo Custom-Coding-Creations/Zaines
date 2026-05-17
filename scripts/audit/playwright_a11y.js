@@ -3,30 +3,12 @@
 const fs = require("fs");
 const { chromium } = require("@playwright/test");
 const axeSource = require("axe-core").source;
+const { PUBLIC_AUDIT_ROUTES } = require("./shared-routes");
 
 const BASE =
   process.argv.find((arg, index) => index > 1 && arg !== "--") ||
   "http://localhost:3000";
-const ROUTES = [
-  "/",
-  "/about",
-  "/contact",
-  "/book",
-  "/dog",
-  "/dog/calm",
-  "/faq",
-  "/gallery",
-  "/policies",
-  "/pricing",
-  "/privacy",
-  "/reviews",
-  "/services/boarding",
-  "/services/daycare",
-  "/services/grooming",
-  "/services/training",
-  "/suites",
-  "/auth/signin",
-];
+const ROUTES = PUBLIC_AUDIT_ROUTES;
 
 (async () => {
   const browser = await chromium.launch();
@@ -88,6 +70,7 @@ const ROUTES = [
   let totalSerious = 0;
   let totalModerate = 0;
   let totalMinor = 0;
+  const routeErrors = out.results.filter((result) => result.error).length;
   
   out.results.forEach((r) => {
     if (r.error) {
@@ -103,6 +86,7 @@ const ROUTES = [
   
   md.push("");
   md.push("## Summary");
+  md.push(`- Route scan errors: ${routeErrors}`);
   md.push(`- 🔴 Critical: ${totalCritical}`);
   md.push(`- 🟠 Serious: ${totalSerious}`);
   md.push(`- 🟡 Moderate: ${totalModerate}`);
@@ -110,6 +94,12 @@ const ROUTES = [
   md.push(`- **Total: ${totalCritical + totalSerious + totalModerate + totalMinor}**`);
   
   fs.writeFileSync(`${outDir}/PLAYWRIGHT_A11Y.md`, md.join("\n"));
+
+  if (routeErrors > 0) {
+    console.error(`\n❌ Accessibility scan FAILED: ${routeErrors} route scan errors found.`);
+    console.error(`   See docs/audit_logs/PLAYWRIGHT_A11Y.json for details.`);
+    process.exit(1);
+  }
 
   // Fail if critical or serious violations found (zero tolerance)
   if (totalCritical > 0 || totalSerious > 0) {

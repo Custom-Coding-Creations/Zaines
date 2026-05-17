@@ -3,19 +3,13 @@
 const fs = require("fs");
 const path = require("path");
 const { chromium } = require("@playwright/test");
+const { ISSUE66_PERFORMANCE_ROUTES } = require("./shared-routes");
 
 const BASE =
   process.argv.find((arg, index) => index > 1 && arg !== "--") ||
   process.env.ISSUE66_BASE_URL ||
   "http://127.0.0.1:3000";
-const ROUTES = [
-  { path: "/", name: "home" },
-  { path: "/book", name: "booking" },
-  { path: "/pricing", name: "pricing" },
-  { path: "/services/boarding", name: "boarding" },
-  { path: "/dog", name: "dog-mode" },
-  { path: "/auth/signin", name: "sign-in" },
-];
+const ROUTES = ISSUE66_PERFORMANCE_ROUTES;
 
 const BUDGETS = {
   domNodes: 1800,
