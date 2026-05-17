@@ -12,6 +12,7 @@ const {
     booking: { count: vi.fn() },
     message: { count: vi.fn() },
     payment: { count: vi.fn() },
+    automatedReminder: { count: vi.fn() },
   },
   getAdminSettingsMock: vi.fn(),
 }));
@@ -58,6 +59,7 @@ describe('GET /api/admin/operations/queue', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(3);
     prismaMock.message.count.mockResolvedValueOnce(4);
+    prismaMock.automatedReminder.count.mockResolvedValueOnce(2);
     prismaMock.payment.count
       .mockResolvedValueOnce(5)
       .mockResolvedValueOnce(6);
@@ -67,8 +69,9 @@ describe('GET /api/admin/operations/queue', () => {
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(body.data.items).toHaveLength(7);
+    expect(body.data.items).toHaveLength(8);
     expect(body.data.items.find((item: { id: string }) => item.id === 'failed_payments')?.count).toBe(5);
+    expect(body.data.items.find((item: { id: string }) => item.id === 'pending_reminders')?.count).toBe(2);
     const disputeItem = body.data.items.find((item: { id: string }) => item.id === 'dispute_deadlines');
     expect(disputeItem?.capabilityBlocked).toBe(true);
     expect(disputeItem?.count).toBe(0);

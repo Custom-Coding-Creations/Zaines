@@ -322,6 +322,7 @@ export interface AdminQueueItem {
     | 'pending_confirmations'
     | 'unresolved_messages'
     | 'failed_payments'
+    | 'pending_reminders'
     | 'reconciliation_exceptions'
     | 'dispute_deadlines';
   label: string;

@@ -144,7 +144,12 @@ export async function sendSmsNotification(payload: {
     | "payment_success"
     | "payment_failure"
     | "report_card"
-    | "incident";
+    | "incident"
+    | "booking_reminder"
+    | "pickup_reminder"
+    | "rebook_nudge"
+    | "vaccine_expiry"
+    | "assessment_due";
   bookingId?: string;
 }) {
   const settings = await getAdminSettings();
@@ -240,6 +245,97 @@ export async function sendSmsNotification(payload: {
     provider: "twilio" as const,
     detail: response.json,
   };
+}
+
+export async function sendReminderNotification(payload: {
+  channel: "email" | "sms";
+  toEmail?: string | null;
+  toPhone?: string | null;
+  subject: string;
+  html: string;
+  text: string;
+  category:
+    | "booking_reminder"
+    | "pickup_reminder"
+    | "rebook_nudge"
+    | "vaccine_expiry"
+    | "assessment_due";
+  bookingId?: string;
+}): Promise<NotificationSendResult> {
+  if (payload.channel === "sms") {
+    const sms = await sendSmsNotification({
+      to: payload.toPhone,
+      message: payload.text,
+      category: payload.category,
+      bookingId: payload.bookingId,
+    });
+
+    return {
+      sent: sms.sent,
+      provider: "dev-queue",
+      detail: payload.channel,
+      sms,
+    };
+  }
+
+  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
+  const apiKey = process.env.RESEND_API_KEY;
+  const to = payload.toEmail;
+
+  if (!to) {
+    return { sent: false, provider: "dev-queue", detail: "no-recipient" };
+  }
+
+  if (!apiKey) {
+    await appendToDevQueue({
+      type: "automated_reminder",
+      to,
+      from,
+      subject: payload.subject,
+      html: payload.html,
+      category: payload.category,
+      bookingId: payload.bookingId,
+    });
+    return { sent: false, provider: "dev-queue", detail: payload.category };
+  }
+
+  try {
+    const resp = await sendEmailViaResend({
+      from,
+      to,
+      subject: payload.subject,
+      html: payload.html,
+    });
+
+    if (resp.ok) {
+      return { sent: true, provider: "resend", detail: resp.json };
+    }
+
+    await appendToDevQueue({
+      type: "automated_reminder",
+      to,
+      from,
+      subject: payload.subject,
+      html: payload.html,
+      category: payload.category,
+      bookingId: payload.bookingId,
+      response: resp.json,
+    });
+
+    return { sent: false, provider: "dev-queue", detail: resp.json };
+  } catch (error) {
+    await appendToDevQueue({
+      type: "automated_reminder",
+      to,
+      from,
+      subject: payload.subject,
+      html: payload.html,
+      category: payload.category,
+      bookingId: payload.bookingId,
+      error: String(error),
+    });
+    return { sent: false, provider: "dev-queue", detail: String(error) };
+  }
 }
 
 async function sendEmailViaResend(payload: {

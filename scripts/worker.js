@@ -14,6 +14,26 @@ async function main() {
   // Load notifications helper (which exposes sendEmailViaResend indirectly via functions)
   const notifications = (await import('../src/lib/notifications')) as any;
 
+  async function deliverRawEmail(entry: any) {
+    if (!process.env.RESEND_API_KEY || !entry?.to || !entry?.subject || !entry?.html) {
+      return;
+    }
+
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: entry.from || process.env.EMAIL_FROM || 'noreply@pawfectstays.com',
+        to: entry.to,
+        subject: entry.subject,
+        html: entry.html,
+      }),
+    });
+  }
+
   const worker = new Worker('emailQueue', async (job: any) => {
     const entry = job.data.entry;
     if (!entry || !entry.type) return;
@@ -24,6 +44,12 @@ async function main() {
         await notifications.sendBookingConfirmation({ user: { email: entry.to, name: '' }, bookingNumber: entry.bookingId || 'n/a', status: 'queued' });
       } else if (entry.type === 'payment_notification') {
         await notifications.sendPaymentNotification(entry.bookingId || 'unknown', entry.status === 'success' ? 'success' : 'failure', { user: { email: entry.to } });
+      } else if (
+        entry.type === 'automated_reminder' ||
+        entry.type === 'report_card_notification' ||
+        entry.type === 'incident_notification'
+      ) {
+        await deliverRawEmail(entry);
       }
       return Promise.resolve();
     } catch (err) {

@@ -46,6 +46,7 @@ export async function GET() {
       pendingConfirmations,
       unresolvedMessages,
       failedPayments,
+      pendingReminders,
       reconciliationExceptions,
     ] = await Promise.all([
       prisma.booking.count({
@@ -82,6 +83,14 @@ export async function GET() {
       prisma.payment.count({
         where: {
           status: 'failed',
+        },
+      }),
+      prisma.automatedReminder.count({
+        where: {
+          sent: false,
+          scheduledFor: {
+            lte: todayEnd,
+          },
         },
       }),
       prisma.payment.count({
@@ -143,6 +152,14 @@ export async function GET() {
           href: '/admin/finance?status=failed',
           description: 'Failed charges that may require recovery outreach.',
           severity: failedPayments >= 3 ? 'critical' : failedPayments > 0 ? 'attention' : 'normal',
+        },
+        {
+          id: 'pending_reminders',
+          label: 'Pending reminders',
+          count: pendingReminders,
+          href: '/admin/reminders',
+          description: 'Due reminders awaiting generation or dispatch.',
+          severity: pendingReminders >= 10 ? 'critical' : pendingReminders > 0 ? 'attention' : 'normal',
         },
         {
           id: 'reconciliation_exceptions',
