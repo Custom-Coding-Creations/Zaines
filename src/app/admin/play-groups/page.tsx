@@ -133,6 +133,7 @@ export default function AdminPlayGroupsPage() {
   const [busyGroupId, setBusyGroupId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [petSelections, setPetSelections] = useState<Record<string, string>>({});
+  const [staffSelections, setStaffSelections] = useState<Record<string, string>>({});
   const [staffRecommendations, setStaffRecommendations] = useState<Record<string, StaffRecommendation[]>>({});
 
   const load = async (date = selectedDate) => {
@@ -153,6 +154,15 @@ export default function AdminPlayGroupsPage() {
       const petsPayload = (await petsResponse.json()) as { data?: EligiblePet[] };
 
       setGroups(groupsPayload.data ?? []);
+      setStaffSelections((current) => {
+        const next = { ...current };
+        for (const group of groupsPayload.data ?? []) {
+          if (!(group.id in next)) {
+            next[group.id] = group.staffMember?.id ?? '';
+          }
+        }
+        return next;
+      });
       setStaff(staffPayload.data ?? []);
       setEligiblePets(petsPayload.data ?? []);
     } catch (loadError) {
@@ -379,6 +389,33 @@ export default function AdminPlayGroupsPage() {
     }
   }
 
+  async function reassignStaff(group: PlayGroup) {
+    const selectedStaffMemberId = staffSelections[group.id] || null;
+
+    try {
+      setBusyGroupId(group.id);
+      setError(null);
+
+      const response = await fetch(`/api/admin/play-groups/${group.id}/staff`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffMemberId: selectedStaffMemberId }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error || 'Failed to update staff assignment');
+      }
+
+      await load(selectedDate);
+      await loadStaffRecommendations(group);
+    } catch (reassignError) {
+      setError(reassignError instanceof Error ? reassignError.message : 'Failed to update staff assignment');
+    } finally {
+      setBusyGroupId(null);
+    }
+  }
+
   const todayEligiblePets = eligiblePets.filter((entry) =>
     !groups.some((group) => group.assignments.some((assignment) => assignment.pet.id === entry.pet.id)),
   );
@@ -502,6 +539,31 @@ export default function AdminPlayGroupsPage() {
               </div>
 
               <div className="flex flex-wrap items-end gap-2">
+                <div className="min-w-[240px] space-y-2">
+                  <Label htmlFor={`staff-${group.id}`}>Reassign staff lead</Label>
+                  <select
+                    id={`staff-${group.id}`}
+                    className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                    value={staffSelections[group.id] ?? group.staffMember?.id ?? ''}
+                    onChange={(event) =>
+                      setStaffSelections((current) => ({ ...current, [group.id]: event.target.value }))
+                    }
+                  >
+                    <option value="">Unassigned</option>
+                    {staff.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.user.name || member.user.email || member.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button
+                  variant="outline"
+                  disabled={busyGroupId === group.id}
+                  onClick={() => void reassignStaff(group)}
+                >
+                  {busyGroupId === group.id ? 'Saving...' : 'Update Staff Lead'}
+                </Button>
                 <div className="min-w-[260px] space-y-2">
                   <Label htmlFor={`pet-${group.id}`}>Assign checked-in pet</Label>
                   <select
