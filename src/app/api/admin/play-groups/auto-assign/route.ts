@@ -188,7 +188,16 @@ export async function POST(request: NextRequest) {
   const newlyAssignedByStaff = new Map<string, TimeSlotRange[]>();
 
   const assignments: Array<{ groupId: string; staffMemberId: string; score: number }> = [];
-  const skipped: Array<{ groupId: string; reason: string }> = [];
+  const skipped: Array<{
+    groupId: string;
+    reason: string;
+    details?: {
+      bestScore: number | null;
+      bestScheduledScore: number | null;
+      scheduledCandidateCount: number;
+      conflictCandidateCount: number;
+    };
+  }> = [];
 
   const targetGroupIds = new Set(targetGroups.map((group) => group.id));
 
@@ -231,13 +240,30 @@ export async function POST(request: NextRequest) {
           staffMemberId: staffMember.id,
           score: recommendation.score,
           scheduledForSlot,
+          hasTimeConflict: hasExistingConflict || hasNewConflict,
         };
       })
       .sort((left, right) => right.score - left.score);
 
     const selected = ranked[0];
     if (!selected || !selected.scheduledForSlot || selected.score < 40) {
-      skipped.push({ groupId: group.id, reason: 'No suitable staff recommendation available' });
+      const bestScheduledScore = ranked
+        .filter((candidate) => candidate.scheduledForSlot)
+        .reduce<number | null>((best, candidate) => {
+          if (best === null || candidate.score > best) return candidate.score;
+          return best;
+        }, null);
+
+      skipped.push({
+        groupId: group.id,
+        reason: 'No suitable staff recommendation available',
+        details: {
+          bestScore: selected?.score ?? null,
+          bestScheduledScore,
+          scheduledCandidateCount: ranked.filter((candidate) => candidate.scheduledForSlot).length,
+          conflictCandidateCount: ranked.filter((candidate) => candidate.hasTimeConflict).length,
+        },
+      });
       continue;
     }
 

@@ -146,6 +146,12 @@ describe('admin play groups auto-assign route', () => {
     expect(payload.data.skippedReasonCounts).toEqual({
       'No suitable staff recommendation available': 1,
     });
+    expect(payload.data.skipped[0].details).toEqual(
+      expect.objectContaining({
+        scheduledCandidateCount: 0,
+      }),
+    );
+    expect(payload.data.skipped[0].details.bestScore).toEqual(expect.any(Number));
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
     expect(appendPlayGroupAuditEventMock).not.toHaveBeenCalled();
   });

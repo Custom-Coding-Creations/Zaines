@@ -146,7 +146,16 @@ type BulkStaffingRun = {
   assigned: number;
   auditEventsRecorded: number;
   skippedReasonCounts: Record<string, number>;
-  skipped: Array<{ groupId: string; reason: string }>;
+  skipped: Array<{
+    groupId: string;
+    reason: string;
+    details?: {
+      bestScore: number | null;
+      bestScheduledScore: number | null;
+      scheduledCandidateCount: number;
+      conflictCandidateCount: number;
+    };
+  }>;
 };
 
 type StaffingExceptionItem = {
@@ -522,7 +531,16 @@ export default function AdminPlayGroupsPage() {
           assigned?: number;
           auditEventsRecorded?: number;
           skippedReasonCounts?: Record<string, number>;
-          skipped?: Array<{ groupId: string; reason: string }>;
+          skipped?: Array<{
+            groupId: string;
+            reason: string;
+            details?: {
+              bestScore: number | null;
+              bestScheduledScore: number | null;
+              scheduledCandidateCount: number;
+              conflictCandidateCount: number;
+            };
+          }>;
         };
       };
 
@@ -571,7 +589,16 @@ export default function AdminPlayGroupsPage() {
           assigned?: number;
           auditEventsRecorded?: number;
           skippedReasonCounts?: Record<string, number>;
-          skipped?: Array<{ groupId: string; reason: string }>;
+          skipped?: Array<{
+            groupId: string;
+            reason: string;
+            details?: {
+              bestScore: number | null;
+              bestScheduledScore: number | null;
+              scheduledCandidateCount: number;
+              conflictCandidateCount: number;
+            };
+          }>;
         };
       };
 
@@ -653,7 +680,16 @@ export default function AdminPlayGroupsPage() {
           assigned?: number;
           auditEventsRecorded?: number;
           skippedReasonCounts?: Record<string, number>;
-          skipped?: Array<{ groupId: string; reason: string }>;
+          skipped?: Array<{
+            groupId: string;
+            reason: string;
+            details?: {
+              bestScore: number | null;
+              bestScheduledScore: number | null;
+              scheduledCandidateCount: number;
+              conflictCandidateCount: number;
+            };
+          }>;
         };
       };
 
@@ -710,7 +746,16 @@ export default function AdminPlayGroupsPage() {
           assigned?: number;
           auditEventsRecorded?: number;
           skippedReasonCounts?: Record<string, number>;
-          skipped?: Array<{ groupId: string; reason: string }>;
+          skipped?: Array<{
+            groupId: string;
+            reason: string;
+            details?: {
+              bestScore: number | null;
+              bestScheduledScore: number | null;
+              scheduledCandidateCount: number;
+              conflictCandidateCount: number;
+            };
+          }>;
         };
       };
 
@@ -774,9 +819,14 @@ export default function AdminPlayGroupsPage() {
               {new Date(lastBulkRun.targetDate).toLocaleDateString()} · attempted {lastBulkRun.attempted} · planned {lastBulkRun.plannedAssignments} · applied {lastBulkRun.appliedAssignments} · audit events {lastBulkRun.auditEventsRecorded} · skipped {lastBulkRun.skipped.length}
             </p>
             {lastBulkRun.skipped.slice(0, 3).map((entry) => (
-              <p key={`${entry.groupId}-${entry.reason}`} className="text-xs text-muted-foreground">
-                {entry.groupId}: {entry.reason}
-              </p>
+              <div key={`${entry.groupId}-${entry.reason}`} className="text-xs text-muted-foreground">
+                <p>{entry.groupId}: {entry.reason}</p>
+                {entry.details ? (
+                  <p>
+                    best score {entry.details.bestScore ?? 'n/a'} · best scheduled {entry.details.bestScheduledScore ?? 'n/a'} · scheduled candidates {entry.details.scheduledCandidateCount}
+                  </p>
+                ) : null}
+              </div>
             ))}
             {Object.entries(lastBulkRun.skippedReasonCounts)
               .slice(0, 2)
