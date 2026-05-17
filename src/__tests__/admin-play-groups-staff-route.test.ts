@@ -140,4 +140,33 @@ describe('admin play groups staff route', () => {
       }),
     );
   });
+
+  it('supports AM/PM play-group slot parsing during reassignment', async () => {
+    authMock.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+    prismaMock.playGroup.findUnique.mockResolvedValue({
+      id: 'group-1',
+      date: new Date('2026-05-16T00:00:00.000Z'),
+      timeSlot: '9:00am-11:00am',
+    });
+    prismaMock.staffMember.findUnique.mockResolvedValue({
+      id: 'staff-1',
+      isActive: true,
+      schedules: [{ shiftStart: '08:00', shiftEnd: '14:00' }],
+      playGroups: [{ id: 'group-3', timeSlot: '2:00pm-3:00pm' }],
+    });
+    prismaMock.playGroup.update.mockResolvedValue({
+      id: 'group-1',
+      staffMember: {
+        id: 'staff-1',
+        user: { id: 'u1', name: 'Alex', email: 'alex@example.com' },
+      },
+    });
+
+    const response = await PUT(makeRequest({ staffMemberId: 'staff-1' }), {
+      params: Promise.resolve({ id: 'group-1' }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.playGroup.update).toHaveBeenCalledTimes(1);
+  });
 });

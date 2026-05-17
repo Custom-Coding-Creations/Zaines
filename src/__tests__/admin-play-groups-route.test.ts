@@ -128,4 +128,31 @@ describe('admin play groups route', () => {
     expect(response.status).toBe(201);
     expect(prismaMock.playGroup.create).toHaveBeenCalledTimes(1);
   });
+
+  it('accepts AM/PM formatted time slots for staff validation', async () => {
+    authMock.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+    prismaMock.staffMember.findUnique.mockResolvedValue({
+      id: 'staff-1',
+      isActive: true,
+      schedules: [{ shiftStart: '08:00', shiftEnd: '14:00' }],
+      playGroups: [{ id: 'group-a', timeSlot: '2:30pm-3:30pm' }],
+    });
+    prismaMock.playGroup.create.mockResolvedValue({ id: 'group-new', name: 'Morning Zoomies' });
+
+    const response = await POST(
+      makeRequest({
+        name: 'Morning Zoomies',
+        date: '2026-05-16T00:00:00.000Z',
+        timeSlot: '9:00am - 11:00am',
+        location: 'yard_a',
+        maxCapacity: 8,
+        sizeCategory: 'medium',
+        energyLevel: 'high',
+        staffMemberId: 'staff-1',
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(prismaMock.playGroup.create).toHaveBeenCalledTimes(1);
+  });
 });
