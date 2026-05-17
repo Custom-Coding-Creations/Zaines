@@ -109,6 +109,21 @@ type PlayGroup = {
   assignments: PlayGroupAssignment[];
 };
 
+type StaffRecommendation = {
+  staffMember: {
+    id: string;
+    role: string;
+    certifications: string[];
+    user: {
+      id: string;
+      name: string | null;
+      email: string | null;
+    };
+  };
+  score: number;
+  reasons: string[];
+};
+
 export default function AdminPlayGroupsPage() {
   const [groups, setGroups] = useState<PlayGroup[]>([]);
   const [staff, setStaff] = useState<StaffOption[]>([]);
@@ -118,6 +133,7 @@ export default function AdminPlayGroupsPage() {
   const [busyGroupId, setBusyGroupId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [petSelections, setPetSelections] = useState<Record<string, string>>({});
+  const [staffRecommendations, setStaffRecommendations] = useState<Record<string, StaffRecommendation[]>>({});
 
   const load = async (date = selectedDate) => {
     try {
@@ -285,6 +301,58 @@ export default function AdminPlayGroupsPage() {
     }
   }
 
+  async function loadStaffRecommendations(group: PlayGroup) {
+    try {
+      setBusyGroupId(group.id);
+      setError(null);
+      const response = await fetch(`/api/admin/play-groups/${group.id}/staff-recommendations`);
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error || 'Failed to load staff recommendations');
+      }
+
+      const payload = (await response.json()) as {
+        data?: {
+          recommendations?: StaffRecommendation[];
+        };
+      };
+
+      setStaffRecommendations((current) => ({
+        ...current,
+        [group.id]: payload.data?.recommendations ?? [],
+      }));
+    } catch (recommendationError) {
+      setError(
+        recommendationError instanceof Error
+          ? recommendationError.message
+          : 'Failed to load staff recommendations',
+      );
+    } finally {
+      setBusyGroupId(null);
+    }
+  }
+
+  async function autoAssignStaff(group: PlayGroup) {
+    try {
+      setBusyGroupId(group.id);
+      setError(null);
+      const response = await fetch(`/api/admin/play-groups/${group.id}/staff-recommendations`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error || 'Failed to auto-assign staff lead');
+      }
+
+      await load(selectedDate);
+      await loadStaffRecommendations(group);
+    } catch (assignError) {
+      setError(assignError instanceof Error ? assignError.message : 'Failed to auto-assign staff lead');
+    } finally {
+      setBusyGroupId(null);
+    }
+  }
+
   const todayEligiblePets = eligiblePets.filter((entry) =>
     !groups.some((group) => group.assignments.some((assignment) => assignment.pet.id === entry.pet.id)),
   );
@@ -445,7 +513,36 @@ export default function AdminPlayGroupsPage() {
                 >
                   {busyGroupId === group.id ? 'Saving...' : 'Auto-Fill Best Fits'}
                 </Button>
+                <Button
+                  variant="outline"
+                  disabled={busyGroupId === group.id}
+                  onClick={() => void loadStaffRecommendations(group)}
+                >
+                  {busyGroupId === group.id ? 'Loading...' : 'Recommend Staff'}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={busyGroupId === group.id}
+                  onClick={() => void autoAssignStaff(group)}
+                >
+                  {busyGroupId === group.id ? 'Saving...' : 'Auto-Assign Staff'}
+                </Button>
               </div>
+
+              {staffRecommendations[group.id]?.length ? (
+                <div className="rounded-md border border-muted bg-muted/20 p-2">
+                  <p className="text-xs font-medium text-muted-foreground">Staff recommendations</p>
+                  <div className="mt-2 space-y-1">
+                    {staffRecommendations[group.id].slice(0, 3).map((recommendation) => (
+                      <p key={`${group.id}-${recommendation.staffMember.id}`} className="text-xs">
+                        {recommendation.staffMember.user.name || recommendation.staffMember.user.email || recommendation.staffMember.id}
+                        {' · '}score {recommendation.score}
+                        {' · '}role {recommendation.staffMember.role}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               {sortedOptions.length > 0 ? (
                 <div className="rounded-md border border-muted bg-muted/20 p-2">
