@@ -37,7 +37,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: staff } as ApiResponse<typeof staff>);
   } catch (error) {
     console.error('Failed to load staff', error);
-    return NextResponse.json({ error: 'Failed to load staff' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Staff service unavailable',
+        code: 'ADMIN_STAFF_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }
 
@@ -88,6 +94,12 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Failed to create staff member', error);
-    return NextResponse.json({ error: 'Failed to create staff member' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Staff service unavailable',
+        code: 'ADMIN_STAFF_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }

@@ -70,7 +70,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: cards } as ApiResponse<typeof cards>);
   } catch (error) {
     console.error('Failed to load report cards', error);
-    return NextResponse.json({ error: 'Failed to load report cards' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Report cards service unavailable',
+        code: 'ADMIN_REPORT_CARDS_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }
 
@@ -133,6 +139,12 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Failed to create report card', error);
-    return NextResponse.json({ error: 'Failed to create report card' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Report cards service unavailable',
+        code: 'ADMIN_REPORT_CARDS_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }

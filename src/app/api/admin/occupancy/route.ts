@@ -80,8 +80,11 @@ export async function GET() {
   } catch (error) {
     console.error('Failed to load occupancy dashboard', error);
     return NextResponse.json(
-      { error: 'Failed to load occupancy dashboard' },
-      { status: 500 },
+      {
+        error: 'Occupancy dashboard service unavailable',
+        code: 'ADMIN_OCCUPANCY_UNAVAILABLE',
+      },
+      { status: 503 },
     );
   }
 }

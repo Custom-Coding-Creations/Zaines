@@ -90,6 +90,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: { items, summary } } as ApiResponse<{ items: typeof items; summary: typeof summary }>);
   } catch (error) {
     console.error('Failed to load staffing exceptions', error);
-    return NextResponse.json({ error: 'Failed to load staffing exceptions' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Staffing exceptions service unavailable',
+        code: 'ADMIN_STAFFING_EXCEPTIONS_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }

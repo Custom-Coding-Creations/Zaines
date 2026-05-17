@@ -25,7 +25,13 @@ export async function GET() {
     return NextResponse.json({ success: true, data: reminders });
   } catch (error) {
     console.error('Failed to load reminders', error);
-    return NextResponse.json({ error: 'Failed to load reminders' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Reminders service unavailable',
+        code: 'ADMIN_REMINDERS_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }
 
@@ -76,6 +82,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Failed to run reminders workflow', error);
-    return NextResponse.json({ error: 'Failed to run reminders workflow' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Reminders service unavailable',
+        code: 'ADMIN_REMINDERS_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }

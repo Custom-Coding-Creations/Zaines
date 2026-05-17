@@ -39,7 +39,13 @@ export async function GET() {
     return NextResponse.json({ success: true, data: recurring } as ApiResponse<typeof recurring>);
   } catch (error) {
     console.error('Failed to load recurring bookings', error);
-    return NextResponse.json({ error: 'Failed to load recurring bookings' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Recurring bookings service unavailable',
+        code: 'ADMIN_RECURRING_BOOKINGS_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }
 
@@ -81,6 +87,12 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Failed to create recurring booking', error);
-    return NextResponse.json({ error: 'Failed to create recurring booking' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Recurring bookings service unavailable',
+        code: 'ADMIN_RECURRING_BOOKINGS_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }

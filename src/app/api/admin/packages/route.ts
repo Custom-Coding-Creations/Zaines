@@ -35,7 +35,13 @@ export async function GET() {
     return NextResponse.json({ success: true, data: packages } as ApiResponse<typeof packages>);
   } catch (error) {
     console.error('Failed to load packages', error);
-    return NextResponse.json({ error: 'Failed to load packages' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Packages service unavailable',
+        code: 'ADMIN_PACKAGES_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }
 
@@ -66,6 +72,12 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Failed to create package', error);
-    return NextResponse.json({ error: 'Failed to create package' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Packages service unavailable',
+        code: 'ADMIN_PACKAGES_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }

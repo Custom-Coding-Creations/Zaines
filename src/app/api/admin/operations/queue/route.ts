@@ -437,8 +437,11 @@ export async function GET() {
   } catch (error) {
     console.error('Failed to load admin operations queue', error);
     return NextResponse.json(
-      { error: 'Failed to load admin operations queue' },
-      { status: 500 },
+      {
+        error: 'Operations queue service unavailable',
+        code: 'ADMIN_OPERATIONS_QUEUE_UNAVAILABLE',
+      },
+      { status: 503 },
     );
   }
 }

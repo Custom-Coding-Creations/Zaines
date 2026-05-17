@@ -54,7 +54,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: incidents } as ApiResponse<typeof incidents>);
   } catch (error) {
     console.error('Failed to load incidents', error);
-    return NextResponse.json({ error: 'Failed to load incidents' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Incidents service unavailable',
+        code: 'ADMIN_INCIDENTS_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }
 
@@ -119,6 +125,12 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error('Failed to create incident report', error);
-    return NextResponse.json({ error: 'Failed to create incident report' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Incidents service unavailable',
+        code: 'ADMIN_INCIDENTS_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }

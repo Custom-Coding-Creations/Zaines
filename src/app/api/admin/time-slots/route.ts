@@ -19,7 +19,13 @@ export async function GET() {
     return NextResponse.json({ success: true, data: slots });
   } catch (error) {
     console.error('Failed to load time slots', error);
-    return NextResponse.json({ error: 'Failed to load time slots' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Time slots service unavailable',
+        code: 'ADMIN_TIME_SLOTS_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }
 
@@ -48,6 +54,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (error) {
     console.error('Failed to create time slot', error);
-    return NextResponse.json({ error: 'Failed to create time slot' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Time slots service unavailable',
+        code: 'ADMIN_TIME_SLOTS_UNAVAILABLE',
+      },
+      { status: 503 },
+    );
   }
 }
