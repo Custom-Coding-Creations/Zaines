@@ -130,4 +130,53 @@ describe('admin play groups auto-assign route', () => {
     expect(payload.data.skipped).toHaveLength(1);
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
+
+  it('repairs groups assigned to unscheduled staff when repair mode is enabled', async () => {
+    authMock.mockResolvedValue({ user: { id: 'admin-1', role: 'admin' } });
+    prismaMock.playGroup.findMany.mockResolvedValue([
+      {
+        id: 'group-1',
+        name: 'Morning A',
+        timeSlot: '09:00-10:00',
+        energyLevel: 'moderate',
+        staffMemberId: 'staff-2',
+      },
+      {
+        id: 'group-2',
+        name: 'Morning B',
+        timeSlot: '10:30-11:30',
+        energyLevel: 'high',
+        staffMemberId: null,
+      },
+    ]);
+
+    prismaMock.staffMember.findMany.mockResolvedValue([
+      {
+        id: 'staff-1',
+        role: 'handler',
+        certifications: ['Behavior Handling'],
+        schedules: [{ shiftStart: '08:00', shiftEnd: '16:00' }],
+        playGroups: [],
+      },
+      {
+        id: 'staff-2',
+        role: 'groomer',
+        certifications: [],
+        schedules: [{ shiftStart: '12:00', shiftEnd: '17:00' }],
+        playGroups: [{ id: 'group-1', timeSlot: '09:00-10:00' }],
+      },
+    ]);
+
+    const response = await POST(new NextRequest('http://localhost/api/admin/play-groups/auto-assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: '2026-05-16T00:00:00.000Z', repairConflicts: true }),
+    }));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.data.repairConflicts).toBe(true);
+    expect(payload.data.assigned).toBe(2);
+    expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+  });
 });

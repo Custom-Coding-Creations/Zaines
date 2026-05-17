@@ -8,6 +8,7 @@ import type { ApiResponse } from '@/types/admin';
 
 const autoAssignSchema = z.object({
   date: z.string().datetime().optional(),
+  repairConflicts: z.boolean().optional(),
 });
 
 type Slot = { start: number; end: number };
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
   const targetDate = parsed.data.date ? new Date(parsed.data.date) : new Date();
   const dayStart = startOfDay(targetDate);
   const dayEnd = endOfDay(targetDate);
+  const repairConflicts = parsed.data.repairConflicts === true;
 
   const [groups, staffMembers] = await Promise.all([
     prisma.playGroup.findMany({
@@ -153,13 +155,78 @@ export async function POST(request: NextRequest) {
     }),
   ]);
 
-  const unassignedGroups = groups.filter((group) => !group.staffMemberId);
+  const groupsById = new Map(groups.map((group) => [group.id, group]));
+  const groupSlots = new Map(groups.map((group) => [group.id, parseTimeSlot(group.timeSlot)]));
+  const staffById = new Map(staffMembers.map((staffMember) => [staffMember.id, staffMember]));
+
+  const groupsNeedingRepair = new Set<string>();
+  for (const group of groups) {
+    if (!group.staffMemberId) {
+      if (repairConflicts) groupsNeedingRepair.add(group.id);
+      continue;
+    }
+
+    if (!repairConflicts) continue;
+
+    const staffMember = staffById.get(group.staffMemberId);
+    const groupSlot = groupSlots.get(group.id) ?? null;
+    if (!staffMember || !groupSlot) {
+      groupsNeedingRepair.add(group.id);
+      continue;
+    }
+
+    const scheduledForSlot = staffMember.schedules.some((schedule) =>
+      scheduleCoversSlot(groupSlot, schedule.shiftStart, schedule.shiftEnd),
+    );
+    if (!scheduledForSlot) {
+      groupsNeedingRepair.add(group.id);
+      continue;
+    }
+  }
+
+  if (repairConflicts) {
+    for (const staffMember of staffMembers) {
+      const assignedGroups = staffMember.playGroups
+        .map((playGroup) => groupsById.get(playGroup.id))
+        .filter((group): group is NonNullable<typeof group> => Boolean(group))
+        .sort((left, right) => {
+          const leftSlot = parseTimeSlot(left.timeSlot);
+          const rightSlot = parseTimeSlot(right.timeSlot);
+          if (!leftSlot || !rightSlot) return 0;
+          return leftSlot.start - rightSlot.start;
+        });
+
+      let previousKept: { id: string; slot: Slot | null } | null = null;
+      for (const group of assignedGroups) {
+        const slot = parseTimeSlot(group.timeSlot);
+        if (!slot) {
+          groupsNeedingRepair.add(group.id);
+          continue;
+        }
+
+        if (previousKept && slotsOverlap(previousKept.slot, slot)) {
+          groupsNeedingRepair.add(group.id);
+          continue;
+        }
+
+        if (!groupsNeedingRepair.has(group.id)) {
+          previousKept = { id: group.id, slot };
+        }
+      }
+    }
+  }
+
+  const targetGroups = repairConflicts
+    ? groups.filter((group) => groupsNeedingRepair.has(group.id))
+    : groups.filter((group) => !group.staffMemberId);
   const newlyAssignedByStaff = new Map<string, Slot[]>();
 
   const assignments: Array<{ groupId: string; staffMemberId: string; score: number }> = [];
   const skipped: Array<{ groupId: string; reason: string }> = [];
 
-  for (const group of unassignedGroups) {
+  const targetGroupIds = new Set(targetGroups.map((group) => group.id));
+
+  for (const group of targetGroups) {
     const groupSlot = parseTimeSlot(group.timeSlot);
     if (!groupSlot) {
       skipped.push({ groupId: group.id, reason: 'Invalid group time slot format' });
@@ -173,6 +240,7 @@ export async function POST(request: NextRequest) {
         );
 
         const hasExistingConflict = staffMember.playGroups.some((assignedGroup) =>
+          !targetGroupIds.has(assignedGroup.id) &&
           slotsOverlap(groupSlot, parseTimeSlot(assignedGroup.timeSlot)),
         );
 
@@ -253,10 +321,11 @@ export async function POST(request: NextRequest) {
 
   const response = {
     targetDate: dayStart.toISOString(),
-    attempted: unassignedGroups.length,
+    attempted: targetGroups.length,
     assigned: assignments.length,
     skipped,
     assignments,
+    repairConflicts,
   };
 
   return NextResponse.json({ success: true, data: response } as ApiResponse<typeof response>);

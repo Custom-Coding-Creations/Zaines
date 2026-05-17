@@ -441,7 +441,7 @@ export default function AdminPlayGroupsPage() {
       const response = await fetch('/api/admin/play-groups/auto-assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: new Date(selectedDate).toISOString() }),
+        body: JSON.stringify({ date: new Date(selectedDate).toISOString(), repairConflicts: false }),
       });
 
       if (!response.ok) {
@@ -452,6 +452,30 @@ export default function AdminPlayGroupsPage() {
       await load(selectedDate);
     } catch (autoAssignError) {
       setError(autoAssignError instanceof Error ? autoAssignError.message : 'Failed to auto-assign unassigned groups');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function repairStaffingConflicts() {
+    try {
+      setSaving(true);
+      setError(null);
+
+      const response = await fetch('/api/admin/play-groups/auto-assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: new Date(selectedDate).toISOString(), repairConflicts: true }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error || 'Failed to repair staffing conflicts');
+      }
+
+      await load(selectedDate);
+    } catch (repairError) {
+      setError(repairError instanceof Error ? repairError.message : 'Failed to repair staffing conflicts');
     } finally {
       setSaving(false);
     }
@@ -469,9 +493,14 @@ export default function AdminPlayGroupsPage() {
           Build daily supervised groups, balance capacity, and assign checked-in pets.
         </p>
         <div className="mt-3">
-          <Button type="button" variant="outline" disabled={saving} onClick={() => void autoAssignAllUnassigned()}>
-            {saving ? 'Running...' : 'Auto-Assign All Unassigned'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" disabled={saving} onClick={() => void autoAssignAllUnassigned()}>
+              {saving ? 'Running...' : 'Auto-Assign All Unassigned'}
+            </Button>
+            <Button type="button" variant="outline" disabled={saving} onClick={() => void repairStaffingConflicts()}>
+              {saving ? 'Running...' : 'Repair Staffing Conflicts'}
+            </Button>
+          </div>
         </div>
       </div>
 
