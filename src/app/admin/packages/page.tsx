@@ -52,8 +52,11 @@ export default function AdminPackagesPage() {
   const [rows, setRows] = useState<PackageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGranting, setIsGranting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [grantEmail, setGrantEmail] = useState('');
+  const [grantPackageId, setGrantPackageId] = useState('');
   const [drafts, setDrafts] = useState<Record<string, PackageAdjustmentDraft>>({});
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -65,6 +68,7 @@ export default function AdminPackagesPage() {
       if (!response.ok) throw new Error('Failed to load packages');
       const payload = (await response.json()) as { data?: PackageItem[] };
       setRows(payload.data ?? []);
+      setGrantPackageId((current) => current || payload.data?.[0]?.id || '');
     } catch (fetchError) {
       setError(fetchError instanceof Error ? fetchError.message : 'Failed to load packages');
     } finally {
@@ -178,6 +182,36 @@ export default function AdminPackagesPage() {
     }
   }
 
+  async function onGrantSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    try {
+      setIsGranting(true);
+      setError(null);
+
+      const response = await fetch('/api/admin/customer-packages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: grantEmail,
+          packageId: grantPackageId,
+        }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error ?? 'Failed to grant package');
+      }
+
+      setGrantEmail('');
+      await loadPackages();
+    } catch (grantError) {
+      setError(grantError instanceof Error ? grantError.message : 'Failed to grant package');
+    } finally {
+      setIsGranting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -228,6 +262,54 @@ export default function AdminPackagesPage() {
               <Button type="submit" disabled={isSaving}>
                 {isSaving ? 'Saving...' : 'Create Package'}
               </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Grant Package To Customer</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={(event) => void onGrantSubmit(event)} className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="grant-email">Customer Email</Label>
+              <Input
+                id="grant-email"
+                type="email"
+                value={grantEmail}
+                onChange={(event) => setGrantEmail(event.target.value)}
+                placeholder="customer@example.com"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="grant-package">Package</Label>
+              <select
+                id="grant-package"
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                value={grantPackageId}
+                onChange={(event) => setGrantPackageId(event.target.value)}
+                required
+              >
+                <option value="" disabled>
+                  Select a package
+                </option>
+                {rows.map((pkg) => (
+                  <option key={pkg.id} value={pkg.id}>
+                    {pkg.name} · {pkg.totalSessions} sessions · ${pkg.price.toFixed(2)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-2 flex items-center gap-3">
+              <Button type="submit" disabled={isGranting || !grantPackageId}>
+                {isGranting ? 'Granting...' : 'Grant Package'}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Grants the package immediately using its configured validity window and session balance.
+              </p>
             </div>
           </form>
         </CardContent>
