@@ -72,7 +72,7 @@ export function ComparisonTable() {
         </FadeUp>
 
         <FadeUp delay={0.1}>
-          <div className="luxury-shell overflow-hidden rounded-3xl border border-border/80">
+          <div className="playful-shell overflow-hidden rounded-3xl border border-border/80">
             {/* Header */}
             <div className="grid grid-cols-[1fr_auto_auto] bg-muted/60 md:grid-cols-[2fr_3fr_3fr]">
               <div className="p-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
