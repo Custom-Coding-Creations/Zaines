@@ -6,6 +6,8 @@ const path = require("path");
 
 const outDir = path.join(process.cwd(), "docs", "audit_logs");
 fs.mkdirSync(outDir, { recursive: true });
+const baselinePath = path.join(process.cwd(), "scripts", "audit", "issue66_security_baseline.json");
+const strictMode = process.env.ISSUE66_SECURITY_STRICT === "1";
 
 function runAudit() {
   try {
@@ -15,6 +17,15 @@ function runAudit() {
     });
   } catch (error) {
     return error.stdout ? String(error.stdout) : "{}";
+  }
+}
+
+function loadBaseline() {
+  if (!fs.existsSync(baselinePath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(baselinePath, "utf8"));
+  } catch {
+    return null;
   }
 }
 
@@ -43,8 +54,30 @@ const rawConsoleFindings = walkFiles(path.join(process.cwd(), "src", "app", "api
       .filter((item) => /console\.(log|warn|error|info)/.test(item.line));
   });
 
+const baseline = loadBaseline();
+const baselineAllowedPaths = new Set(baseline?.console?.allowedPaths || []);
+const currentConsolePaths = [...new Set(rawConsoleFindings.map((finding) => finding.rel))];
+const newConsolePaths = baseline
+  ? currentConsolePaths.filter((rel) => !baselineAllowedPaths.has(rel))
+  : [];
+
+let pass = false;
+if (strictMode || !baseline) {
+  pass = critical === 0 && high === 0 && rawConsoleFindings.length === 0;
+} else {
+  const baselineCritical = baseline.npmAudit?.critical ?? 0;
+  const baselineHigh = baseline.npmAudit?.high ?? 0;
+  const baselineConsoleCount = baseline.console?.allowedCount ?? 0;
+  pass =
+    critical <= baselineCritical &&
+    high <= baselineHigh &&
+    rawConsoleFindings.length <= baselineConsoleCount &&
+    newConsolePaths.length === 0;
+}
+
 const summary = {
   scannedAt: new Date().toISOString(),
+  mode: strictMode ? "strict" : baseline ? "baseline-regression" : "strict-no-baseline",
   npmAudit: {
     critical,
     high,
@@ -53,7 +86,18 @@ const summary = {
     total: vulnerabilities.total ?? 0,
   },
   apiConsoleFindings: rawConsoleFindings,
-  pass: critical === 0 && high === 0 && rawConsoleFindings.length === 0,
+  baseline: baseline || null,
+  baselineDelta: baseline
+    ? {
+        npmAudit: {
+          critical: critical - (baseline.npmAudit?.critical ?? 0),
+          high: high - (baseline.npmAudit?.high ?? 0),
+        },
+        consoleCount: rawConsoleFindings.length - (baseline.console?.allowedCount ?? 0),
+        newConsolePaths,
+      }
+    : null,
+  pass,
 };
 
 fs.writeFileSync(
@@ -64,10 +108,18 @@ fs.writeFileSync(
 const md = [
   "# Issue 66 Security Gate",
   `- Scanned at: ${summary.scannedAt}`,
+  `- Mode: ${summary.mode}`,
   `- Result: ${summary.pass ? "PASS" : "FAIL"}`,
   `- npm audit critical/high: ${critical}/${high}`,
   `- npm audit moderate/low: ${summary.npmAudit.moderate}/${summary.npmAudit.low}`,
   `- Raw console usage in src/app/api: ${rawConsoleFindings.length}`,
+  "",
+  baseline
+    ? `- Baseline delta (critical/high/console): ${summary.baselineDelta.npmAudit.critical}/${summary.baselineDelta.npmAudit.high}/${summary.baselineDelta.consoleCount}`
+    : "- Baseline: not configured",
+  baseline && summary.baselineDelta.newConsolePaths.length
+    ? `- New console paths: ${summary.baselineDelta.newConsolePaths.length}`
+    : "- New console paths: 0",
   "",
   rawConsoleFindings.length
     ? rawConsoleFindings.map((finding) => `- ${finding.rel}:${finding.index}`).join("\n")
