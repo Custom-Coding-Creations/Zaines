@@ -1,6 +1,0 @@
-
-> @subzero/framework@2.0.0 format:check
-> prettier --check "**/*.{ts,js,json}"
-
-Checking formatting...
-All matched files use Prettier code style!

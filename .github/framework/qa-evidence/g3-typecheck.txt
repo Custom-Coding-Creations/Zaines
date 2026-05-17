@@ -1,4 +1,0 @@
-
-> @subzero/framework@2.0.0 typecheck
-> tsc --noEmit
-
