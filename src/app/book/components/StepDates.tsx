@@ -47,6 +47,16 @@ interface StepDatesProps {
   onCancel?: () => void;
 }
 
+type TimeSlotOption = {
+  id: string;
+  value: string;
+  label: string;
+  maxCapacity: number;
+  used: number;
+  remainingCapacity: number;
+  available: boolean;
+};
+
 export function StepDates({ data, onUpdate, onNext, onCancel }: StepDatesProps) {
   const { availabilityRules } = useSiteSettings();
   const minNights = Math.max(1, availabilityRules.minNightsPerBooking || 1);
@@ -60,6 +70,9 @@ export function StepDates({ data, onUpdate, onNext, onCancel }: StepDatesProps) 
     correlationId?: string;
   } | null>(null);
   const [availabilityMessage, setAvailabilityMessage] = useState<string>("");
+  const [dropoffSlots, setDropoffSlots] = useState<TimeSlotOption[]>([]);
+  const [pickupSlots, setPickupSlots] = useState<TimeSlotOption[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   const checkAvailability = useCallback(async () => {
     if (
@@ -188,6 +201,73 @@ export function StepDates({ data, onUpdate, onNext, onCancel }: StepDatesProps) 
     };
   }, [data.checkIn, data.checkOut, data.serviceType, checkAvailability]);
 
+  useEffect(() => {
+    const loadSlots = async () => {
+      if (!data.checkIn && !data.checkOut) {
+        setDropoffSlots([]);
+        setPickupSlots([]);
+        return;
+      }
+
+      setLoadingSlots(true);
+      try {
+        const [dropoffResponse, pickupResponse] = await Promise.all([
+          data.checkIn
+            ? fetch(
+                `/api/booking/time-slots?date=${encodeURIComponent(data.checkIn)}&type=dropoff`,
+              )
+            : Promise.resolve(null),
+          data.checkOut
+            ? fetch(
+                `/api/booking/time-slots?date=${encodeURIComponent(data.checkOut)}&type=pickup`,
+              )
+            : Promise.resolve(null),
+        ]);
+
+        if (dropoffResponse && dropoffResponse.ok) {
+          const payload = (await dropoffResponse.json()) as {
+            data?: TimeSlotOption[];
+          };
+          const nextDropoffSlots = payload.data ?? [];
+          setDropoffSlots(nextDropoffSlots);
+          if (
+            data.dropoffTimeSlot &&
+            !nextDropoffSlots.some((slot) => slot.value === data.dropoffTimeSlot)
+          ) {
+            onUpdate({ dropoffTimeSlot: "" });
+          }
+        }
+
+        if (pickupResponse && pickupResponse.ok) {
+          const payload = (await pickupResponse.json()) as {
+            data?: TimeSlotOption[];
+          };
+          const nextPickupSlots = payload.data ?? [];
+          setPickupSlots(nextPickupSlots);
+          if (
+            data.pickupTimeSlot &&
+            !nextPickupSlots.some((slot) => slot.value === data.pickupTimeSlot)
+          ) {
+            onUpdate({ pickupTimeSlot: "" });
+          }
+        }
+      } catch {
+        setDropoffSlots([]);
+        setPickupSlots([]);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    void loadSlots();
+  }, [
+    data.checkIn,
+    data.checkOut,
+    data.dropoffTimeSlot,
+    data.pickupTimeSlot,
+    onUpdate,
+  ]);
+
   const handleNext = () => {
     const stepData: Partial<StepDatesData> = {
       checkIn: data.checkIn,
@@ -218,6 +298,16 @@ export function StepDates({ data, onUpdate, onNext, onCancel }: StepDatesProps) 
       setAvailabilityMessage(
         "Please select dates with available suites before continuing.",
       );
+      return;
+    }
+
+    if (dropoffSlots.length > 0 && !data.dropoffTimeSlot) {
+      setAvailabilityMessage("Please select a drop-off time slot.");
+      return;
+    }
+
+    if (pickupSlots.length > 0 && !data.pickupTimeSlot) {
+      setAvailabilityMessage("Please select a pickup time slot.");
       return;
     }
 
@@ -351,6 +441,68 @@ export function StepDates({ data, onUpdate, onNext, onCancel }: StepDatesProps) 
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="dropoffSlot">Drop-off Time Slot</Label>
+            <Select
+              value={data.dropoffTimeSlot || ""}
+              onValueChange={(value) => onUpdate({ dropoffTimeSlot: value })}
+              disabled={loadingSlots || dropoffSlots.length === 0}
+            >
+              <SelectTrigger id="dropoffSlot" className="focus-ring">
+                <SelectValue
+                  placeholder={
+                    loadingSlots
+                      ? "Loading drop-off slots..."
+                      : dropoffSlots.length > 0
+                        ? "Select drop-off slot"
+                        : "No configured drop-off slots"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {dropoffSlots
+                  .filter((slot) => slot.available)
+                  .map((slot) => (
+                    <SelectItem key={slot.id} value={slot.value}>
+                      {slot.label} ({slot.remainingCapacity} spots left)
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="pickupSlot">Pickup Time Slot</Label>
+            <Select
+              value={data.pickupTimeSlot || ""}
+              onValueChange={(value) => onUpdate({ pickupTimeSlot: value })}
+              disabled={loadingSlots || pickupSlots.length === 0}
+            >
+              <SelectTrigger id="pickupSlot" className="focus-ring">
+                <SelectValue
+                  placeholder={
+                    loadingSlots
+                      ? "Loading pickup slots..."
+                      : pickupSlots.length > 0
+                        ? "Select pickup slot"
+                        : "No configured pickup slots"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {pickupSlots
+                  .filter((slot) => slot.available)
+                  .map((slot) => (
+                    <SelectItem key={slot.id} value={slot.value}>
+                      {slot.label} ({slot.remainingCapacity} spots left)
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {availabilityState === "checking_availability" && (

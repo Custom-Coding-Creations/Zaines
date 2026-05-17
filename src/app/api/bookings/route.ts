@@ -191,6 +191,8 @@ const bookingsPrisma = prisma as unknown as BookingsApiPrisma;
 const bookingSchema = z.object({
   checkIn: z.string(),
   checkOut: z.string(),
+  dropoffTimeSlot: z.string().optional(),
+  pickupTimeSlot: z.string().optional(),
   suiteType: z.enum(["standard", "deluxe", "luxury"]),
   petCount: z.number().min(1).max(5),
   petIds: z.array(z.string()).optional(),
@@ -810,6 +812,8 @@ export async function POST(request: NextRequest) {
             bookingNumber,
             checkInDate,
             checkOutDate,
+            dropoffTimeSlot: data.dropoffTimeSlot || null,
+            pickupTimeSlot: data.pickupTimeSlot || null,
             totalNights,
             subtotal: pricing.subtotal,
             tax: pricing.tax,

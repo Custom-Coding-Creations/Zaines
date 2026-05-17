@@ -160,6 +160,8 @@ function BookPageContent() {
     return {
       checkIn,
       checkOut,
+      dropoffTimeSlot: wizardData.dates?.dropoffTimeSlot,
+      pickupTimeSlot: wizardData.dates?.pickupTimeSlot,
       suiteType,
       petCount,
       petIds: wizardData.pets?.selectedPetIds || [],

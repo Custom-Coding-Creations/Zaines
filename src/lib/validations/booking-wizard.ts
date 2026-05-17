@@ -26,6 +26,8 @@ export const stepDatesSchema = z
   .object({
     checkIn: z.string().min(1, "Check-in date is required"),
     checkOut: z.string().min(1, "Check-out date is required"),
+    dropoffTimeSlot: z.string().optional(),
+    pickupTimeSlot: z.string().optional(),
     serviceType: z.enum(["boarding"]),
     petCount: z
       .number()
@@ -193,6 +195,8 @@ export const createBookingSchema = z.object({
   // Step 1 data
   checkIn: z.string(),
   checkOut: z.string(),
+  dropoffTimeSlot: z.string().optional(),
+  pickupTimeSlot: z.string().optional(),
   serviceType: z.string(),
   petCount: z.number(),
 
