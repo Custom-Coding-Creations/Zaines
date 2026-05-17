@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireStaffSession } from "@/lib/api/admin-auth";
 import { isDatabaseConfigured, prisma } from "@/lib/prisma";
 import {
   ASSOCIATION_AUDIT_PREFIX,
@@ -68,20 +68,6 @@ function buildCsv(events: Array<{
   return [header, ...rows]
     .map((columns) => columns.map((value) => escapeCsv(String(value))).join(","))
     .join("\n");
-}
-
-async function requireStaffSession() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const role = (session.user as { id: string; role?: string }).role;
-  if (!role || !["staff", "admin"].includes(role)) {
-    return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { session };
 }
 
 export async function GET(request: NextRequest) {

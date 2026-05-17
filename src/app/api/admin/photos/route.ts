@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { requireStaffSession } from '@/lib/api/admin-auth';
 import { validateFile } from '@/lib/file-upload';
 import { prisma, isDatabaseConfigured } from '@/lib/prisma';
 
@@ -21,20 +21,6 @@ function normalizeTextField(value: FormDataEntryValue | null, maxLength: number)
   }
 
   return trimmed.slice(0, maxLength);
-}
-
-async function requireStaffSession() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
-  }
-
-  const role = (session.user as { id: string; role?: string }).role;
-  if (!role || !['staff', 'admin'].includes(role)) {
-    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
-  }
-
-  return { session };
 }
 
 async function storeFile(file: File, folderKey: string): Promise<string> {

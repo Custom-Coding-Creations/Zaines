@@ -13,6 +13,41 @@ type FinanceAccessResult =
       response: NextResponse;
     };
 
+function buildFinanceAuthFailureResponse(error: unknown): NextResponse {
+  const authErrorType =
+    error && typeof error === 'object' && 'type' in error && typeof error.type === 'string'
+      ? error.type
+      : null;
+
+  if (authErrorType === 'JWTSessionError' || authErrorType === 'SessionTokenError') {
+    return NextResponse.json(
+      {
+        error: 'Unauthorized',
+        code: 'ADMIN_FINANCE_AUTH_INVALID_SESSION',
+      },
+      { status: 401 },
+    );
+  }
+
+  if (authErrorType === 'MissingSecret') {
+    return NextResponse.json(
+      {
+        error: 'Authentication misconfigured',
+        code: 'ADMIN_FINANCE_AUTH_MISCONFIGURED',
+      },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json(
+    {
+      error: 'Authentication service unavailable',
+      code: 'ADMIN_FINANCE_AUTH_UNAVAILABLE',
+    },
+    { status: 503 },
+  );
+}
+
 export async function requireFinanceAccess(
   mode: FinanceAccessMode,
 ): Promise<FinanceAccessResult> {
@@ -22,13 +57,7 @@ export async function requireFinanceAccess(
   } catch (error) {
     console.error('Finance auth failure', error);
     return {
-      response: NextResponse.json(
-        {
-          error: 'Authentication service unavailable',
-          code: 'ADMIN_FINANCE_AUTH_UNAVAILABLE',
-        },
-        { status: 503 },
-      ),
+      response: buildFinanceAuthFailureResponse(error),
     };
   }
 

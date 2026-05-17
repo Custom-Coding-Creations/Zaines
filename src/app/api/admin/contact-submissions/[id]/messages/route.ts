@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireStaffSession } from "@/lib/api/admin-auth";
 import {
   appendContactSubmissionMessage,
   type ContactConversationAttachment,
@@ -20,28 +20,6 @@ function isAllowedType(contentType: string): "image" | "video" | null {
     return "video";
   }
   return null;
-}
-
-async function requireStaffSession() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const role = (session.user as { id: string; role?: string }).role;
-  if (!role || !["staff", "admin"].includes(role)) {
-    return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return {
-    session,
-    senderName:
-      session.user.name && session.user.name.trim().length > 0
-        ? session.user.name
-        : role === "admin"
-          ? "Admin Team"
-          : "Staff Team",
-  };
 }
 
 async function storeAttachment(file: File, submissionId: string): Promise<string> {
@@ -75,6 +53,14 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   if (authResult.error) {
     return authResult.error;
   }
+  const session = authResult.session;
+  const role = session?.user?.role;
+  const senderName =
+    session?.user?.name && session.user.name.trim().length > 0
+      ? session.user.name
+      : role === "admin"
+        ? "Admin Team"
+        : "Staff Team";
 
   const { id } = await params;
   if (!id) {
@@ -154,7 +140,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     const updatedSubmission = await appendContactSubmissionMessage({
       submissionId: id,
       senderType: "staff",
-      senderName: authResult.senderName,
+      senderName,
       content,
       attachments,
     });

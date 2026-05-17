@@ -1,21 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireStaffSession } from "@/lib/api/admin-auth";
 import { updateContactSubmissionStatus } from "@/lib/api/issue26";
 import { z } from "zod";
-
-async function requireStaffSession() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const role = (session.user as { id: string; role?: string }).role;
-  if (!role || !["staff", "admin"].includes(role)) {
-    return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-
-  return { session };
-}
 
 const updateStatusSchema = z.object({
   status: z.enum(["open", "resolved"]),
