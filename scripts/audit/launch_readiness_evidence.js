@@ -36,6 +36,33 @@ const evidence = {
   },
 };
 
+// Gate 0: Admin auth health readiness
+const authHealthGate = loadJsonIfExists(path.join(auditLogDir, "ADMIN_AUTH_HEALTH_PROBE.json"));
+if (authHealthGate) {
+  const authCode = authHealthGate.payload?.code || null;
+  const authStatus = authHealthGate.payload?.status || null;
+  const authProbePassing =
+    authHealthGate.statusCode === 200 &&
+    authCode === "ADMIN_AUTH_READY" &&
+    authStatus === "ok";
+
+  evidence.gates.authHealth = {
+    name: "Admin Auth Health",
+    status: authProbePassing ? "PASS" : "FAIL",
+    statusCode: authHealthGate.statusCode,
+    code: authCode,
+    state: authStatus,
+    probeError: authHealthGate.probeError || null,
+  };
+  evidence.artifacts.authHealth = "ADMIN_AUTH_HEALTH_PROBE.json";
+  if (!authProbePassing) {
+    evidence.summary.blockers.push("Admin auth health gate failed");
+  }
+} else {
+  evidence.gates.authHealth = { status: "UNKNOWN", reason: "artifact not found" };
+  evidence.summary.warnings.push("Admin auth health artifact not found");
+}
+
 // Gate 1: Security (baseline non-regression)
 const securityGate = loadJsonIfExists(path.join(auditLogDir, "ISSUE66_SECURITY_GATE.json"));
 if (securityGate) {
@@ -159,7 +186,7 @@ fs.writeFileSync(outputPath, JSON.stringify(evidence, null, 2));
 
 const md = [
   "# Launch Readiness Evidence (2026-05-16)",
-  `- Generated: ${evidence.summary.generatedAt}`,
+  `- Generated: ${evidence.generatedAt}`,
   `- Readiness Level: **${evidence.summary.readinessLevel}**`,
   `- Gates Passing: ${evidence.summary.gatesPassing}/${evidence.summary.gatesTotal}`,
   "",
@@ -167,7 +194,7 @@ const md = [
   "",
 ];
 
-Object.entries(evidence.gates).forEach(([key, gate]) => {
+Object.entries(evidence.gates).forEach(([, gate]) => {
   const icon = gate.status === "PASS" ? "✅" : gate.status === "FAIL" ? "❌" : "❓";
   md.push(`### ${icon} ${gate.name}`);
   md.push(`- **Status:** ${gate.status}`);

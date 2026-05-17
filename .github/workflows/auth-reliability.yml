@@ -1,0 +1,76 @@
+name: Auth Reliability
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  auth-reliability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      AUTH_SECRET: ci-test-auth-secret
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/zaines_ci
+      AUTH_ENABLE_DATABASE_SESSIONS: "true"
+      NODE_ENV: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.5
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma client generate
+        run: pnpm prisma:generate
+
+      - name: Auth readiness gate
+        run: pnpm auth:readiness
+
+      - name: Auth reliability tests
+        run: pnpm vitest run src/lib/api/__tests__/auth-error-classification.test.ts src/app/api/admin/health/auth/__tests__/route.test.ts
+
+      - name: Start app for auth health probe
+        run: pnpm dev --hostname 127.0.0.1 --port 3000 > /tmp/zaines-dev.log 2>&1 &
+
+      - name: Wait for app startup
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/ > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "App failed to start" >&2
+          tail -n 200 /tmp/zaines-dev.log || true
+          exit 1
+
+      - name: Admin auth health probe gate
+        run: pnpm audit:admin:auth-health -- --base-url http://127.0.0.1:3000
+
+      - name: Upload auth health probe artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-auth-health-probe
+          path: docs/audit_logs/ADMIN_AUTH_HEALTH_PROBE.json
+          if-no-files-found: warn
+
+      - name: Upload dev server log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-reliability-dev-log
+          path: /tmp/zaines-dev.log
+          if-no-files-found: warn

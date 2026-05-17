@@ -8,6 +8,8 @@ Run this in CI and before production rollout:
 
 - `pnpm auth:readiness`
 
+In CI, the `Auth Reliability` workflow runs this gate automatically on push/PR.
+
 The command exits non-zero when critical auth prerequisites are missing.
 
 ## Required Runtime Configuration
@@ -55,6 +57,22 @@ Suggested alert policy:
 1. Page on 2 consecutive `exit=1` results in production.
 2. Page immediately on any `exit=2` result.
 3. Auto-create incident if `code=ADMIN_AUTH_MISCONFIGURED` or `code=ADMIN_AUTH_DATABASE_REQUIRED` persists for more than 5 minutes.
+
+## CI Workflow Coverage
+
+GitHub Actions workflow: `.github/workflows/auth-reliability.yml`
+
+It validates:
+
+1. Dependency installation and Prisma client generation.
+2. `pnpm auth:readiness` preflight gate.
+3. Auth reliability test suites for classifier and health endpoint.
+4. Live startup probe of `/api/admin/health/auth` using `pnpm audit:admin:auth-health`.
+
+The workflow uploads:
+
+- `docs/audit_logs/ADMIN_AUTH_HEALTH_PROBE.json` as a build artifact.
+- startup logs when the probe job fails.
 
 ## Failure Codes and Meaning
 

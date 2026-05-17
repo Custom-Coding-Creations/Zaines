@@ -31,6 +31,7 @@
     "audit:issue66:gates:ci": "pnpm run audit:issue66:security && pnpm run audit:issue66:performance && pnpm run audit:ui:accessibility:playwright",
     "audit:rollback:drill": "node scripts/audit/rollback_drill_timing.js",
     "audit:launch:readiness": "node scripts/audit/launch_readiness_evidence.js",
+    "audit:launch:readiness:auth": "pnpm audit:admin:auth-health && pnpm audit:launch:readiness",
     "audit:preflight": "node scripts/audit/preflight_validation.js",
     "lhci": "lhci autorun",
     "lhci:collect": "lhci collect",
