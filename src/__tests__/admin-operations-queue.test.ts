@@ -17,6 +17,7 @@ const {
     customerPackage: { count: vi.fn() },
     playGroup: { count: vi.fn(), findMany: vi.fn() },
     staffMember: { count: vi.fn() },
+    staffSchedule: { findMany: vi.fn() },
   },
   getAdminSettingsMock: vi.fn(),
 }));
@@ -86,6 +87,11 @@ describe('GET /api/admin/operations/queue', () => {
       },
     ]);
     prismaMock.staffMember.count.mockResolvedValueOnce(4);
+    prismaMock.staffSchedule.findMany.mockResolvedValueOnce([
+      { staffMemberId: 'staff-1', shiftStart: '08:00', shiftEnd: '11:00' },
+      { staffMemberId: 'staff-1', shiftStart: '10:30', shiftEnd: '13:00' },
+      { staffMemberId: 'staff-2', shiftStart: '12:00', shiftEnd: '16:00' },
+    ]);
     prismaMock.payment.count
       .mockResolvedValueOnce(5)
       .mockResolvedValueOnce(6);
@@ -95,7 +101,7 @@ describe('GET /api/admin/operations/queue', () => {
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(body.data.items).toHaveLength(13);
+    expect(body.data.items).toHaveLength(14);
     expect(body.data.items.find((item: { id: string }) => item.id === 'failed_payments')?.count).toBe(5);
     expect(body.data.items.find((item: { id: string }) => item.id === 'pending_reminders')?.count).toBe(2);
     expect(body.data.items.find((item: { id: string }) => item.id === 'low_stock_items')?.count).toBe(1);
@@ -103,6 +109,7 @@ describe('GET /api/admin/operations/queue', () => {
     expect(body.data.items.find((item: { id: string }) => item.id === 'unassigned_play_groups')?.count).toBe(2);
     expect(body.data.items.find((item: { id: string }) => item.id === 'unscheduled_staff_today')?.count).toBe(4);
     expect(body.data.items.find((item: { id: string }) => item.id === 'staffed_groups_without_shift')?.count).toBe(1);
+    expect(body.data.items.find((item: { id: string }) => item.id === 'overlapping_staff_shifts')?.count).toBe(1);
     const disputeItem = body.data.items.find((item: { id: string }) => item.id === 'dispute_deadlines');
     expect(disputeItem?.capabilityBlocked).toBe(true);
     expect(disputeItem?.count).toBe(0);

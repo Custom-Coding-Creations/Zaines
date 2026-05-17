@@ -328,6 +328,7 @@ export interface AdminQueueItem {
     | 'unassigned_play_groups'
     | 'unscheduled_staff_today'
     | 'staffed_groups_without_shift'
+    | 'overlapping_staff_shifts'
     | 'reconciliation_exceptions'
     | 'dispute_deadlines';
   label: string;

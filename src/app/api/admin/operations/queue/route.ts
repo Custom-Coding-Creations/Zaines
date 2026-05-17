@@ -56,6 +56,37 @@ function scheduleCoversSlot(
   return shiftStartMinutes <= slot.start && shiftEndMinutes >= slot.end;
 }
 
+function countStaffWithOverlappingShifts(
+  schedules: Array<{ staffMemberId: string; shiftStart: string; shiftEnd: string }>,
+) {
+  const byStaff = new Map<string, Array<{ start: number; end: number }>>();
+
+  for (const schedule of schedules) {
+    const start = normalizeMinutes(schedule.shiftStart);
+    const end = normalizeMinutes(schedule.shiftEnd);
+    if (start === null || end === null || end <= start) continue;
+
+    const existing = byStaff.get(schedule.staffMemberId) ?? [];
+    existing.push({ start, end });
+    byStaff.set(schedule.staffMemberId, existing);
+  }
+
+  let overlapCount = 0;
+  for (const intervals of byStaff.values()) {
+    intervals.sort((left, right) => left.start - right.start);
+    let hasOverlap = false;
+    for (let i = 1; i < intervals.length; i += 1) {
+      if (intervals[i].start < intervals[i - 1].end) {
+        hasOverlap = true;
+        break;
+      }
+    }
+    if (hasOverlap) overlapCount += 1;
+  }
+
+  return overlapCount;
+}
+
 export async function GET() {
   try {
     const session = await auth();
@@ -93,6 +124,7 @@ export async function GET() {
       unscheduledStaffToday,
       reconciliationExceptions,
       staffedGroupsToday,
+      todaysStaffSchedules,
     ] = await Promise.all([
       prisma.booking.count({
         where: {
@@ -216,6 +248,19 @@ export async function GET() {
           },
         },
       }),
+      prisma.staffSchedule.findMany({
+        where: {
+          date: {
+            gte: todayStart,
+            lte: todayEnd,
+          },
+        },
+        select: {
+          staffMemberId: true,
+          shiftStart: true,
+          shiftEnd: true,
+        },
+      }),
     ]);
 
     const staffedGroupsWithoutShiftCoverage = staffedGroupsToday.filter((group) => {
@@ -226,6 +271,8 @@ export async function GET() {
         scheduleCoversSlot(slot, schedule.shiftStart, schedule.shiftEnd),
       );
     }).length;
+
+    const overlappingStaffShifts = countStaffWithOverlappingShifts(todaysStaffSchedules);
 
     const disputeDeadlines = settings.stripeCapabilityFlags.disputesEnabled
       ? await prisma.payment.count({
@@ -338,6 +385,19 @@ export async function GET() {
             staffedGroupsWithoutShiftCoverage >= 3
               ? 'critical'
               : staffedGroupsWithoutShiftCoverage > 0
+                ? 'attention'
+                : 'normal',
+        },
+        {
+          id: 'overlapping_staff_shifts',
+          label: 'Overlapping staff shifts',
+          count: overlappingStaffShifts,
+          href: '/admin/staff',
+          description: 'Staff members with overlapping shifts scheduled today.',
+          severity:
+            overlappingStaffShifts >= 2
+              ? 'critical'
+              : overlappingStaffShifts > 0
                 ? 'attention'
                 : 'normal',
         },
