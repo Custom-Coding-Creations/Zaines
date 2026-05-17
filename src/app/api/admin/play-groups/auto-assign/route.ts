@@ -290,6 +290,7 @@ export async function POST(request: NextRequest) {
     skipped,
     assignments,
     repairConflicts,
+    auditEventsRecorded: assignments.length,
   };
 
   return NextResponse.json({ success: true, data: response } as ApiResponse<typeof response>);

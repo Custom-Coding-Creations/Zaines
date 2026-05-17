@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminErrorState, AdminLoadingState } from '@/components/admin/AdminAsyncState';
 import {
@@ -84,6 +85,8 @@ export default function AdminDashboardClient({
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [actionableStaffingGroupIds, setActionableStaffingGroupIds] = useState<string[]>([]);
+  const [isFixingStaffing, setIsFixingStaffing] = useState(false);
 
   const queueById = useCallback(
     (id: AdminQueueItem['id']) => operationsQueue.find((item) => item.id === id),
@@ -191,9 +194,10 @@ export default function AdminDashboardClient({
         endDate: endDate.toISOString(),
       });
 
-      const [bookingsRes, queueRes] = await Promise.all([
+      const [bookingsRes, queueRes, staffingExceptionsRes] = await Promise.all([
         fetch(`/api/admin/bookings?${params}`),
         fetch('/api/admin/operations/queue'),
+        fetch(`/api/admin/play-groups/staffing-exceptions?date=${encodeURIComponent(new Date().toISOString().slice(0, 10))}`),
       ]);
 
       const data = (await bookingsRes.json()) as {
@@ -204,6 +208,11 @@ export default function AdminDashboardClient({
         success?: boolean;
         data?: AdminOperationsQueueResponse;
       };
+      const exceptionsPayload = (await staffingExceptionsRes.json()) as {
+        data?: {
+          items?: Array<{ groupId: string; canAutoFix: boolean }>;
+        };
+      };
 
       if (data.data) {
         setBookings(data.data);
@@ -213,6 +222,12 @@ export default function AdminDashboardClient({
       if (queueData.data?.items) {
         setOperationsQueue(queueData.data.items);
       }
+
+      setActionableStaffingGroupIds(
+        (exceptionsPayload.data?.items ?? [])
+          .filter((item) => item.canAutoFix)
+          .map((item) => item.groupId),
+      );
     } catch (error) {
       console.error('Error fetching bookings:', error);
       setErrorMessage(
@@ -224,6 +239,38 @@ export default function AdminDashboardClient({
       setIsLoading(false);
     }
   }, [dateRange]);
+
+  async function runDashboardStaffingAutoFix() {
+    if (actionableStaffingGroupIds.length === 0) return;
+
+    try {
+      setIsFixingStaffing(true);
+      setErrorMessage('');
+
+      const response = await fetch('/api/admin/play-groups/auto-assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: new Date().toISOString(),
+          repairConflicts: true,
+          groupIds: actionableStaffingGroupIds,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        throw new Error(payload.error || 'Failed to run staffing auto-fix');
+      }
+
+      await fetchBookings();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Failed running staffing auto-fix from dashboard.',
+      );
+    } finally {
+      setIsFixingStaffing(false);
+    }
+  }
 
   // Initial fetch
   useEffect(() => {
@@ -394,6 +441,17 @@ export default function AdminDashboardClient({
             <Link href="/admin/play-groups" className="text-sm font-medium text-primary hover:underline">
               Open Play Groups Staffing Console →
             </Link>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isFixingStaffing || actionableStaffingGroupIds.length === 0}
+              onClick={() => void runDashboardStaffingAutoFix()}
+            >
+              {isFixingStaffing
+                ? 'Fixing...'
+                : `Run Auto-Fix (${actionableStaffingGroupIds.length})`}
+            </Button>
             {staffingHasWork ? (
               <span className="text-xs text-amber-700">Action needed: use Fix Actionable Exceptions in Play Groups.</span>
             ) : (

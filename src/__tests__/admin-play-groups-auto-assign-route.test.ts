@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const { authMock, prismaMock } = vi.hoisted(() => ({
+const { authMock, prismaMock, appendPlayGroupAuditEventMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
+  appendPlayGroupAuditEventMock: vi.fn(),
   prismaMock: {
     playGroup: {
       findMany: vi.fn(),
@@ -25,7 +26,7 @@ vi.mock('@/lib/prisma', () => ({
 }));
 
 vi.mock('@/lib/api/play-group-audit', () => ({
-  appendPlayGroupAuditEvent: vi.fn(),
+  appendPlayGroupAuditEvent: appendPlayGroupAuditEventMock,
 }));
 
 import { POST } from '@/app/api/admin/play-groups/auto-assign/route';
@@ -93,7 +94,15 @@ describe('admin play groups auto-assign route', () => {
 
     expect(response.status).toBe(200);
     expect(payload.data.assigned).toBe(2);
+    expect(payload.data.auditEventsRecorded).toBe(2);
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(appendPlayGroupAuditEventMock).toHaveBeenCalledTimes(2);
+    expect(appendPlayGroupAuditEventMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: 'STAFF_AUTO_ASSIGNED',
+        metadata: expect.objectContaining({ source: 'bulk_auto_assign' }),
+      }),
+    );
   });
 
   it('skips groups when no suitable staff recommendation is available', async () => {
@@ -127,8 +136,10 @@ describe('admin play groups auto-assign route', () => {
 
     expect(response.status).toBe(200);
     expect(payload.data.assigned).toBe(0);
+    expect(payload.data.auditEventsRecorded).toBe(0);
     expect(payload.data.skipped).toHaveLength(1);
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    expect(appendPlayGroupAuditEventMock).not.toHaveBeenCalled();
   });
 
   it('repairs groups assigned to unscheduled staff when repair mode is enabled', async () => {
@@ -177,7 +188,9 @@ describe('admin play groups auto-assign route', () => {
     expect(response.status).toBe(200);
     expect(payload.data.repairConflicts).toBe(true);
     expect(payload.data.assigned).toBe(2);
+    expect(payload.data.auditEventsRecorded).toBe(2);
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(appendPlayGroupAuditEventMock).toHaveBeenCalledTimes(2);
   });
 
   it('repairs overlapping assignments by reassigning the conflicting group', async () => {
@@ -236,7 +249,9 @@ describe('admin play groups auto-assign route', () => {
     expect(response.status).toBe(200);
     expect(payload.data.repairConflicts).toBe(true);
     expect(payload.data.assigned).toBe(2);
+    expect(payload.data.auditEventsRecorded).toBe(2);
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    expect(appendPlayGroupAuditEventMock).toHaveBeenCalledTimes(2);
   });
 
   it('repairs only scoped exception groups when groupIds are provided', async () => {
@@ -292,7 +307,9 @@ describe('admin play groups auto-assign route', () => {
     expect(response.status).toBe(200);
     expect(payload.data.attempted).toBe(1);
     expect(payload.data.assigned).toBe(1);
+    expect(payload.data.auditEventsRecorded).toBe(1);
     expect(payload.data.assignments).toHaveLength(1);
     expect(payload.data.assignments[0].groupId).toBe('group-1');
+    expect(appendPlayGroupAuditEventMock).toHaveBeenCalledTimes(1);
   });
 });

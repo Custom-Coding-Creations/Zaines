@@ -142,6 +142,7 @@ type BulkStaffingRun = {
   targetDate: string;
   attempted: number;
   assigned: number;
+  auditEventsRecorded: number;
   skipped: Array<{ groupId: string; reason: string }>;
 };
 
@@ -514,6 +515,7 @@ export default function AdminPlayGroupsPage() {
           targetDate?: string;
           attempted?: number;
           assigned?: number;
+          auditEventsRecorded?: number;
           skipped?: Array<{ groupId: string; reason: string }>;
         };
       };
@@ -523,6 +525,7 @@ export default function AdminPlayGroupsPage() {
         targetDate: payload.data?.targetDate ?? new Date(selectedDate).toISOString(),
         attempted: payload.data?.attempted ?? 0,
         assigned: payload.data?.assigned ?? 0,
+        auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
         skipped: payload.data?.skipped ?? [],
       });
 
@@ -555,6 +558,7 @@ export default function AdminPlayGroupsPage() {
           targetDate?: string;
           attempted?: number;
           assigned?: number;
+          auditEventsRecorded?: number;
           skipped?: Array<{ groupId: string; reason: string }>;
         };
       };
@@ -564,6 +568,7 @@ export default function AdminPlayGroupsPage() {
         targetDate: payload.data?.targetDate ?? new Date(selectedDate).toISOString(),
         attempted: payload.data?.attempted ?? 0,
         assigned: payload.data?.assigned ?? 0,
+        auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
         skipped: payload.data?.skipped ?? [],
       });
 
@@ -629,6 +634,7 @@ export default function AdminPlayGroupsPage() {
           targetDate?: string;
           attempted?: number;
           assigned?: number;
+          auditEventsRecorded?: number;
           skipped?: Array<{ groupId: string; reason: string }>;
         };
       };
@@ -638,6 +644,7 @@ export default function AdminPlayGroupsPage() {
         targetDate: payload.data?.targetDate ?? new Date(selectedDate).toISOString(),
         attempted: payload.data?.attempted ?? 0,
         assigned: payload.data?.assigned ?? 0,
+        auditEventsRecorded: payload.data?.auditEventsRecorded ?? 0,
         skipped: payload.data?.skipped ?? [],
       });
 
@@ -676,7 +683,7 @@ export default function AdminPlayGroupsPage() {
               {lastBulkRun.mode === 'repair_conflicts' ? 'Conflict repair run complete' : 'Auto-assignment run complete'}
             </p>
             <p className="text-xs text-muted-foreground">
-              {new Date(lastBulkRun.targetDate).toLocaleDateString()} · attempted {lastBulkRun.attempted} · assigned {lastBulkRun.assigned} · skipped {lastBulkRun.skipped.length}
+              {new Date(lastBulkRun.targetDate).toLocaleDateString()} · attempted {lastBulkRun.attempted} · assigned {lastBulkRun.assigned} · audit events {lastBulkRun.auditEventsRecorded} · skipped {lastBulkRun.skipped.length}
             </p>
             {lastBulkRun.skipped.slice(0, 3).map((entry) => (
               <p key={`${entry.groupId}-${entry.reason}`} className="text-xs text-muted-foreground">
