@@ -163,7 +163,7 @@ export function ServiceTiersAndAddOnsCard({
       description: '',
       baseNightlyRate: 0,
       capacity: 1,
-      imageUrl: '/images/suites/standard-placeholder.svg',
+      imageUrl: '/images/suites/standard-suite-default.webp',
       isActive: true,
       displayOrder: tierFields.length,
     });
@@ -304,7 +304,7 @@ export function ServiceTiersAndAddOnsCard({
                           <FormItem>
                             <FormLabel>Image URL</FormLabel>
                             <FormControl>
-                              <Input placeholder="/images/suites/deluxe-placeholder.svg" {...field} />
+                              <Input placeholder="/images/suites/deluxe-suite-default.webp" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

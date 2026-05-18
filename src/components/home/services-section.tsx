@@ -2,7 +2,7 @@
 
 import { FadeUp } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BedDouble, Bone, Sparkles } from "lucide-react";
+import { ArrowRight, BedDouble, Bone } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSiteSettings } from "@/hooks/use-site-settings";
@@ -35,23 +35,20 @@ export function ServicesSection() {
 
   const activeAddOns = addOnsSettings.addOns
     .filter((addOn) => addOn.isActive)
-    .slice(0, Math.max(0, 6 - activeTiers.length))
+    .slice(0, 6)
     .map((addOn, index) => ({
       id: addOn.id,
       title: addOn.name,
       description: addOn.description,
-      image: null,
+      price: addOn.price,
       href: "/pricing#add-ons",
       icon: Bone,
-      badge: "Add-On",
       accent: cardAccents[(index + activeTiers.length) % cardAccents.length],
     }));
 
-  const items = [...activeTiers, ...activeAddOns];
-
   return (
     <section className="section-padding bg-muted/30">
-      <div className="container px-4">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <FadeUp>
           <div className="text-center mb-12">
             <h2 className="heading-playful text-3xl font-bold text-foreground md:text-4xl mb-4">
@@ -63,8 +60,8 @@ export function ServicesSection() {
           </div>
         </FadeUp>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10">
-          {items.map((item, index) => (
+        <div className="mx-auto grid max-w-6xl gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10">
+          {activeTiers.map((item, index) => (
             <FadeUp key={index} delay={index * 0.08}>
               <Link href={item.href} className="group block">
                 <div className="paw-card overflow-hidden p-0">
@@ -103,6 +100,49 @@ export function ServicesSection() {
             </FadeUp>
           ))}
         </div>
+
+        {activeAddOns.length > 0 ? (
+          <FadeUp delay={0.25}>
+            <div className="mx-auto mb-10 w-full max-w-4xl rounded-3xl border border-border/70 bg-background/70 p-6 md:p-8">
+              <h3 className="heading-playful mb-2 text-2xl font-bold text-foreground text-center">
+                Optional Add-Ons
+              </h3>
+              <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-muted-foreground">
+                Add-ons are configured separately from suites and can be updated in admin at any time.
+              </p>
+              <ul className="divide-y divide-border/60">
+                {activeAddOns.map((addOn) => (
+                  <li key={addOn.id}>
+                    <Link
+                      href={addOn.href}
+                      className="group flex items-start justify-between gap-4 py-4 transition-colors hover:text-foreground"
+                    >
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span
+                          className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                          style={{ backgroundColor: addOn.accent }}
+                        >
+                          <addOn.icon className="h-4 w-4 text-white" aria-hidden="true" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-base font-semibold text-foreground">
+                            {addOn.title}
+                          </span>
+                          <span className="block text-sm text-muted-foreground">
+                            {addOn.description}
+                          </span>
+                        </span>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold text-foreground">
+                        ${addOn.price}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </FadeUp>
+        ) : null}
 
         <FadeUp delay={0.4}>
           <div className="text-center">

@@ -342,7 +342,7 @@ export async function getAdminSettings(): Promise<AdminSettings> {
                     : tier.id.includes('deluxe')
                       ? 2
                       : 1,
-              imageUrl: tier.imageUrl || '/images/suites/standard-placeholder.svg',
+              imageUrl: tier.imageUrl || '/images/suites/standard-suite-default.webp',
             })),
           };
         } catch {

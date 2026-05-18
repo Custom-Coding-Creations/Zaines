@@ -197,7 +197,7 @@ export default async function SuitesPage() {
                 };
                 const SuiteIcon = metadata.icon;
                 const isPopular = suiteTiers.length > 1 && index === 1;
-                const imageUrl = tier.imageUrl || "/images/suites/standard-placeholder.svg";
+                const imageUrl = tier.imageUrl || "/images/suites/standard-suite-default.webp";
                 
                 return (
                   <StaggerItem key={tier.id}>
