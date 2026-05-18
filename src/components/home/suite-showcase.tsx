@@ -72,7 +72,7 @@ export function SuiteShowcase() {
 
                   <div className="relative mb-6 flex h-48 w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-muted to-accent">
                     <Image
-                      src={suite.imageUrl || "/images/suites/placeholder.svg"}
+                      src={suite.imageUrl || "/images/suites/standard-suite-default.webp"}
                       alt={`${suite.name} preview`}
                       fill
                       unoptimized
