@@ -20,7 +20,7 @@ export function SiteFooter() {
     ...addOnsSettings.addOns
       .filter((addOn) => addOn.isActive)
       .slice(0, Math.max(0, 6 - activeSuites.length))
-      .map((addOn) => ({ label: addOn.name, href: "/pricing#add-ons" })),
+      .map((addOn) => ({ label: addOn.name, href: `/pricing#add-on-${addOn.id}` })),
   ];
 
   const weekdayHours = businessHours?.monday?.isClosed

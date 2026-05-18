@@ -187,7 +187,7 @@ export default async function SuitesPage() {
           </FadeUp>
 
           {suiteTiers.length > 0 ? (
-            <StaggerContainer>
+            <StaggerContainer className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
               {suiteTiers.map((tier, index) => {
                 const metadata = suiteMetadata[tier.name] || {
                   size: "Contact us for details",
@@ -202,7 +202,7 @@ export default async function SuitesPage() {
                 return (
                   <StaggerItem key={tier.id}>
                     <div className={`relative group transition-all duration-300 ${
-                      isPopular ? "md:scale-105" : ""
+                      isPopular ? "md:scale-[1.02]" : ""
                     }`}>
                       {isPopular && (
                         <div className="absolute -inset-1 rounded-xl bg-primary/20 blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -307,7 +307,7 @@ export default async function SuitesPage() {
             </div>
           </FadeUp>
 
-          <StaggerContainer>
+          <StaggerContainer className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {amenities.map((amenity) => (
               <StaggerItem key={amenity.title}>
                 <Card className="border-border/30 bg-background/50 backdrop-blur-sm hover:bg-background transition-colors duration-300">

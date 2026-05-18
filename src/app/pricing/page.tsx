@@ -212,7 +212,10 @@ export default function PricingPage() {
             {activeAddOns.length > 0 ? (
               activeAddOns.map((addOn, index) => (
                 <ScaleIn key={addOn.id} delay={index * 0.05}>
-                  <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-md">
+                  <div
+                    id={`add-on-${addOn.id}`}
+                    className="scroll-mt-24 flex items-center justify-between rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-md"
+                  >
                     <div>
                       <span className="font-medium text-foreground block">
                         {addOn.name}
@@ -259,7 +262,10 @@ export default function PricingPage() {
                       className="mt-1 h-5 w-5 shrink-0 text-primary"
                       aria-hidden="true"
                     />
-                    <h3 className="font-display text-lg font-bold text-foreground">
+                    <h3
+                      id={faq.question === "Are multi-pet discounts available?" ? "multi-dog-discounts" : undefined}
+                      className="font-display text-lg font-bold text-foreground"
+                    >
                       {faq.question}
                     </h3>
                   </div>

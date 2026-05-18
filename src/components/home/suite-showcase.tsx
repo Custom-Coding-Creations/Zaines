@@ -122,7 +122,7 @@ export function SuiteShowcase() {
                     className="focus-ring w-full"
                     asChild
                   >
-                    <Link href={`/suites#${suite.id}`}>Learn About This Suite</Link>
+                    <Link href={`/suites#${suite.id}`}>Book This Suite</Link>
                   </Button>
                 </article>
               </StaggerItem>
@@ -133,7 +133,7 @@ export function SuiteShowcase() {
         <FadeUp delay={0.2}>
           <p className="mt-10 text-center text-sm text-muted-foreground">
             Multi-dog family?{" "}
-            <Link href="/pricing" className="font-medium text-primary hover:underline">
+            <Link href="/pricing#multi-dog-discounts" className="font-medium text-primary hover:underline">
               View our multi-dog discounts
             </Link>{" "}
             — {pricingSettings.twoPetDiscountPercent}% off the second dog, {pricingSettings.threePlusPetsDiscountPercent}% off the third.
