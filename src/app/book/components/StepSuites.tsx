@@ -205,7 +205,7 @@ export function StepSuites({
         {/* Suite Selection */}
         <div className="space-y-3">
           <Label>Suite Type *</Label>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 md:items-stretch">
             {suites.map((suite) => {
               const Icon = suite.icon;
               const isSelected = data.suiteType === suite.value;
@@ -216,7 +216,7 @@ export function StepSuites({
                   key={suite.value}
                   onClick={() => handleSuiteSelect(suite.value)}
                   className={cn(
-                    "relative flex flex-col rounded-xl border-2 p-4 text-left transition-all hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                    "relative flex h-full flex-col rounded-xl border-2 p-5 text-left transition-all hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                     isSelected
                       ? "border-primary bg-primary/5 shadow-sm"
                       : "border-muted bg-background",
@@ -252,7 +252,7 @@ export function StepSuites({
                   </div>
 
                   {/* Amenities */}
-                  <ul className="space-y-1 text-sm text-muted-foreground">
+                  <ul className="mt-1 flex-1 space-y-1 text-sm text-muted-foreground">
                     {suite.amenities.map((amenity, idx) => (
                       <li key={idx} className="flex items-start gap-1">
                         <span className="mt-0.5">•</span>

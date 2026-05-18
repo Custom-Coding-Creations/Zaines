@@ -55,9 +55,9 @@ export function SuiteShowcase() {
             No active service types are currently configured. Update Services & Pricing in Admin Settings.
           </div>
         ) : (
-          <StaggerContainer className="grid gap-8 md:grid-cols-3">
+          <StaggerContainer className="grid gap-8 md:grid-cols-2 xl:grid-cols-3 md:items-stretch">
             {activeSuites.map((suite, index) => (
-              <StaggerItem key={suite.name}>
+              <StaggerItem key={suite.name} className="h-full">
                 <article
                   id={`suite-${suite.id}`}
                   className={`playful-card relative flex h-full flex-col ${index === 1 ? "border-primary" : "border-border"}`}
@@ -117,13 +117,15 @@ export function SuiteShowcase() {
                     ))}
                   </ul>
 
-                  <Button
-                    variant={index === 1 ? "default" : "outline"}
-                    className="focus-ring w-full"
-                    asChild
-                  >
-                    <Link href="/book?fresh=true">Book This Suite</Link>
-                  </Button>
+                  <div className="mt-auto">
+                    <Button
+                      variant={index === 1 ? "default" : "outline"}
+                      className="focus-ring w-full"
+                      asChild
+                    >
+                      <Link href="/book?fresh=true">Book This Suite</Link>
+                    </Button>
+                  </div>
                 </article>
               </StaggerItem>
             ))}

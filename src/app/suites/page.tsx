@@ -187,7 +187,7 @@ export default async function SuitesPage() {
           </FadeUp>
 
           {suiteTiers.length > 0 ? (
-            <StaggerContainer className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+            <StaggerContainer className="grid gap-8 md:grid-cols-2 xl:grid-cols-3 md:items-stretch">
               {suiteTiers.map((tier, index) => {
                 const metadata = suiteMetadata[tier.name] || {
                   size: "Contact us for details",
@@ -200,8 +200,8 @@ export default async function SuitesPage() {
                 const imageUrl = tier.imageUrl || "/images/suites/standard-suite-default.webp";
                 
                 return (
-                  <StaggerItem key={tier.id}>
-                    <div className={`relative group transition-all duration-300 ${
+                  <StaggerItem key={tier.id} className="h-full">
+                    <div className={`relative group h-full transition-all duration-300 ${
                       isPopular ? "md:scale-[1.02]" : ""
                     }`}>
                       {isPopular && (
@@ -226,8 +226,8 @@ export default async function SuitesPage() {
                               <CardTitle className="font-display text-2xl md:text-3xl">
                                 {tier.name}
                               </CardTitle>
-                              <CardDescription className="text-base mt-2">
-                                {tier.description.substring(0, 50)}
+                              <CardDescription className="mt-2 line-clamp-2 text-base">
+                                {tier.description}
                               </CardDescription>
                             </div>
                           </div>
@@ -264,9 +264,9 @@ export default async function SuitesPage() {
                               </li>
                             ))}
                           </ul>
-                          <div className="mt-auto flex justify-center">
+                          <div className="mt-auto">
                             <Button
-                              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto sm:min-w-56"
+                              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                               size="lg"
                               asChild
                             >

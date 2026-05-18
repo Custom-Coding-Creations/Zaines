@@ -101,20 +101,20 @@ Get the SQL from the Prisma schema and apply manually:
 
 ```sql
 -- Add missing columns to accounts table
-ALTER TABLE accounts 
-  ADD COLUMN IF NOT EXISTS provider VARCHAR(255) NOT NULL,
-  ADD COLUMN IF NOT EXISTS providerAccountId VARCHAR(255) NOT NULL,
+ALTER TABLE "accounts" 
+  ADD COLUMN IF NOT EXISTS provider TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS "providerAccountId" TEXT NOT NULL DEFAULT '',
   ADD COLUMN IF NOT EXISTS refresh_token TEXT,
   ADD COLUMN IF NOT EXISTS access_token TEXT,
   ADD COLUMN IF NOT EXISTS expires_at BIGINT,
-  ADD COLUMN IF NOT EXISTS token_type VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS token_type TEXT,
   ADD COLUMN IF NOT EXISTS scope TEXT,
   ADD COLUMN IF NOT EXISTS id_token TEXT,
-  ADD COLUMN IF NOT EXISTS session_state VARCHAR(255);
+  ADD COLUMN IF NOT EXISTS session_state TEXT;
 
--- Add constraints
-ALTER TABLE accounts
-  ADD CONSTRAINT accounts_provider_fkey UNIQUE (provider, providerAccountId);
+-- Ensure expected unique index exists
+CREATE UNIQUE INDEX IF NOT EXISTS "accounts_provider_providerAccountId_key"
+  ON "accounts"(provider, "providerAccountId");
 ```
 
 ### Option C: If migrations are applied but columns still missing

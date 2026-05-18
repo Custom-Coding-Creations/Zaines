@@ -17,7 +17,7 @@
 const SQL_COMMANDS = {
   ensureUsersTable: `
 -- Ensure users table exists with all required columns
-CREATE TABLE IF NOT EXISTS "User" (
+CREATE TABLE IF NOT EXISTS "users" (
   id TEXT NOT NULL PRIMARY KEY,
   name TEXT,
   email TEXT UNIQUE,
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS "User" (
 );
 
 -- Add missing columns to existing users table
-ALTER TABLE "User" 
+ALTER TABLE "users"
   ADD COLUMN IF NOT EXISTS name TEXT,
   ADD COLUMN IF NOT EXISTS email TEXT UNIQUE,
   ADD COLUMN IF NOT EXISTS "emailVerified" TIMESTAMP WITH TIME ZONE,
@@ -36,7 +36,7 @@ ALTER TABLE "User"
 
   ensureAccountsTable: `
 -- Ensure accounts table exists with OAuth adapter columns
-CREATE TABLE IF NOT EXISTS "Account" (
+CREATE TABLE IF NOT EXISTS "accounts" (
   id TEXT NOT NULL PRIMARY KEY,
   "userId" TEXT NOT NULL,
   type TEXT NOT NULL,
@@ -49,13 +49,15 @@ CREATE TABLE IF NOT EXISTS "Account" (
   scope TEXT,
   id_token TEXT,
   session_state TEXT,
-  
-  CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"(id) ON DELETE CASCADE,
-  CONSTRAINT "Account_provider_providerAccountId_unique" UNIQUE (provider, "providerAccountId")
+
+  CONSTRAINT "accounts_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS "accounts_provider_providerAccountId_key"
+  ON "accounts"(provider, "providerAccountId");
+
 -- Add missing columns to existing accounts table
-ALTER TABLE "Account"
+ALTER TABLE "accounts"
   ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'oauth',
   ADD COLUMN IF NOT EXISTS provider TEXT NOT NULL DEFAULT '',
   ADD COLUMN IF NOT EXISTS "providerAccountId" TEXT NOT NULL DEFAULT '',
@@ -67,70 +69,65 @@ ALTER TABLE "Account"
   ADD COLUMN IF NOT EXISTS id_token TEXT,
   ADD COLUMN IF NOT EXISTS session_state TEXT;
 
--- Drop and recreate unique constraint if needed
-ALTER TABLE "Account"
-  DROP CONSTRAINT IF EXISTS "Account_provider_providerAccountId_unique",
-  ADD CONSTRAINT "Account_provider_providerAccountId_unique" UNIQUE (provider, "providerAccountId");
+-- Ensure expected unique index exists
+CREATE UNIQUE INDEX IF NOT EXISTS "accounts_provider_providerAccountId_key"
+  ON "accounts"(provider, "providerAccountId");
 
 -- Create indexes for performance
-CREATE INDEX IF NOT EXISTS "Account_userId_idx" ON "Account"("userId");
-CREATE INDEX IF NOT EXISTS "Account_provider_providerAccountId_idx" ON "Account"(provider, "providerAccountId");
+CREATE INDEX IF NOT EXISTS "accounts_userId_idx" ON "accounts"("userId");
 `,
 
   ensureSessionsTable: `
 -- Ensure sessions table exists for database sessions
-CREATE TABLE IF NOT EXISTS "Session" (
+CREATE TABLE IF NOT EXISTS "sessions" (
   id TEXT NOT NULL PRIMARY KEY,
   "sessionToken" TEXT NOT NULL UNIQUE,
   "userId" TEXT NOT NULL,
   expires TIMESTAMP WITH TIME ZONE NOT NULL,
-  
-  CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"(id) ON DELETE CASCADE
+
+  CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- Add missing columns
-ALTER TABLE "Session"
+ALTER TABLE "sessions"
   ADD COLUMN IF NOT EXISTS "sessionToken" TEXT NOT NULL DEFAULT '',
   ADD COLUMN IF NOT EXISTS "userId" TEXT NOT NULL DEFAULT '',
   ADD COLUMN IF NOT EXISTS expires TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
--- Create unique constraint
-ALTER TABLE "Session"
-  DROP CONSTRAINT IF EXISTS "Session_sessionToken_unique",
-  ADD CONSTRAINT "Session_sessionToken_unique" UNIQUE ("sessionToken");
+-- Ensure expected unique index exists
+CREATE UNIQUE INDEX IF NOT EXISTS "sessions_sessionToken_key" ON "sessions"("sessionToken");
 
 -- Create indexes
-CREATE INDEX IF NOT EXISTS "Session_userId_idx" ON "Session"("userId");
+CREATE INDEX IF NOT EXISTS "sessions_userId_idx" ON "sessions"("userId");
 `,
 
   ensureVerificationTokensTable: `
 -- Ensure verification_tokens table exists for email verification
-CREATE TABLE IF NOT EXISTS "VerificationToken" (
+CREATE TABLE IF NOT EXISTS "verification_tokens" (
   identifier TEXT NOT NULL,
   token TEXT NOT NULL,
   expires TIMESTAMP WITH TIME ZONE NOT NULL,
-  
-  CONSTRAINT "VerificationToken_identifier_token_unique" UNIQUE (identifier, token)
+
+  CONSTRAINT "verification_tokens_identifier_token_key" UNIQUE (identifier, token)
 );
 
 -- Create indexes
-CREATE INDEX IF NOT EXISTS "VerificationToken_identifier_idx" ON "VerificationToken"(identifier);
+CREATE UNIQUE INDEX IF NOT EXISTS "verification_tokens_token_key" ON "verification_tokens"(token);
 `,
 
   addAuthColumns: `
 -- Add auth-related columns if they don't exist
-ALTER TABLE "User"
-  ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user',
+ALTER TABLE "users"
+  ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'customer',
   ADD COLUMN IF NOT EXISTS "lastLoginAt" TIMESTAMP WITH TIME ZONE,
-  ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN DEFAULT true;
+  ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE;
 `,
 
   createIndexes: `
 -- Create additional indexes for auth performance
-CREATE INDEX IF NOT EXISTS "User_email_idx" ON "User"(email) WHERE email IS NOT NULL;
-CREATE INDEX IF NOT EXISTS "User_isActive_idx" ON "User"("isActive");
-CREATE INDEX IF NOT EXISTS "Account_userId_idx" ON "Account"("userId");
-CREATE INDEX IF NOT EXISTS "Session_userId_idx" ON "Session"("userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "users_email_key" ON "users"(email);
+CREATE INDEX IF NOT EXISTS "accounts_userId_idx" ON "accounts"("userId");
+CREATE INDEX IF NOT EXISTS "sessions_userId_idx" ON "sessions"("userId");
 `,
 };
 

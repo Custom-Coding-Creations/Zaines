@@ -29,6 +29,7 @@ type CapabilitiesResponse = {
   capabilities: AuthCapability[];
   authOperational?: boolean;
   authIssues?: string[];
+  oauthSchemaIssues?: string[];
 };
 
 type RegisterResponse = {
@@ -96,15 +97,24 @@ function SignInForm() {
           const payload = (await capabilityResponse.json()) as CapabilitiesResponse;
           setCapabilities(payload.capabilities || []);
 
+          const issueCodes = Array.isArray(payload.authIssues) ? payload.authIssues : [];
+
+          if (issueCodes.includes("oauth_schema_unavailable")) {
+            setMessage(
+              "Social sign-in is temporarily unavailable while account storage is being repaired. Please use email/password sign-in.",
+            );
+            setCorrelationId("oauth_schema_unavailable");
+          }
+
           if (payload.authOperational === false) {
             setAuthOperational(false);
-            const issueCodes = Array.isArray(payload.authIssues)
-              ? payload.authIssues.join(",")
+            const issueSummary = issueCodes.length > 0
+              ? issueCodes.join(",")
               : "configuration";
             setMessage(
               "Sign-in is temporarily unavailable due to an authentication configuration issue. Please contact support.",
             );
-            setCorrelationId(issueCodes);
+            setCorrelationId(issueSummary);
           }
         }
 

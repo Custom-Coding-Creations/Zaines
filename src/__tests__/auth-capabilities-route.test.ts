@@ -1,8 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { isDatabaseConfiguredMock, passwordCredentialFindFirstMock } = vi.hoisted(() => ({
+const {
+  isDatabaseConfiguredMock,
+  passwordCredentialFindFirstMock,
+  queryRawUnsafeMock,
+} = vi.hoisted(() => ({
   isDatabaseConfiguredMock: vi.fn(),
   passwordCredentialFindFirstMock: vi.fn(),
+  queryRawUnsafeMock: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -10,6 +15,7 @@ vi.mock("@/lib/prisma", () => ({
     passwordCredential: {
       findFirst: passwordCredentialFindFirstMock,
     },
+    $queryRawUnsafe: queryRawUnsafeMock,
   },
   isDatabaseConfigured: isDatabaseConfiguredMock,
 }));
@@ -28,6 +34,43 @@ describe("auth capabilities route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     passwordCredentialFindFirstMock.mockResolvedValue({ id: "cred-1" });
+    queryRawUnsafeMock.mockImplementation(async (_query: string, tableName: string) => {
+      if (tableName === "users") {
+        return [
+          { column_name: "id" },
+          { column_name: "email" },
+          { column_name: "emailVerified" },
+          { column_name: "name" },
+          { column_name: "image" },
+          { column_name: "role" },
+        ];
+      }
+      if (tableName === "accounts") {
+        return [
+          { column_name: "id" },
+          { column_name: "userId" },
+          { column_name: "type" },
+          { column_name: "provider" },
+          { column_name: "providerAccountId" },
+          { column_name: "refresh_token" },
+          { column_name: "access_token" },
+          { column_name: "expires_at" },
+          { column_name: "token_type" },
+          { column_name: "scope" },
+          { column_name: "id_token" },
+          { column_name: "session_state" },
+        ];
+      }
+      if (tableName === "sessions") {
+        return [
+          { column_name: "id" },
+          { column_name: "sessionToken" },
+          { column_name: "userId" },
+          { column_name: "expires" },
+        ];
+      }
+      return [];
+    });
     process.env = { ...originalEnv };
     process.env.AUTH_SECRET = "test-auth-secret";
     delete process.env.NEXTAUTH_SECRET;
@@ -171,5 +214,58 @@ describe("auth capabilities route", () => {
     expect(response.status).toBe(200);
     expect(body.authOperational).toBe(false);
     expect(body.authIssues).toContain("missing_auth_secret");
+  });
+
+  it("disables oauth providers when auth schema is missing required columns", async () => {
+    isDatabaseConfiguredMock.mockReturnValueOnce(true);
+    process.env.GOOGLE_CLIENT_ID = "google-client";
+    process.env.GOOGLE_CLIENT_SECRET = "google-secret";
+
+    queryRawUnsafeMock.mockImplementation(async (_query: string, tableName: string) => {
+      if (tableName === "users") {
+        return [
+          { column_name: "id" },
+          { column_name: "email" },
+          { column_name: "emailVerified" },
+          { column_name: "name" },
+          { column_name: "image" },
+          { column_name: "role" },
+        ];
+      }
+      if (tableName === "accounts") {
+        return [
+          { column_name: "id" },
+          { column_name: "userId" },
+          { column_name: "type" },
+          { column_name: "provider" },
+          // intentionally missing providerAccountId
+        ];
+      }
+      if (tableName === "sessions") {
+        return [
+          { column_name: "id" },
+          { column_name: "sessionToken" },
+          { column_name: "userId" },
+          { column_name: "expires" },
+        ];
+      }
+      return [];
+    });
+
+    const response = await GET();
+    const body = await response.json();
+
+    const byId = new Map<string, Capability>(
+      (body.capabilities as Capability[]).map((capability) => [
+        capability.id,
+        capability,
+      ]),
+    );
+
+    expect(byId.get("google")?.enabled).toBe(false);
+    expect(byId.get("google")?.reasonDisabled).toBe("oauth_schema_unavailable");
+    expect(body.authIssues).toContain("oauth_schema_unavailable");
+    expect(Array.isArray(body.oauthSchemaIssues)).toBe(true);
+    expect(body.oauthSchemaIssues).toContain("accounts.providerAccountId");
   });
 });
