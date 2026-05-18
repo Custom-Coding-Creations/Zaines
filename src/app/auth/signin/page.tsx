@@ -311,7 +311,12 @@ function SignInForm() {
       }
       if (result?.url) {
         window.location.href = result.url;
+        // If still on the page after a brief delay (navigation blocked), reset
+        setTimeout(() => setBusy(false), 3000);
+        return;
       }
+      // signIn returned no url (e.g. internal redirect to error page)
+      setBusy(false);
     } catch (err) {
       console.error("[auth] OAuth signIn exception:", err);
       updateError("Unable to continue with that provider. Please retry.");
