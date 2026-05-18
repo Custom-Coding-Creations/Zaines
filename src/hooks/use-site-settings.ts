@@ -104,7 +104,7 @@ export function useSiteSettings(): SiteSettingsHookReturn {
     websiteProfile: sanitizedSettings?.websiteProfileSettings || {
       siteUrl: 'https://zainesstayandplay.com',
       siteDescription:
-        'Private, small-capacity dog boarding in Syracuse with owner-on-site care, three suites, and safety-first updates.',
+        'Private, small-capacity dog boarding in Syracuse with owner-on-site care, limited suite availability, and safety-first updates.',
       ogImageUrl: 'https://zainesstayandplay.com/og-default.svg',
       ownerImageUrl: 'https://zainesstayandplay.com/images/owner-placeholder.svg',
       logoImageUrl: 'https://zainesstayandplay.com/logo.svg',

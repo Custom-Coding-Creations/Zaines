@@ -2,7 +2,7 @@ import { siteConfig } from "@/config/site";
 
 export const seoBaseUrl = siteConfig.url.replace(/\/$/, "");
 
-      "Because Zaine's operates with limited private-suite capacity, families should book as soon as travel dates are likely. The booking flow shows availability before confirmation.",
+export interface PageConfig {
   slug: string;
   route: string;
   city: string;
@@ -19,7 +19,7 @@ export const seoBaseUrl = siteConfig.url.replace(/\/$/, "");
   bookingAngle: string;
   priority: number;
   serviceType?: "boarding" | "daycare" | "grooming" | "training";
-};
+}
 
 export const syracusePillarRoute = "/dog-boarding-syracuse";
 export const syracuseDaycareRoute = "/daycare-syracuse";
