@@ -20,8 +20,14 @@ export function proxy(req: NextRequest) {
   const isAuthRoute =
     req.nextUrl.pathname.startsWith('/auth') ||
     req.nextUrl.pathname.startsWith('/api/auth');
+  const isVercelPreviewHost = req.nextUrl.hostname.endsWith('.vercel.app');
 
-  if (isAuthRoute && process.env.NODE_ENV === 'production') {
+  const isCanonicalRedirectEnvironment =
+    process.env.NODE_ENV === 'production' &&
+    process.env.VERCEL_ENV !== 'preview' &&
+    !isVercelPreviewHost;
+
+  if (isAuthRoute && isCanonicalRedirectEnvironment) {
     const canonicalAuthOrigin = getCanonicalAuthOrigin();
 
     if (canonicalAuthOrigin && req.nextUrl.host !== canonicalAuthOrigin.host) {
