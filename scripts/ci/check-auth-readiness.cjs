@@ -16,6 +16,65 @@ function getSessionStrategy(hasDatabase, databaseSessionsFlag) {
   return hasDatabase && databaseSessionsEnabled ? "database" : "jwt";
 }
 
+function isPlaceholder(value) {
+  if (!hasValue(value)) return false;
+  const lowered = value.trim().toLowerCase();
+  return (
+    lowered.includes("your_") ||
+    lowered.includes("placeholder") ||
+    lowered.includes("example")
+  );
+}
+
+function getDefinedEnvKeys(keys) {
+  return keys.filter((key) => hasValue(process.env[key]));
+}
+
+function checkOauthProviderEnvConflicts(provider, aliases, failures, warnings) {
+  const definedClientIdKeys = getDefinedEnvKeys(aliases.clientId);
+  const definedClientSecretKeys = getDefinedEnvKeys(aliases.clientSecret);
+
+  if (definedClientIdKeys.length > 1) {
+    failures.push(
+      `${provider} OAuth client id is defined in multiple env keys (${definedClientIdKeys.join(
+        ", ",
+      )}). Keep only one key to avoid drift.`,
+    );
+  }
+
+  if (definedClientSecretKeys.length > 1) {
+    failures.push(
+      `${provider} OAuth client secret is defined in multiple env keys (${definedClientSecretKeys.join(
+        ", ",
+      )}). Keep only one key to avoid drift.`,
+    );
+  }
+
+  const hasClientId = definedClientIdKeys.length > 0;
+  const hasClientSecret = definedClientSecretKeys.length > 0;
+  if (hasClientId !== hasClientSecret) {
+    const message = `${provider} OAuth env is partially configured (clientId=${hasClientId}, clientSecret=${hasClientSecret}).`;
+    if (isProduction) {
+      failures.push(message);
+    } else {
+      warnings.push(message);
+    }
+  }
+
+  if (hasClientId && hasClientSecret) {
+    const selectedClientId = process.env[definedClientIdKeys[0]];
+    const selectedClientSecret = process.env[definedClientSecretKeys[0]];
+    if (isPlaceholder(selectedClientId) || isPlaceholder(selectedClientSecret)) {
+      const message = `${provider} OAuth env uses placeholder credentials in ${definedClientIdKeys[0]} and/or ${definedClientSecretKeys[0]}.`;
+      if (isProduction) {
+        failures.push(message);
+      } else {
+        warnings.push(message);
+      }
+    }
+  }
+}
+
 const hasAuthSecret = hasValue(process.env.AUTH_SECRET) || hasValue(process.env.NEXTAUTH_SECRET);
 const hasDatabaseUrl = hasValue(process.env.DATABASE_URL);
 const isProduction = (process.env.NODE_ENV || "").trim().toLowerCase() === "production";
@@ -25,6 +84,25 @@ const enableGuestFlow = toBool(process.env.AUTH_ENABLE_GUEST_FLOW, true);
 
 const failures = [];
 const warnings = [];
+
+const oauthAliasRegistry = {
+  Google: {
+    clientId: ["AUTH_GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_ID"],
+    clientSecret: [
+      "AUTH_GOOGLE_CLIENT_SECRET",
+      "GOOGLE_CLIENT_SECRET",
+      "GOOGLE_OAUTH_CLIENT_SECRET",
+    ],
+  },
+  Facebook: {
+    clientId: ["AUTH_FACEBOOK_CLIENT_ID", "FACEBOOK_CLIENT_ID"],
+    clientSecret: ["AUTH_FACEBOOK_CLIENT_SECRET", "FACEBOOK_CLIENT_SECRET"],
+  },
+};
+
+for (const [provider, aliases] of Object.entries(oauthAliasRegistry)) {
+  checkOauthProviderEnvConflicts(provider, aliases, failures, warnings);
+}
 
 if (!hasAuthSecret) {
   failures.push("AUTH secret missing. Set AUTH_SECRET (preferred) or NEXTAUTH_SECRET.");

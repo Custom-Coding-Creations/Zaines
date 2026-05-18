@@ -42,7 +42,7 @@ jobs:
         run: pnpm auth:readiness
 
       - name: Auth reliability tests
-        run: pnpm vitest run src/lib/api/__tests__/auth-error-classification.test.ts src/app/api/admin/health/auth/__tests__/route.test.ts
+        run: pnpm vitest run src/lib/api/__tests__/auth-error-classification.test.ts src/app/api/admin/health/auth/__tests__/route.test.ts src/__tests__/auth-oauth-env.test.ts
 
       - name: Start app for auth health probe
         run: pnpm dev --hostname 127.0.0.1 --port 3000 > /tmp/zaines-dev.log 2>&1 &
