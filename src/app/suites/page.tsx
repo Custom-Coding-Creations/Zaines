@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -244,11 +245,14 @@ export default async function SuitesPage() {
                           </div>
                         </CardHeader>
                         <CardContent className="flex flex-1 flex-col pt-0 pb-6">
-                          <div className="mb-6 aspect-[16/10] overflow-hidden rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center">
-                            <img
+                          <div className="relative mb-6 aspect-[16/10] overflow-hidden rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center">
+                            <Image
                               src={imageUrl}
                               alt={`${tier.name} suite image`}
-                              className="h-full w-full object-cover"
+                              fill
+                              unoptimized
+                              sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                              className="object-cover"
                             />
                           </div>
                           <ul className="space-y-3 flex-1 mb-6">
