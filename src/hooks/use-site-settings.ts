@@ -10,7 +10,15 @@ import { useSettings } from '@/providers/settings-provider';
 import type { AdminSettings } from '@/types/admin';
 
 function sanitizeDogModePhrase(value: string): string {
-  return value
+  const legacyCopySanitized = value
+    .replace(/doggy daycare/gi, 'private dog boarding')
+    .replace(/book a playday/gi, 'check availability')
+    .replace(/only\s+3\s+private\s+suites/gi, 'limited private suites')
+    .replace(/only\s+3\s+suites/gi, 'limited suites')
+    .replace(/three-suite/gi, 'limited-suite')
+    .replace(/three\s+suites/gi, 'limited suite availability');
+
+  return legacyCopySanitized
     .replace(/dog\s*mode\s*™?/gi, 'enrichment')
     .replace(/calm\s*mode\s*™?/gi, 'calming experience')
     .replace(/\s{2,}/g, ' ')

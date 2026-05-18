@@ -83,6 +83,42 @@ const SETTINGS_KEYS: Record<string, string> = {
   HOLIDAY_SURCHARGES: 'admin.holiday_surcharges', // JSON array
 };
 
+const LEGACY_COPY_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
+  { pattern: /doggy daycare/gi, replacement: 'private dog boarding' },
+  { pattern: /book a playday/gi, replacement: 'check availability' },
+  { pattern: /only\s+3\s+private\s+suites/gi, replacement: 'limited private suites' },
+  { pattern: /only\s+3\s+suites/gi, replacement: 'limited suites' },
+  { pattern: /three-suite/gi, replacement: 'limited-suite' },
+  { pattern: /three\s+suites/gi, replacement: 'limited suite availability' },
+];
+
+function normalizeLegacyCopyString(value: string): string {
+  return LEGACY_COPY_REPLACEMENTS.reduce(
+    (acc, { pattern, replacement }) => acc.replace(pattern, replacement),
+    value,
+  );
+}
+
+function normalizeLegacyCopy<T>(value: T): T {
+  if (typeof value === 'string') {
+    return normalizeLegacyCopyString(value) as T;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeLegacyCopy(item)) as T;
+  }
+
+  if (value && typeof value === 'object') {
+    const normalizedEntries = Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+      key,
+      normalizeLegacyCopy(item),
+    ]);
+    return Object.fromEntries(normalizedEntries) as T;
+  }
+
+  return value;
+}
+
 /**
  * Get all admin settings with defaults
  */
@@ -116,7 +152,7 @@ export async function getAdminSettings(): Promise<AdminSettings> {
       businessHours = getDefaultBusinessHours();
     }
 
-    return {
+    const settingsPayload: AdminSettings = {
       autoConfirmBookings:
         settingsMap.get(SETTINGS_KEYS.AUTO_CONFIRM_BOOKINGS) === 'true',
       photoNotificationType: (settingsMap.get(SETTINGS_KEYS.PHOTO_NOTIFICATION_TYPE) ||
@@ -331,6 +367,8 @@ export async function getAdminSettings(): Promise<AdminSettings> {
         }
       })(),
     };
+
+    return normalizeLegacyCopy(settingsPayload);
   } catch (error) {
     console.error('Error fetching admin settings:', error);
     return getDefaultSettings();
