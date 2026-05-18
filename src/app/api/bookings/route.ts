@@ -21,6 +21,7 @@ import {
   applyPackageCreditToPricing,
   getEligiblePackageRedemption,
 } from "@/lib/booking/package-redemption";
+import { buildBookingDateOverlapWhere } from "@/lib/booking/availability";
 import { ensureDefaultSuites } from "@/lib/booking/default-suites";
 import { getAdminSettings } from "@/lib/api/admin-settings";
 import { getCanonicalCapacityMap } from "@/lib/site/service-tiers";
@@ -459,9 +460,6 @@ export async function POST(request: NextRequest) {
 
     const checkInDate = new Date(data.checkIn);
     const checkOutDate = new Date(data.checkOut);
-    const checkInDayEnd = new Date(checkInDate);
-    // Treat checkout on check-in day as non-overlapping for date-based stays.
-    checkInDayEnd.setUTCHours(23, 59, 59, 999);
     const totalNights = Math.ceil(
       (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24),
     );
@@ -589,34 +587,7 @@ export async function POST(request: NextRequest) {
             status: {
               in: ["confirmed", "checked_in"],
             },
-            OR: [
-              {
-                checkInDate: {
-                  gte: checkInDate,
-                  lt: checkOutDate,
-                },
-              },
-              {
-                checkOutDate: {
-                  gt: checkInDayEnd,
-                  lte: checkOutDate,
-                },
-              },
-              {
-                AND: [
-                  {
-                    checkInDate: {
-                      lte: checkInDate,
-                    },
-                  },
-                  {
-                    checkOutDate: {
-                      gte: checkOutDate,
-                    },
-                  },
-                ],
-              },
-            ],
+            ...buildBookingDateOverlapWhere(checkInDate, checkOutDate),
           },
         });
 

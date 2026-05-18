@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma, isDatabaseConfigured } from "@/lib/prisma";
 import { getAdminSettings } from "@/lib/api/admin-settings";
-import { getCanonicalCapacityMap } from "@/lib/site/service-tiers";
+import {
+  buildBookingDateOverlapWhere,
+  getConfiguredTierCapacities,
+} from "@/lib/booking/availability";
 import {
   errorResponse,
   getCorrelationId,
@@ -105,9 +108,6 @@ export async function GET(request: NextRequest) {
 
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
-    const checkInDayEnd = new Date(checkInDate);
-    // Treat checkout on check-in day as non-overlapping for date-based stays.
-    checkInDayEnd.setUTCHours(23, 59, 59, 999);
 
     if (
       Number.isNaN(checkInDate.getTime()) ||
@@ -129,37 +129,7 @@ export async function GET(request: NextRequest) {
         status: {
           in: ["confirmed", "checked_in"],
         },
-        OR: [
-          {
-            // Booking starts during requested period
-            checkInDate: {
-              gte: checkInDate,
-              lt: checkOutDate,
-            },
-          },
-          {
-            // Booking ends during requested period
-            checkOutDate: {
-              gt: checkInDayEnd,
-              lte: checkOutDate,
-            },
-          },
-          {
-            // Booking encompasses entire requested period
-            AND: [
-              {
-                checkInDate: {
-                  lte: checkInDate,
-                },
-              },
-              {
-                checkOutDate: {
-                  gte: checkOutDate,
-                },
-              },
-            ],
-          },
-        ],
+        ...buildBookingDateOverlapWhere(checkInDate, checkOutDate),
       },
       include: {
         suite: {
@@ -195,21 +165,15 @@ export async function GET(request: NextRequest) {
     );
 
     const settings = await getAdminSettings();
-    const configuredCapacities = getCanonicalCapacityMap(
+    const capacity = getConfiguredTierCapacities(
       settings.serviceSettings.serviceTiers,
     );
 
-    const capacity = {
-      STANDARD: configuredCapacities.standard ?? 0,
-      DELUXE: configuredCapacities.deluxe ?? 0,
-      LUXURY: configuredCapacities.luxury ?? 0,
-    };
-
     // Calculate available suites
     const availability = {
-      standard: Math.max(0, capacity.STANDARD - (occupiedCounts.STANDARD || 0)),
-      deluxe: Math.max(0, capacity.DELUXE - (occupiedCounts.DELUXE || 0)),
-      luxury: Math.max(0, capacity.LUXURY - (occupiedCounts.LUXURY || 0)),
+      standard: Math.max(0, capacity.standard - (occupiedCounts.STANDARD || 0)),
+      deluxe: Math.max(0, capacity.deluxe - (occupiedCounts.DELUXE || 0)),
+      luxury: Math.max(0, capacity.luxury - (occupiedCounts.LUXURY || 0)),
     };
 
     return NextResponse.json({

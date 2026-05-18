@@ -8,6 +8,11 @@ import {
   parseDate,
 } from "@/lib/api/issue26";
 import { ensureDefaultSuites } from "@/lib/booking/default-suites";
+import { getAdminSettings } from "@/lib/api/admin-settings";
+import {
+  buildBookingDateOverlapWhere,
+  getTotalConfiguredCapacity,
+} from "@/lib/booking/availability";
 import { rateLimitedResponse } from "@/lib/security/api";
 
 type BookingPrisma = {
@@ -42,6 +47,13 @@ async function getActiveSuiteCapacity(): Promise<number> {
 
   // Test and partial-mock fallback.
   return bookingPrisma.suite.count({ where: { isActive: true } });
+}
+
+async function getConfiguredCapacity(): Promise<number> {
+  const settings = await getAdminSettings();
+  return getTotalConfiguredCapacity(
+    settings.serviceSettings.serviceTiers,
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -87,13 +99,8 @@ export async function POST(request: NextRequest) {
 
   const checkInDate = parseDate(parsed.data.checkIn);
   const checkOutDate = parseDate(parsed.data.checkOut);
-  const checkInDayEnd = checkInDate ? new Date(checkInDate) : null;
-  if (checkInDayEnd) {
-    // Treat checkout on check-in day as non-overlapping for date-based stays.
-    checkInDayEnd.setUTCHours(23, 59, 59, 999);
-  }
 
-  if (!checkInDate || !checkOutDate || !checkInDayEnd || checkOutDate <= checkInDate) {
+  if (!checkInDate || !checkOutDate || checkOutDate <= checkInDate) {
     return NextResponse.json(
       createPublicErrorEnvelope({
         errorCode: "INVALID_DATE_RANGE",
@@ -107,7 +114,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const seededSuites = await ensureDefaultSuites();
-    let activeCapacity = await getActiveSuiteCapacity();
+    const [suiteCapacity, configuredCapacity] = await Promise.all([
+      getActiveSuiteCapacity(),
+      getConfiguredCapacity(),
+    ]);
+
+    let activeCapacity = Math.max(suiteCapacity, configuredCapacity);
 
     // During first-run bootstrap in tests or partial mocks, capacity can read as zero
     // immediately after seeding; fall back to seeded suite count.
@@ -132,34 +144,7 @@ export async function POST(request: NextRequest) {
         status: {
           in: ["confirmed", "checked_in"],
         },
-        OR: [
-          {
-            checkInDate: {
-              gte: checkInDate,
-              lt: checkOutDate,
-            },
-          },
-          {
-            checkOutDate: {
-              gt: checkInDayEnd,
-              lte: checkOutDate,
-            },
-          },
-          {
-            AND: [
-              {
-                checkInDate: {
-                  lte: checkInDate,
-                },
-              },
-              {
-                checkOutDate: {
-                  gte: checkOutDate,
-                },
-              },
-            ],
-          },
-        ],
+        ...buildBookingDateOverlapWhere(checkInDate, checkOutDate),
       },
     });
 
@@ -171,6 +156,8 @@ export async function POST(request: NextRequest) {
         checkIn: parsed.data.checkIn,
         checkOut: parsed.data.checkOut,
         partySize: parsed.data.partySize,
+        suiteCapacity,
+        configuredCapacity,
         activeCapacity,
         overlappingBookings,
         availableCapacity,

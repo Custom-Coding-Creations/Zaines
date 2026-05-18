@@ -6,8 +6,26 @@ import { prisma } from "@/lib/prisma";
 
 let suiteCount = 3;
 let bookingCount = 0;
+let configuredCapacity = 3;
 const { upsertSuite } = vi.hoisted(() => ({
   upsertSuite: vi.fn(async () => ({})),
+}));
+
+vi.mock("@/lib/api/admin-settings", () => ({
+  getAdminSettings: vi.fn(async () => ({
+    serviceSettings: {
+      serviceTiers: [
+        {
+          id: "standard",
+          name: "Standard",
+          capacity: configuredCapacity,
+          isActive: true,
+          baseNightlyRate: 65,
+          displayOrder: 1,
+        },
+      ],
+    },
+  })),
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -21,7 +39,7 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: vi.fn(),
       create: vi.fn(),
       upsert: vi.fn(),
-      findMany: vi.fn(),
+      findMany: vi.fn(async () => []),
     },
   },
   isDatabaseConfigured: vi.fn(() => true),
@@ -32,6 +50,7 @@ describe("POST /api/booking/availability", () => {
     vi.clearAllMocks();
     suiteCount = 3;
     bookingCount = 0;
+    configuredCapacity = 3;
     upsertSuite.mockClear();
   });
 
@@ -58,6 +77,7 @@ describe("POST /api/booking/availability", () => {
 
   it("returns NO_CAPACITY when suites are full", async () => {
     suiteCount = 1;
+    configuredCapacity = 1;
     bookingCount = 1;
 
     const request = new NextRequest(
@@ -79,6 +99,32 @@ describe("POST /api/booking/availability", () => {
     expect(response.status).toBe(200);
     expect(data.isAvailable).toBe(false);
     expect(data.reasonCode).toBe("NO_CAPACITY");
+  });
+
+  it("uses configured capacity when it is higher than suite-record capacity", async () => {
+    suiteCount = 1;
+    configuredCapacity = 4;
+    bookingCount = 2;
+
+    const request = new NextRequest(
+      "http://localhost:3000/api/booking/availability",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          checkIn: "2026-03-10",
+          checkOut: "2026-03-12",
+          serviceType: "boarding",
+          partySize: 1,
+        }),
+      },
+    );
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.isAvailable).toBe(true);
+    expect(data.reasonCode).toBe("NONE");
   });
 
   it("bootstraps default suites when suite inventory is empty", async () => {
