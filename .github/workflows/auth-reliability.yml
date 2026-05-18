@@ -35,6 +35,9 @@ jobs:
       - name: Prisma client generate
         run: pnpm prisma:generate
 
+      - name: Validate auth schema
+        run: pnpm audit:auth-schema-validation
+
       - name: Auth readiness gate
         run: pnpm auth:readiness
 

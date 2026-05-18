@@ -17,6 +17,7 @@
     "test:app": "vitest run",
     "test:framework": "pnpm --dir .github/framework test",
     "test:e2e": "PLAYWRIGHT_TEST=1 playwright test",
+    "test:e2e:oauth": "PLAYWRIGHT_TEST=1 playwright test tests/oauth-provider-verification.spec.ts",
     "drain:emails": "node scripts/drain-email-queue.js",
     "reminders:run": "tsx scripts/run-reminders.ts",
     "test:watch": "vitest",
@@ -32,6 +33,9 @@
     "audit:rollback:drill": "node scripts/audit/rollback_drill_timing.js",
     "audit:launch:readiness": "node scripts/audit/launch_readiness_evidence.js",
     "audit:launch:readiness:auth": "pnpm audit:admin:auth-health && pnpm audit:launch:readiness",
+    "audit:auth-schema-validation": "tsx scripts/audit/auth-schema-validation.ts",
+    "audit:auth-diagnose": "tsx scripts/audit/diagnose-production-auth.ts",
+    "audit:auth-schema-fix:sql": "node scripts/audit/generate-auth-schema-fix.cjs --raw",
     "audit:preflight": "node scripts/audit/preflight_validation.js",
     "lhci": "lhci autorun",
     "lhci:collect": "lhci collect",
@@ -41,7 +45,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "db:backfill-waivers": "tsx scripts/backfill-account-waivers.ts"
+    "db:backfill-waivers": "tsx scripts/backfill-account-waivers.ts",
+    "db:normalize-user-emails": "tsx scripts/normalize-user-emails.ts",
+    "db:normalize-user-emails:apply": "tsx scripts/normalize-user-emails.ts --apply"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

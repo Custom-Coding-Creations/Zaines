@@ -83,7 +83,7 @@ const providers: NonNullable<NextAuthConfig["providers"]> = [
               return null;
             }
 
-            const dbUser = await prisma.user.findUnique({
+            const dbUserByNormalizedEmail = await prisma.user.findUnique({
               where: { email },
               select: {
                 id: true,
@@ -92,6 +92,23 @@ const providers: NonNullable<NextAuthConfig["providers"]> = [
                 role: true,
               },
             });
+
+            const dbUser =
+              dbUserByNormalizedEmail ??
+              (await prisma.user.findFirst({
+                where: {
+                  email: {
+                    equals: email,
+                    mode: "insensitive",
+                  },
+                },
+                select: {
+                  id: true,
+                  email: true,
+                  name: true,
+                  role: true,
+                },
+              }));
 
             if (!dbUser) {
               logSecurityEvent({

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   userFindUniqueMock,
+  userFindFirstMock,
   passwordCredentialFindUniqueMock,
   passwordCredentialUpdateMock,
   verifyPasswordMock,
@@ -9,6 +10,7 @@ const {
   logSecurityEventMock,
 } = vi.hoisted(() => ({
   userFindUniqueMock: vi.fn(),
+  userFindFirstMock: vi.fn(),
   passwordCredentialFindUniqueMock: vi.fn(),
   passwordCredentialUpdateMock: vi.fn(),
   verifyPasswordMock: vi.fn(),
@@ -45,6 +47,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: {
       findUnique: userFindUniqueMock,
+      findFirst: userFindFirstMock,
     },
     passwordCredential: {
       findUnique: passwordCredentialFindUniqueMock,
@@ -88,8 +91,55 @@ describe("credentials authorize lockout", () => {
       name: "User",
       role: "customer",
     });
+    userFindFirstMock.mockResolvedValue(null);
     verifyPasswordMock.mockReturnValue(false);
     passwordCredentialUpdateMock.mockResolvedValue({ id: "cred-1" });
+  });
+
+  it("falls back to case-insensitive email lookup when normalized lookup misses", async () => {
+    userFindUniqueMock.mockResolvedValueOnce(null);
+    userFindFirstMock.mockResolvedValueOnce({
+      id: "user-1",
+      email: "User@Example.com",
+      name: "User",
+      role: "customer",
+    });
+    passwordCredentialFindUniqueMock.mockResolvedValueOnce({
+      passwordHash: "stored-hash",
+      lockedUntil: null,
+      failedAttempts: 0,
+    });
+    verifyPasswordMock.mockReturnValueOnce(true);
+
+    const authorize = getCredentialsAuthorize();
+    const result = await authorize({
+      email: "user@example.com",
+      password: "CorrectPassword123!",
+    });
+
+    expect(userFindFirstMock).toHaveBeenCalledWith({
+      where: {
+        email: {
+          equals: "user@example.com",
+          mode: "insensitive",
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+      },
+    });
+    expect(logSecurityEventMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ correlationId: "credentials-user-missing" }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: "user-1",
+        email: "User@Example.com",
+      }),
+    );
   });
 
   it("increments failed attempts without lock before threshold", async () => {
