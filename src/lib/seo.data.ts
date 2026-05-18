@@ -21,6 +21,8 @@ export interface PageConfig {
   serviceType?: "boarding" | "daycare" | "grooming" | "training";
 }
 
+export type LocalGrowthPage = PageConfig;
+
 export const syracusePillarRoute = "/dog-boarding-syracuse";
 export const syracuseDaycareRoute = "/daycare-syracuse";
 export const syracuseGroomingRoute = "/grooming-syracuse";
