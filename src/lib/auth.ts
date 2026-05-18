@@ -50,16 +50,23 @@ const providers: NonNullable<NextAuthConfig["providers"]> = [
           clientId: googleOauthCredentials.clientId,
           clientSecret: googleOauthCredentials.clientSecret,
           allowDangerousEmailAccountLinking: true,
-          // Provide explicit authorization endpoint to bypass OIDC discovery
-          // during signIn initiation. This avoids transient failures when
-          // fetching accounts.google.com/.well-known/openid-configuration
+          // Provide explicit endpoints to bypass OIDC discovery entirely.
+          // This avoids transient failures when fetching
+          // accounts.google.com/.well-known/openid-configuration
           // in serverless cold starts.
+          issuer: "https://accounts.google.com",
           authorization: {
             url: "https://accounts.google.com/o/oauth2/v2/auth",
             params: {
               scope: "openid email profile",
               response_type: "code",
             },
+          },
+          token: {
+            url: "https://oauth2.googleapis.com/token",
+          },
+          userinfo: {
+            url: "https://openidconnect.googleapis.com/v1/userinfo",
           },
         }),
       ]
