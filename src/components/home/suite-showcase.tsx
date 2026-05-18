@@ -122,7 +122,7 @@ export function SuiteShowcase() {
                     className="focus-ring w-full"
                     asChild
                   >
-                    <Link href={`/suites#${suite.id}`}>Book This Suite</Link>
+                    <Link href="/book?fresh=true">Book This Suite</Link>
                   </Button>
                 </article>
               </StaggerItem>

@@ -88,7 +88,38 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // First, ensure suites are initialized
     const activeSuites = await ensureDefaultSuites();
+    
+    // If no active suites, this indicates a bootstrap issue
+    if (activeSuites === 0) {
+      console.error(`[${correlationId}] No active suites found after ensureDefaultSuites()`, {
+        correlationId,
+        checkIn: parsed.data.checkIn,
+        checkOut: parsed.data.checkOut,
+      });
+      // Still check database directly as fallback
+      try {
+        const dbSuiteCount = await bookingPrisma.suite.count({
+          where: { isActive: true },
+        });
+        if (dbSuiteCount === 0) {
+          // This is a real issue - no suites in database
+          return NextResponse.json(
+            createPublicErrorEnvelope({
+              errorCode: "AVAILABILITY_UNAVAILABLE",
+              message: "Booking system is being initialized. Please try again in a moment.",
+              retryable: true,
+              correlationId,
+            }),
+            { status: 503 },
+          );
+        }
+      } catch {
+        // Ignore fallback error, continue with original result
+      }
+    }
+
     const overlappingBookings = await bookingPrisma.booking.count({
       where: {
         status: {
@@ -96,18 +127,23 @@ export async function POST(request: NextRequest) {
         },
         OR: [
           {
+            // Existing booking starts during requested stay
             checkInDate: {
               gte: checkInDate,
               lt: checkOutDate,
             },
           },
           {
+            // Existing booking ends during requested stay (or starts during it)
+            // A booking that checks out exactly on our check-in date is OK (no overlap)
+            // A booking that checks out after our check-in day has ended overlaps
             checkOutDate: {
               gt: checkInDayEnd,
-              lte: checkOutDate,
+              lt: checkOutDate,  // Changed from <= to < for correct boundary
             },
           },
           {
+            // Existing booking completely spans requested stay
             AND: [
               {
                 checkInDate: {
@@ -127,6 +163,19 @@ export async function POST(request: NextRequest) {
 
     const availableCapacity = Math.max(0, activeSuites - overlappingBookings);
     const isAvailable = availableCapacity >= parsed.data.partySize;
+
+    // Log for diagnostics
+    if (process.env.NODE_ENV === "development") {
+      console.debug(`[${correlationId}] Availability check:`, {
+        checkIn: parsed.data.checkIn,
+        checkOut: parsed.data.checkOut,
+        partySize: parsed.data.partySize,
+        activeSuites,
+        overlappingBookings,
+        availableCapacity,
+        isAvailable,
+      });
+    }
 
     return NextResponse.json(
       {
