@@ -120,7 +120,8 @@
       "hono": "^4.11.7",
       "lodash": "^4.17.23",
       "@types/pg": "8.11.11",
-      "undici": "^6.24.0"
+      "undici": "^6.24.0",
+      "@auth/core": "0.41.2"
     }
   },
   "overrides": {

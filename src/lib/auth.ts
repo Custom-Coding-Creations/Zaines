@@ -50,6 +50,17 @@ const providers: NonNullable<NextAuthConfig["providers"]> = [
           clientId: googleOauthCredentials.clientId,
           clientSecret: googleOauthCredentials.clientSecret,
           allowDangerousEmailAccountLinking: true,
+          // Provide explicit authorization endpoint to bypass OIDC discovery
+          // during signIn initiation. This avoids transient failures when
+          // fetching accounts.google.com/.well-known/openid-configuration
+          // in serverless cold starts.
+          authorization: {
+            url: "https://accounts.google.com/o/oauth2/v2/auth",
+            params: {
+              scope: "openid email profile",
+              response_type: "code",
+            },
+          },
         }),
       ]
     : []),
@@ -401,6 +412,19 @@ export const authConfig: NextAuthConfig = {
     strategy: authSessionStrategy,
   },
   debug: process.env.NODE_ENV === "development",
+  logger: {
+    error: (error: Error) => {
+      console.error("[auth][error]", error.name, error.message, error.stack);
+    },
+    warn: (code: string) => {
+      console.warn("[auth][warn]", code);
+    },
+    debug: (message: string, metadata?: unknown) => {
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[auth][debug]", message, metadata);
+      }
+    },
+  },
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
