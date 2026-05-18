@@ -213,11 +213,11 @@ export default async function SuitesPage() {
                         }`}
                       >
                         {isPopular && (
-                          <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground shadow-lg">
+                          <Badge className="absolute -top-4 left-1/2 -translate-x-1/2 z-10 bg-primary text-primary-foreground shadow-lg">
                             Most Popular
                           </Badge>
                         )}
-                        <CardHeader className="pb-4">
+                        <CardHeader className={`pb-2 ${isPopular ? "pt-6" : ""}`}>
                           <div className="mb-4 flex items-start justify-between">
                             <div>
                               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
@@ -243,7 +243,7 @@ export default async function SuitesPage() {
                             Suite Size: {metadata.size}
                           </div>
                         </CardHeader>
-                        <CardContent className="flex flex-1 flex-col pt-0">
+                        <CardContent className="flex flex-1 flex-col pt-0 pb-6">
                           <div className="mb-6 aspect-[16/10] overflow-hidden rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center">
                             <img
                               src={imageUrl}
@@ -251,7 +251,7 @@ export default async function SuitesPage() {
                               className="h-full w-full object-cover"
                             />
                           </div>
-                          <ul className="space-y-3 flex-1">
+                          <ul className="space-y-3 flex-1 mb-6">
                             {metadata.features.map((feature) => (
                               <li
                                 key={feature}
@@ -264,7 +264,7 @@ export default async function SuitesPage() {
                               </li>
                             ))}
                           </ul>
-                          <div className="mt-8 flex justify-center">
+                          <div className="mt-auto flex justify-center">
                             <Button
                               className="w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto sm:min-w-56"
                               size="lg"
