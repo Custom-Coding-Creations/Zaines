@@ -377,7 +377,7 @@ export function StepSuites({
                 </span>
                 <span>
                   $
-                  {(SUITES.find((s) => s.value === data.suiteType)
+                  {(suites.find((s) => s.value === data.suiteType)
                     ?.pricePerNight || 0) * nights}
                 </span>
               </div>
@@ -388,7 +388,7 @@ export function StepSuites({
                   <span>
                     $
                     {selectedAddOns.reduce((sum, id) => {
-                      const addOn = ADD_ONS.find((a) => a.id === id);
+                      const addOn = addOns.find((a) => a.id === id);
                       return sum + (addOn?.price || 0);
                     }, 0)}
                   </span>
