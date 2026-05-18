@@ -7,8 +7,8 @@ import Link from "next/link";
 import Image from "next/image";
 
 const trustBadges = [
-  { icon: Shield, label: "Supervised Play", color: "var(--color-sky)" },
-  { icon: Home, label: "Safe & Clean Facility", color: "var(--color-green)" },
+  { icon: Shield, label: "Owner-Led Care", color: "var(--color-sky)" },
+  { icon: Home, label: "Private Suites", color: "var(--color-green)" },
   { icon: Camera, label: "Photo Updates", color: "var(--color-coral)" },
 ];
 
@@ -53,8 +53,8 @@ export function HeroSection() {
 
             <FadeUp delay={0.1}>
               <p className="text-lg leading-relaxed text-white/90 mb-8 max-w-xl">
-                Tech-forward dog daycare in Syracuse, NY with supervised play, real-time photo updates,
-                and thoughtful enrichment experiences tailored to each dog's comfort and energy.
+                Private, small-capacity dog boarding in Syracuse, NY with owner-led care, real-time photo updates,
+                and thoughtful routines tailored to each dog's comfort.
               </p>
             </FadeUp>
 
@@ -71,7 +71,7 @@ export function HeroSection() {
                 >
                   <Link href="/book">
                     <span className="mr-2 text-xl" aria-hidden="true">🐾</span>
-                    Book a Playday
+                    Check Availability
                   </Link>
                 </Button>
                 <Button

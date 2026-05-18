@@ -261,12 +261,12 @@ export const websiteSettingsSchema = z.object({
     )
     .refine(
       (val) =>
-        val.trustEvidenceClaim.includes('Only 3 private suites') &&
+        val.trustEvidenceClaim.toLowerCase().includes('private suites') &&
         val.trustEvidenceClaim.toLowerCase().includes('owner onsite'),
       {
         path: ['trustEvidenceClaim'],
         message:
-          'Trust evidence claim must include "Only 3 private suites" and "owner onsite"',
+          'Trust evidence claim must include "private suites" and "owner onsite"',
       },
     ),
 });

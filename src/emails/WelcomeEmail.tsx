@@ -30,7 +30,7 @@ export function WelcomeEmail({
       </Text>
       
       <Text style={paragraph}>
-        Thank you for joining Zaine's Stay & Play — Syracuse's happiest doggy daycare! 
+        Thank you for joining Zaine's Stay & Play — private, owner-led dog care in Syracuse.
         We're thrilled to welcome you and your furry family member to our pack.
       </Text>
 
@@ -41,7 +41,7 @@ export function WelcomeEmail({
         </Heading>
         <ul style={list}>
           <li style={listItem}>
-            <strong>🏡 Private Suites</strong> — Only 3 suites, ensuring personalized attention for every pup
+            <strong>🏡 Private Suites</strong> — Limited-capacity stays for personalized attention
           </li>
           <li style={listItem}>
             <strong>👀 Owner On-Site</strong> — Direct supervision, no outsourcing, just care from people who love dogs

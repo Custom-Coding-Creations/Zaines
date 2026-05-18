@@ -1,50 +1,65 @@
+"use client";
+
 import { FadeUp } from "@/components/motion";
 import { X, Check } from "lucide-react";
-
-const rows = [
-  {
-    feature: "Capacity",
-    traditional: "20–100+ dogs at one time",
-    zaines: "Maximum 3 guests, always",
-  },
-  {
-    feature: "Owner presence",
-    traditional: "Staff rotations, rarely the owner",
-    zaines: "Owner on-site 24/7, every stay",
-  },
-  {
-    feature: "Sleep environment",
-    traditional: "Shared kennels or rows of crates",
-    zaines: "Private, climate-controlled suite",
-  },
-  {
-    feature: "Individual attention",
-    traditional: "Divided across many dogs",
-    zaines: "Focused, personal care all day",
-  },
-  {
-    feature: "Cleaning products",
-    traditional: "Industrial chemicals (often harsh)",
-    zaines: "Pet-safe, non-toxic only",
-  },
-  {
-    feature: "Updates",
-    traditional: "Generic check-in messages",
-    zaines: "Real photos & personal messages",
-  },
-  {
-    feature: "Pricing",
-    traditional: "Base rate + hidden add-ons",
-    zaines: "Transparent, all-inclusive pricing",
-  },
-  {
-    feature: "Emergency response",
-    traditional: "Staff calls owner — if reachable",
-    zaines: "Owner responds immediately, always",
-  },
-];
+import { useSiteSettings } from "@/hooks/use-site-settings";
+import {
+  getConfiguredSuiteCount,
+  getTotalConfiguredSuiteCapacity,
+} from "@/lib/site/service-tiers";
 
 export function ComparisonTable() {
+  const { serviceSettings, trustCopy } = useSiteSettings();
+  const suiteOptionCount = getConfiguredSuiteCount(serviceSettings.serviceTiers);
+  const totalCapacity = getTotalConfiguredSuiteCapacity(serviceSettings.serviceTiers);
+  const rows = [
+    {
+      feature: "Capacity",
+      traditional: "20–100+ dogs at one time",
+      zaines:
+        suiteOptionCount > 0
+          ? `${totalCapacity || suiteOptionCount} guest spots across ${suiteOptionCount} configured suite options`
+          : "Capacity set directly from live admin settings",
+    },
+    {
+      feature: "Owner presence",
+      traditional: "Staff rotations, rarely the owner",
+      zaines: "Owner on-site 24/7, every stay",
+    },
+    {
+      feature: "Sleep environment",
+      traditional: "Shared kennels or rows of crates",
+      zaines: "Private, climate-controlled suite",
+    },
+    {
+      feature: "Individual attention",
+      traditional: "Divided across many dogs",
+      zaines: "Focused, personal care all day",
+    },
+    {
+      feature: "Cleaning products",
+      traditional: "Industrial chemicals (often harsh)",
+      zaines: "Pet-safe, non-toxic only",
+    },
+    {
+      feature: "Updates",
+      traditional: "Generic check-in messages",
+      zaines: "Real photos & personal messages",
+    },
+    {
+      feature: "Pricing",
+      traditional: "Base rate + hidden add-ons",
+      zaines: trustCopy.pricingDisclosure.includes("No hidden fees")
+        ? "Clear nightly rate, tax, and selected add-ons before payment"
+        : trustCopy.pricingDisclosure,
+    },
+    {
+      feature: "Emergency response",
+      traditional: "Staff calls owner — if reachable",
+      zaines: "Owner responds immediately, always",
+    },
+  ];
+
   return (
     <section
       className="section-padding bg-background"

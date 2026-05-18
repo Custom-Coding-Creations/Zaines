@@ -7,12 +7,21 @@ import { useSiteSettings } from "@/hooks/use-site-settings";
 import { Facebook, Instagram, Twitter, MapPin, Phone, Mail, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getActiveSuiteTiers } from "@/lib/site/service-tiers";
 
 export function SiteFooter() {
   const currentYear = new Date().getFullYear();
-  const { contactInfo, businessHours, businessName, socialLinks, websiteProfile } = useSiteSettings();
+  const { addOnsSettings, contactInfo, businessHours, businessName, serviceSettings, socialLinks, websiteProfile } = useSiteSettings();
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterMessage, setNewsletterMessage] = useState("");
+  const activeSuites = getActiveSuiteTiers(serviceSettings.serviceTiers);
+  const featuredLinks = [
+    ...activeSuites.map((tier) => ({ label: tier.name, href: `/suites#${tier.id}` })),
+    ...addOnsSettings.addOns
+      .filter((addOn) => addOn.isActive)
+      .slice(0, Math.max(0, 6 - activeSuites.length))
+      .map((addOn) => ({ label: addOn.name, href: "/pricing#add-ons" })),
+  ];
 
   const weekdayHours = businessHours?.monday?.isClosed
     ? "Closed"
@@ -75,12 +84,12 @@ export function SiteFooter() {
                   {businessName || "Zaine's Stay & Play"}
                 </span>
                 <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-background/50">
-                  Doggy Daycare
+                  Private Dog Boarding
                 </span>
               </div>
             </Link>
             <p className="text-sm leading-relaxed mb-6 max-w-xs text-background/70">
-              {websiteProfile.tagline || `Syracuse's happiest doggy daycare. Safe, supervised, tail-wagging playtime, enrichment, and care for your best friend.`}
+              {websiteProfile.siteDescription || "Private, small-capacity dog boarding with admin-managed suites, add-ons, and transparent pricing."}
             </p>
             <div className="flex gap-4 mb-6">
               <Link
@@ -141,18 +150,11 @@ export function SiteFooter() {
           {/* Services */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-5">
-              Services
+              Stay Options
             </h3>
             <ul className="space-y-3 text-sm">
-              {[
-                ["Doggy Daycare", "/services/daycare"],
-                ["Puppy Play", "/services/daycare"],
-                ["Boarding", "/services/boarding"],
-                ["Grooming", "/services/grooming"],
-                ["Enrichment", "/services/daycare"],
-                ["Birthday Pawties", "/services/daycare"],
-              ].map(([label, href]) => (
-                <li key={label}>
+              {featuredLinks.map(({ label, href }) => (
+                <li key={`${label}-${href}`}>
                   <Link
                     href={href}
                     className="focus-ring rounded-sm text-background/70 hover:text-white transition-colors"

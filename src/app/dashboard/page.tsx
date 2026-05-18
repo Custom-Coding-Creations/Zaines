@@ -190,12 +190,12 @@ export default async function DashboardPage() {
       <DashboardPageHeader
         eyebrow="🐾 Your Dashboard"
         title={`Welcome back, ${firstName}!`}
-        description="Track playdays, manage your pup's profile, and stay connected with our pack."
+        description="Track stays, manage your pup's profile, and stay connected with our pack."
         className="paw-card bg-gradient-to-r from-[oklch(0.78_0.13_208)] via-[oklch(0.70_0.13_208)] to-[oklch(0.78_0.13_208)] text-white"
         actions={(
           <>
             <Button asChild className="paw-button-primary focus-ring">
-              <Link href="/book">Book a Playday 🎉</Link>
+              <Link href="/book">Check Availability 🎉</Link>
             </Button>
             <Button asChild variant="outline" className="focus-ring border-white/40 bg-transparent text-white hover:bg-white/10">
               <Link href="/dashboard/bookings">View All Bookings</Link>
@@ -206,7 +206,7 @@ export default async function DashboardPage() {
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="paw-card p-4">
-          <p className="text-xs uppercase tracking-wide text-[oklch(0.52_0.05_230)] font-semibold">Active Playdays</p>
+          <p className="text-xs uppercase tracking-wide text-[oklch(0.52_0.05_230)] font-semibold">Active Stays</p>
           <p className="mt-2 text-2xl font-bold text-[oklch(0.22_0.05_240)]">{activeStays}</p>
           <p className="text-xs text-[oklch(0.52_0.05_230)]">Upcoming fun times 🎉</p>
         </div>
@@ -287,7 +287,7 @@ export default async function DashboardPage() {
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="paw-card p-4 lg:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="heading-playful text-lg">Upcoming Playdays 🎉</h2>
+            <h2 className="heading-playful text-lg">Upcoming Stays 🎉</h2>
             <Link href="/dashboard/bookings" className="text-sm font-semibold text-[oklch(0.78_0.13_208)] hover:underline">
               See all
             </Link>
@@ -296,12 +296,12 @@ export default async function DashboardPage() {
           {!nextStay ? (
             <div className="mt-4 rounded-xl border border-dashed border-[oklch(0.78_0.13_208)] bg-[oklch(0.97_0.03_212)] p-6 text-center">
               <p className="text-2xl mb-2">🐶</p>
-              <p className="font-semibold text-[oklch(0.22_0.05_240)] mb-1">No playdays booked yet!</p>
+              <p className="font-semibold text-[oklch(0.22_0.05_240)] mb-1">No stays booked yet!</p>
               <p className="text-sm text-[oklch(0.52_0.05_230)] mb-3">
-                Your pup's calendar is ready for some fun. Book their first playday today!
+                Your pup's calendar is ready. Reserve their first stay today.
               </p>
               <Button asChild className="paw-button-primary">
-                <Link href="/book">Book a Playday 🎉</Link>
+                <Link href="/book">Check Availability 🎉</Link>
               </Button>
             </div>
           ) : (

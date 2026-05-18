@@ -162,7 +162,7 @@ export async function localGrowthMetadataFromSettings(
 export async function rootMetadataFromSettings(): Promise<Metadata> {
   const seo = await getSeoRuntimeConfig();
   const baselineDescription =
-    "Private boutique dog boarding in Syracuse, NY. Only 3 suites, owner always on-site, camera-monitored, cage-free. Serving Syracuse, Liverpool, Cicero, Baldwinsville & surrounding areas.";
+    "Private boutique dog boarding in Syracuse, NY with limited suite capacity, owner always on-site, camera-monitored care, and transparent pricing. Serving Syracuse, Liverpool, Cicero, Baldwinsville & surrounding areas.";
   const requiredLocalIntentTerms = [
     "syracuse dog boarding",
     "private dog boarding syracuse",
@@ -243,14 +243,14 @@ export async function homeMetadataFromSettings(): Promise<Metadata> {
   return {
     title: `Luxury Private Dog Boarding Syracuse NY | ${seo.siteName}`,
     description:
-      "Boutique private dog boarding in Syracuse, NY. Only 3 suites, owner always on-site, camera-monitored 24/7, cage-free, no hidden fees. Serving Syracuse, Liverpool, Cicero, Baldwinsville & surrounding areas.",
+      "Boutique private dog boarding in Syracuse, NY with limited suite capacity, owner always on-site, camera-monitored 24/7, cage-free care, and no hidden fees. Serving Syracuse, Liverpool, Cicero, Baldwinsville & surrounding areas.",
     alternates: { canonical: "/" },
     openGraph: {
       type: "website",
       url: seo.siteUrl,
       title: `Luxury Private Dog Boarding Syracuse NY | ${seo.siteName}`,
       description:
-        "Only 3 private suites. Owner always on-site. Calm routines, daily photo updates, and genuine individualized care. Your dog's home away from home.",
+        "Limited private suites. Owner always on-site. Calm routines, daily photo updates, and genuine individualized care. Your dog's home away from home.",
       siteName: seo.siteName,
       images: [
         {
@@ -265,7 +265,7 @@ export async function homeMetadataFromSettings(): Promise<Metadata> {
       card: "summary_large_image",
       title: `Luxury Private Dog Boarding Syracuse NY | ${seo.siteName}`,
       description:
-        "Only 3 private suites. Owner always on-site. Calm routines, daily photo updates, and genuine individualized care.",
+        "Limited private suites. Owner always on-site. Calm routines, daily photo updates, and genuine individualized care.",
       images: [seo.ogImageUrl],
     },
   };

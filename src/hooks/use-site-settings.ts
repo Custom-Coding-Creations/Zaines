@@ -60,6 +60,8 @@ interface SiteSettingsHookReturn {
   trustCopy: AdminSettings['trustCopySettings'];
   availabilityRules: AdminSettings['availabilityRules'];
   pricingSettings: AdminSettings['pricingSettings'];
+  cancellationPolicySettings: AdminSettings['cancellationPolicySettings'];
+  requiredVaccineSettings: AdminSettings['requiredVaccineSettings'];
   serviceSettings: AdminSettings['serviceSettings'];
   addOnsSettings: AdminSettings['addOnsSettings'];
   testimonialsSettings: AdminSettings['testimonialsSettings'];
@@ -125,7 +127,7 @@ export function useSiteSettings(): SiteSettingsHookReturn {
       privacySecurityDisclosure:
         "Payment details are processed by Stripe; Zaine's Stay & Play does not store card numbers on our servers. We use access controls and secure transmission for booking, account, pet health, and message data.",
       trustEvidenceClaim:
-        'Only 3 private suites, owner onsite, camera-monitored safety, no harsh chemicals, and same-family dogs can stay together when approved.',
+        'Limited private suites, owner onsite, camera-monitored safety, no harsh chemicals, and same-family dogs can stay together when approved.',
     },
     availabilityRules: sanitizedSettings?.availabilityRules || {
       minNightsPerBooking: 1,
@@ -141,6 +143,16 @@ export function useSiteSettings(): SiteSettingsHookReturn {
       taxRatePercent: 10,
       twoPetDiscountPercent: 15,
       threePlusPetsDiscountPercent: 20,
+    },
+    cancellationPolicySettings: sanitizedSettings?.cancellationPolicySettings || {
+      fullRefundHours: 48,
+      partialRefundHours: 24,
+      partialRefundPercent: 50,
+      noShowRefundPercent: 0,
+    },
+    requiredVaccineSettings: sanitizedSettings?.requiredVaccineSettings || {
+      requiredVaccines: ['Rabies', 'DHPP', 'Bordetella'],
+      blockBookingsOnExpiredVaccines: true,
     },
     serviceSettings: sanitizedSettings?.serviceSettings || {
       serviceTiers: [

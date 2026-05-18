@@ -5,15 +5,29 @@ import Image from "next/image";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 import { Button } from "@/components/ui/button";
 import { SlideInLeft, SlideInRight } from "@/components/motion";
-
-const stats = [
-  { value: "3", label: "Private suites — intentionally" },
-  { value: "24/7", label: "On-site presence, no exceptions" },
-  { value: "100%", label: "Owner-led care, every stay" },
-];
+import {
+  getConfiguredSuiteCount,
+  getTotalConfiguredSuiteCapacity,
+} from "@/lib/site/service-tiers";
 
 export function MeetOwner() {
-  const { websiteProfile } = useSiteSettings();
+  const { serviceSettings, websiteProfile } = useSiteSettings();
+  const activeSuiteCount = getConfiguredSuiteCount(serviceSettings.serviceTiers);
+  const totalCapacity = getTotalConfiguredSuiteCapacity(serviceSettings.serviceTiers);
+  const stats = [
+    {
+      value: activeSuiteCount > 0 ? String(activeSuiteCount) : "Live",
+      label: "Suite options configured in admin",
+    },
+    {
+      value: totalCapacity > 0 ? String(totalCapacity) : "24/7",
+      label:
+        totalCapacity > 0
+          ? "Total guest spots, intentionally limited"
+          : "On-site presence, no exceptions",
+    },
+    { value: "100%", label: "Owner-led care, every stay" },
+  ];
 
   return (
     <section
@@ -63,7 +77,8 @@ export function MeetOwner() {
                   trust that my dog would be treated like family — not a number.
                 </p>
                 <p>
-                  So I built it. We keep a maximum of three guests at any time,
+                  So I built it. We keep capacity intentionally limited and plan
+                  every stay around the live suite settings you see on the site,
                   which means I know every dog by name, routine, and quirk. I
                   never leave the property. I send updates because I genuinely
                   want you to feel good while you&apos;re away.

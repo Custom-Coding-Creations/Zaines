@@ -193,7 +193,7 @@ export const websiteSettingsDefaults: WebsiteSettingsFormValues = {
   websiteProfileSettings: {
     siteUrl: 'https://zainesstayandplay.com',
     siteDescription:
-      'Private, small-capacity dog boarding in Syracuse with owner-on-site care, three suites, and safety-first updates.',
+      'Private, small-capacity dog boarding in Syracuse with owner-on-site care, limited suite availability, and safety-first updates.',
     ogImageUrl: 'https://zainesstayandplay.com/og-default.svg',
     ownerImageUrl: 'https://zainesstayandplay.com/images/owner-placeholder.svg',
     logoImageUrl: 'https://zainesstayandplay.com/logo.svg',
@@ -216,7 +216,7 @@ export const websiteSettingsDefaults: WebsiteSettingsFormValues = {
     privacySecurityDisclosure:
       "Payment details are processed by Stripe; Zaine's Stay & Play does not store card numbers on our servers. We use access controls and secure transmission for booking, account, pet health, and message data.",
     trustEvidenceClaim:
-      'Only 3 private suites, owner onsite, camera-monitored safety, no harsh chemicals, and same-family dogs can stay together when approved.',
+      'Limited private suites, owner onsite, camera-monitored safety, no harsh chemicals, and same-family dogs can stay together when approved.',
   },
 };
 

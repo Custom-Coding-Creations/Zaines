@@ -2,7 +2,7 @@ import { siteConfig } from "@/config/site";
 
 export const seoBaseUrl = siteConfig.url.replace(/\/$/, "");
 
-export type LocalGrowthPage = {
+      "Because Zaine's operates with limited private-suite capacity, families should book as soon as travel dates are likely. The booking flow shows availability before confirmation.",
   slug: string;
   route: string;
   city: string;
@@ -31,9 +31,9 @@ export const localGrowthPages = [
     route: syracusePillarRoute,
     city: "Syracuse",
     region: "NY",
-    title: "Dog Boarding Syracuse NY | Private 3-Suite Care",
+    title: "Dog Boarding Syracuse NY | Private Limited-Capacity Care",
     metaDescription:
-      "Syracuse dog boarding with private three-suite capacity, owner-on-site routines, clear pricing, and booking support for local families.",
+      "Syracuse dog boarding with private limited capacity, owner-on-site routines, clear pricing, and booking support for local families.",
     h1: "Private Dog Boarding in Syracuse, NY",
     eyebrow: "Syracuse local boarding",
     primaryKeyword: "dog boarding Syracuse NY",
@@ -45,7 +45,7 @@ export const localGrowthPages = [
     ],
     nearbyAreas: ["Eastwood", "Westcott", "Strathmore", "University Hill"],
     proofPoints: [
-      "Only three private suites for focused care",
+      "Limited private suites for focused care",
       "Owner-on-site supervision and calm routines",
       "Vaccination records reviewed before confirmation",
       "Pricing is shown before you confirm",
@@ -53,7 +53,7 @@ export const localGrowthPages = [
     intro:
       "Zaine's Stay & Play is built for Syracuse families who want a quieter alternative to high-volume kennels. Guests stay in a small-capacity environment with predictable routines, safety-first intake, and clear communication from booking through pickup.",
     bookingAngle:
-      "Start with your dates, compare suite pricing, and reserve before the limited three-suite calendar fills.",
+      "Start with your dates, compare suite pricing, and reserve before the limited-capacity calendar fills.",
     priority: 0.95,
     serviceType: "boarding",
   },
@@ -69,7 +69,7 @@ export const localGrowthPages = [
     eyebrow: "Syracuse daycare",
     primaryKeyword: "dog daycare Syracuse NY",
     secondaryKeywords: [
-      "doggy daycare Syracuse",
+      "dog day care Syracuse",
       "supervised dog play Syracuse",
       "daycare Syracuse NY",
       "Syracuse dog daycare prices",
@@ -166,7 +166,7 @@ export const localGrowthPages = [
     ],
     nearbyAreas: ["North Syracuse", "Clay", "Bridgeport", "Brewerton"],
     proofPoints: [
-      "Three-suite model designed for lower-stress stays",
+      "Limited-capacity model designed for lower-stress stays",
       "Camera-monitored safety routines",
       "Required vaccine review before confirmed care",
       "No surprise add-ons after your pre-confirmation quote",
@@ -225,7 +225,7 @@ export const localGrowthPages = [
     nearbyAreas: ["DeWitt", "Manlius", "Minoa", "Jamesville"],
     proofPoints: [
       "Calm routines for dogs who do better with structure",
-      "Three-suite capacity for more focused attention",
+      "Limited capacity for more focused attention",
       "Transparent pricing before confirmation",
       "Easy booking path from local intent to reservation",
     ],
@@ -364,7 +364,7 @@ export const localFaqs = [
   {
     question: "How far ahead should Syracuse-area families book boarding?",
     answer:
-      "Because Zaine's operates with only three private suites, families should book as soon as travel dates are likely. The booking flow shows availability before confirmation.",
+      "Because Zaine's operates with limited private-suite capacity, families should book as soon as travel dates are likely. The booking flow shows availability before confirmation.",
   },
   {
     question: "Can I see pricing before I reserve?",

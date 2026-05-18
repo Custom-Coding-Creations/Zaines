@@ -5,9 +5,15 @@ import { Button } from "@/components/ui/button";
 import { FadeUp } from "@/components/motion";
 import { Phone } from "lucide-react";
 import { useSiteSettings } from "@/hooks/use-site-settings";
+import {
+  getConfiguredSuiteCount,
+  getTotalConfiguredSuiteCapacity,
+} from "@/lib/site/service-tiers";
 
 export function BookingCTA() {
-  const { contactInfo, trustCopy } = useSiteSettings();
+  const { contactInfo, serviceSettings, trustCopy } = useSiteSettings();
+  const activeSuiteCount = getConfiguredSuiteCount(serviceSettings.serviceTiers);
+  const totalCapacity = getTotalConfiguredSuiteCapacity(serviceSettings.serviceTiers);
 
   return (
     <section
@@ -39,16 +45,17 @@ export function BookingCTA() {
               id="booking-cta-heading"
               className="font-display text-4xl md:text-6xl font-semibold text-primary-foreground leading-tight mb-6 text-balance"
             >
-              Only 3 Suites.
+              Limited Capacity.
               <br />
-              Book Early.
+              Reserve Early.
             </h2>
           </FadeUp>
 
           <FadeUp delay={0.2}>
             <p className="text-xl text-primary-foreground/80 leading-relaxed mb-10 font-light max-w-xl mx-auto">
-              Our limited capacity means we fill up quickly, especially around
-              holidays. Check availability now — no payment required to start.
+              {activeSuiteCount > 0
+                ? `Current admin settings show ${activeSuiteCount} suite options${totalCapacity > 0 ? ` and ${totalCapacity} total guest spots` : ""}. Availability can tighten quickly around travel dates.`
+                : "Availability can tighten quickly around travel dates. Check your dates now with no payment required to start."}
             </p>
           </FadeUp>
 

@@ -6,17 +6,24 @@ import { CheckCircle2, HelpCircle } from "lucide-react";
 import { FadeUp, ScaleIn } from "@/components/motion";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 import { PRICING_TRUST_DISCLOSURE } from "@/config/trust-copy";
+import { getActiveSuiteTiers } from "@/lib/site/service-tiers";
 
 // Pricing policy contract required for Issue #31 CP1 compliance
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const PRICING_POLICY_COPY_CONTRACT = PRICING_TRUST_DISCLOSURE;
 
 export default function PricingPage() {
-  const { serviceSettings, addOnsSettings, pricingSettings } = useSiteSettings();
+  const {
+    addOnsSettings,
+    availabilityRules,
+    cancellationPolicySettings,
+    pricingSettings,
+    requiredVaccineSettings,
+    serviceSettings,
+    trustCopy,
+  } = useSiteSettings();
 
-  const activeTiers = serviceSettings.serviceTiers
-    .filter((tier) => tier.isActive)
-    .sort((a, b) => a.displayOrder - b.displayOrder);
+  const activeTiers = getActiveSuiteTiers(serviceSettings.serviceTiers);
 
   const activeAddOns = addOnsSettings.addOns
     .filter((addOn) => addOn.isActive);
@@ -27,26 +34,35 @@ export default function PricingPage() {
     maximumFractionDigits: 0,
   });
 
+  const tierSummary = activeTiers
+    .map((tier) => `${tier.name} from ${formatter.format(tier.baseNightlyRate)}/night`)
+    .join(", ");
+
   const faqs = [
     {
-      question: "Do I need to commit to a membership?",
+      question: "How is my total calculated?",
       answer:
-        "No! All our options are drop-in friendly. Memberships are optional for families who want the best value.",
+        trustCopy.pricingDisclosure,
     },
     {
-      question: "What if my dog doesn't like group play?",
+      question: "How long can my dog stay?",
       answer:
-        "We do a free temperament screening first. If your dog prefers solo play, we'll create a custom plan with individual activities.",
+        `Bookings currently require at least ${availabilityRules.minNightsPerBooking} night and can extend up to ${availabilityRules.maxNightsPerBooking} nights within the booking window.`,
     },
     {
-      question: "Are meals included?",
+      question: "Are multi-pet discounts available?",
       answer:
-        "You can bring your dog's food or we can provide it at no extra charge. Just let us know your pup's dietary needs.",
+        `Yes. Two pets receive ${pricingSettings.twoPetDiscountPercent}% off and three or more pets receive ${pricingSettings.threePlusPetsDiscountPercent}% off when those discounts apply to your quote.`,
     },
     {
       question: "What's your cancellation policy?",
       answer:
-        "Cancel up to 24 hours before for a full refund. We understand plans change!",
+        `Full refunds are available up to ${cancellationPolicySettings.fullRefundHours} hours before check-in. Cancellations within ${cancellationPolicySettings.partialRefundHours} hours receive ${cancellationPolicySettings.partialRefundPercent}% back, and no-shows receive ${cancellationPolicySettings.noShowRefundPercent}% back.`,
+    },
+    {
+      question: "Which vaccines are required before booking?",
+      answer:
+        `Current requirements are ${requiredVaccineSettings.requiredVaccines.join(", ")}. ${requiredVaccineSettings.blockBookingsOnExpiredVaccines ? "Expired vaccines block booking confirmation until records are updated." : "Records are reviewed before confirmation."}`,
     },
   ];
 
@@ -79,11 +95,10 @@ export default function PricingPage() {
                 </span>
               </h1>
               <p className="mb-2 text-lg leading-relaxed text-white/90 md:text-xl">
-                Choose the option that works best for you and your pup!
+                Nightly rates and add-ons below are pulled directly from the live admin configuration.
               </p>
               <p className="text-base text-white/75">
-                No contracts. No hidden fees. Just happy dogs and transparent
-                pricing.
+                Compare current suite options, review optional care items, and see the same pricing model used at checkout.
               </p>
             </div>
           </FadeUp>
@@ -105,14 +120,13 @@ export default function PricingPage() {
           <FadeUp>
             <div className="mb-12 text-center">
               <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-primary">
-                Daycare Options
+                Suite Rates
               </p>
               <h2 className="font-display mb-4 text-3xl font-bold text-foreground md:text-4xl">
-                Choose What Works for You
+                Compare Your Stay Options
               </h2>
               <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                From occasional playdays to full-time care, we've got options
-                for every schedule.
+                {tierSummary || "Nightly suite rates are managed in the admin dashboard and reflected here automatically."}
               </p>
             </div>
           </FadeUp>
@@ -178,7 +192,7 @@ export default function PricingPage() {
       </section>
 
       {/* Add-Ons Section */}
-      <section className="section-padding bg-accent/30">
+      <section id="add-ons" className="section-padding bg-accent/30">
         <div className="container mx-auto px-4">
           <FadeUp>
             <div className="mb-12 text-center">
@@ -186,11 +200,10 @@ export default function PricingPage() {
                 Optional Extras
               </p>
               <h2 className="font-display mb-4 text-3xl font-bold text-foreground md:text-4xl">
-                Pamper Your Pup
+                Optional Add-Ons
               </h2>
               <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                Add grooming, special treats, or celebration packages to make
-                their day extra special.
+                Add only the care items you want. The same add-ons shown here are available in the booking flow.
               </p>
             </div>
           </FadeUp>
@@ -282,9 +295,9 @@ export default function PricingPage() {
         <div className="container relative z-10 mx-auto px-4 text-center">
           <FadeUp>
             <h2 className="font-display mb-6 text-3xl font-bold text-white md:text-4xl lg:text-5xl">
-              Ready to Book Your Dog's{" "}
+              Ready to Reserve Your Dog's{" "}
               <span className="relative inline-block">
-                First Playday?
+                Stay?
                 <svg
                   className="absolute -right-4 -top-3 h-8 w-8 text-yellow-300 opacity-80"
                   viewBox="0 0 24 24"
@@ -296,8 +309,7 @@ export default function PricingPage() {
               </span>
             </h2>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-white/90">
-              Start with a free meet & greet to make sure your pup is a good fit
-              for our pack!
+              Start your booking to see live availability, pricing, taxes, and selected add-ons before payment.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button
@@ -313,7 +325,7 @@ export default function PricingPage() {
                   <span className="mr-2 text-xl" aria-hidden="true">
                     🐾
                   </span>
-                  Book a Playday
+                  Check Availability
                 </Link>
               </Button>
               <Button

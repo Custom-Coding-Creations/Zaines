@@ -34,7 +34,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: "Book a Stay",
     href: "/book",
     icon: Calendar,
-    description: "Reserve your pup's next playday",
+    description: "Reserve your pup's next stay",
     color: "bg-primary/10 text-primary hover:bg-primary/20",
   },
   {

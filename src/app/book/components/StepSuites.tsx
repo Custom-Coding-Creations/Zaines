@@ -31,6 +31,11 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getSmartRecommendations, getBundleSavingsMessage } from "@/lib/booking/smart-recommendations";
 import { ScaleIn } from "@/components/motion";
+import { useSiteSettings } from "@/hooks/use-site-settings";
+import {
+  getActiveCanonicalSuiteEntries,
+  type CanonicalSuiteTier,
+} from "@/lib/site/service-tiers";
 
 interface StepSuitesProps {
   data: Partial<StepSuitesData>;
@@ -41,81 +46,6 @@ interface StepSuitesProps {
   nights?: number; // From dates step for pricing calculation
 }
 
-// Suite tier options (hardcoded, can be moved to API later)
-const SUITES = [
-  {
-    value: "standard" as const,
-    label: "Standard Suite",
-    pricePerNight: 65,
-    size: "6x8 ft",
-    amenities: ["Raised bed", "Daily feeding", "Twice daily walks"],
-    icon: Home,
-  },
-  {
-    value: "deluxe" as const,
-    label: "Deluxe Suite",
-    pricePerNight: 85,
-    size: "8x10 ft",
-    amenities: [
-      "Raised bed",
-      "TV with DogTV",
-      "Webcam access",
-      "Three daily walks",
-    ],
-    icon: Tv,
-    badge: "Most Popular",
-  },
-  {
-    value: "luxury" as const,
-    label: "Luxury Suite",
-    pricePerNight: 120,
-    size: "10x12 ft",
-    amenities: [
-      "Private patio",
-      "HD webcam",
-      "Orthopedic bed",
-      "24/7 monitoring",
-      "Four daily walks",
-    ],
-    icon: Camera,
-    badge: "Premium",
-  },
-];
-
-// Add-on options
-const ADD_ONS = [
-  {
-    id: "extra-walk",
-    name: "Extra Walk",
-    description: "Additional 15-minute walk",
-    price: 10,
-  },
-  {
-    id: "playtime",
-    name: "Extended Playtime",
-    description: "30 minutes of one-on-one playtime",
-    price: 15,
-  },
-  {
-    id: "comfort-care",
-    name: "Comfort Care Package",
-    description: "Extra bedding refresh and end-of-stay cleanup",
-    price: 25,
-  },
-  {
-    id: "nail-trim",
-    name: "Nail Trim",
-    description: "Professional nail trimming",
-    price: 15,
-  },
-  {
-    id: "medication",
-    name: "Medication Administration",
-    description: "Per medication, per day",
-    price: 5,
-  },
-];
-
 export function StepSuites({
   data,
   onUpdate,
@@ -125,8 +55,59 @@ export function StepSuites({
   nights = 1,
 }: StepSuitesProps) {
   const [, startTransition] = useTransition();
+  const { addOnsSettings, pricingSettings, serviceSettings } = useSiteSettings();
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>(
     data.addOns?.map((a) => a.id) || [],
+  );
+
+  const formatter = useMemo(
+    () =>
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: pricingSettings.currency || "USD",
+        maximumFractionDigits: 0,
+      }),
+    [pricingSettings.currency],
+  );
+
+  const suites = useMemo(() => {
+    const iconByKey: Record<CanonicalSuiteTier, typeof Home> = {
+      standard: Home,
+      deluxe: Tv,
+      luxury: Camera,
+    };
+
+    return getActiveCanonicalSuiteEntries(serviceSettings.serviceTiers).map(
+      ({ key, tier }, index) => ({
+        value: key,
+        label: tier.name,
+        pricePerNight: tier.baseNightlyRate,
+        size:
+          tier.capacity && tier.capacity > 0
+            ? `${tier.capacity} guest spot${tier.capacity === 1 ? "" : "s"}`
+            : "Private suite",
+        amenities: [
+          tier.description,
+          tier.capacity && tier.capacity > 0
+            ? `${tier.capacity} configured guest spot${tier.capacity === 1 ? "" : "s"}`
+            : "Configured in admin settings",
+        ],
+        icon: iconByKey[key],
+        badge:
+          index === 1 ? "Most Popular" : key === "luxury" ? "Premium" : undefined,
+      }),
+    );
+  }, [serviceSettings.serviceTiers]);
+
+  const addOns = useMemo(
+    () =>
+      addOnsSettings.addOns.filter((addOn) => addOn.isActive).map((addOn) => ({
+        id: addOn.id,
+        name: addOn.name,
+        description: addOn.description,
+        price: addOn.price,
+      })),
+    [addOnsSettings.addOns],
   );
 
   // Smart recommendations based on context
@@ -137,16 +118,16 @@ export function StepSuites({
         nights,
         petCount: 1, // Could be passed from dates step
       },
-      ADD_ONS
+      addOns
     );
-  }, [data.suiteType, nights]);
+  }, [addOns, data.suiteType, nights]);
 
   // Bundle savings message
   const savingsMessage = useMemo(() => {
     return getBundleSavingsMessage(selectedAddOns, nights);
   }, [selectedAddOns, nights]);
 
-  const handleSuiteSelect = (suiteValue: "standard" | "deluxe" | "luxury") => {
+  const handleSuiteSelect = (suiteValue: CanonicalSuiteTier) => {
     // Defer the parent state update so the selected style paints first
     startTransition(() => {
       onUpdate({ suiteType: suiteValue });
@@ -172,12 +153,12 @@ export function StepSuites({
   const calculateTotal = () => {
     if (!data.suiteType) return 0;
 
-    const suite = SUITES.find((s) => s.value === data.suiteType);
+    const suite = suites.find((s) => s.value === data.suiteType);
     if (!suite) return 0;
 
     const suiteTotal = suite.pricePerNight * nights;
     const addOnsTotal = selectedAddOns.reduce((sum, addOnId) => {
-      const addOn = ADD_ONS.find((a) => a.id === addOnId);
+      const addOn = addOns.find((a) => a.id === addOnId);
       return sum + (addOn?.price || 0);
     }, 0);
 
@@ -213,11 +194,19 @@ export function StepSuites({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {suites.length === 0 ? (
+          <Alert>
+            <AlertDescription>
+              No active suite options are currently configured. Please contact support before continuing.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
         {/* Suite Selection */}
         <div className="space-y-3">
           <Label>Suite Type *</Label>
           <div className="grid gap-3 sm:grid-cols-3">
-            {SUITES.map((suite) => {
+            {suites.map((suite) => {
               const Icon = suite.icon;
               const isSelected = data.suiteType === suite.value;
 
@@ -255,7 +244,7 @@ export function StepSuites({
                   <div className="mb-2">
                     <div className="font-semibold">{suite.label}</div>
                     <div className="text-lg font-bold text-primary">
-                      ${suite.pricePerNight}/night
+                      {formatter.format(suite.pricePerNight)}/night
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {suite.size}
@@ -285,7 +274,7 @@ export function StepSuites({
             are applied automatically.
           </p>
           <div className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-4">
-            {ADD_ONS.map((addOn) => {
+            {addOns.length > 0 ? addOns.map((addOn) => {
               const isChecked = selectedAddOns.includes(addOn.id);
 
               return (
@@ -307,7 +296,7 @@ export function StepSuites({
                     >
                       <span>{addOn.name}</span>
                       <span className="font-semibold text-primary">
-                        ${addOn.price}
+                        {formatter.format(addOn.price)}
                       </span>
                     </Label>
                     <p className="text-sm text-muted-foreground">
@@ -316,7 +305,11 @@ export function StepSuites({
                   </div>
                 </div>
               );
-            })}
+            }) : (
+              <p className="text-sm text-muted-foreground">
+                No add-ons are currently active. Your booking will include just the selected suite unless new options are configured.
+              </p>
+            )}
           </div>
         </div>
 

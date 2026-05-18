@@ -226,7 +226,7 @@ export default function GalleryPage() {
                     <span className="mr-2 text-xl" aria-hidden="true">
                       🐾
                     </span>
-                    Book a Playday
+                    Check Availability
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline">

@@ -1,7 +1,7 @@
 export const siteConfig = {
   name: "Zaine's Stay & Play",
   description:
-    "Fun, safe doggy daycare in Syracuse, NY with supervised play, enrichment activities, and tail-wagging care for your best friend.",
+    "Private, small-capacity dog boarding in Syracuse, NY with configurable suites, transparent pricing, and owner-led care.",
   url: "https://zainesstayandplay.com",
   ogImage: "https://zainesstayandplay.com/og-default.svg",
   links: {
@@ -56,8 +56,8 @@ export const navItems: NavItem[] = [
     href: "/about",
   },
   {
-    title: "Services",
-    href: "/services/daycare",
+    title: "Suites",
+    href: "/suites",
   },
   {
     title: "Pricing",

@@ -5,14 +5,23 @@ import Link from "next/link";
 import { FadeUp } from "@/components/motion";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Loader2, Timer } from "lucide-react";
+import { useSiteSettings } from "@/hooks/use-site-settings";
 import { safeJsonResponse } from "@/lib/safe-json-response";
+import {
+  getActiveCanonicalSuiteEntries,
+  getConfiguredSuiteCount,
+  getTotalConfiguredSuiteCapacity,
+  type CanonicalSuiteTier,
+} from "@/lib/site/service-tiers";
 
 type AvailabilityPayload = {
-  availability: {
-    standard: number;
-    deluxe: number;
-    luxury: number;
-  };
+  availability: Record<CanonicalSuiteTier, number>;
+};
+
+const defaultAvailability: Record<CanonicalSuiteTier, number> = {
+  standard: 0,
+  deluxe: 0,
+  luxury: 0,
 };
 
 function isoDate(daysFromToday: number) {
@@ -22,9 +31,13 @@ function isoDate(daysFromToday: number) {
 }
 
 export function LiveAvailabilityTeaser() {
+  const { serviceSettings } = useSiteSettings();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [availability, setAvailability] = useState<AvailabilityPayload["availability"] | null>(null);
+  const activeSuiteEntries = getActiveCanonicalSuiteEntries(serviceSettings.serviceTiers);
+  const totalCapacity = getTotalConfiguredSuiteCapacity(serviceSettings.serviceTiers);
+  const suiteOptionCount = getConfiguredSuiteCount(serviceSettings.serviceTiers);
 
   const checkIn = useMemo(() => isoDate(7), []);
   const checkOut = useMemo(() => isoDate(9), []);
@@ -48,7 +61,7 @@ export function LiveAvailabilityTeaser() {
         }
 
         const payload = await safeJsonResponse<AvailabilityPayload>(response, {
-          availability: { standard: 0, deluxe: 0, luxury: 0 },
+          availability: defaultAvailability,
         });
         setAvailability(payload.availability);
       } catch {
@@ -107,26 +120,20 @@ export function LiveAvailabilityTeaser() {
               ) : null}
 
               {!loading && !error && hasData ? (
-                <>
-                  <div className="rounded-xl border border-border bg-card p-4">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Standard</p>
-                    <p className="mt-2 text-2xl font-semibold text-foreground">{availability.standard} spots</p>
+                activeSuiteEntries.map(({ key, tier }) => (
+                  <div key={tier.id} className="rounded-xl border border-border bg-card p-4">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{tier.name}</p>
+                    <p className="mt-2 text-2xl font-semibold text-foreground">{availability[key]} spots</p>
                   </div>
-                  <div className="rounded-xl border border-border bg-card p-4">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Deluxe</p>
-                    <p className="mt-2 text-2xl font-semibold text-foreground">{availability.deluxe} spots</p>
-                  </div>
-                  <div className="rounded-xl border border-border bg-card p-4">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Luxury</p>
-                    <p className="mt-2 text-2xl font-semibold text-foreground">{availability.luxury} spots</p>
-                  </div>
-                </>
+                ))
               ) : null}
             </div>
 
             <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
               <Timer className="h-3.5 w-3.5" aria-hidden="true" />
-              Small-capacity operation with only 3 private suites. Early booking is recommended.
+              {suiteOptionCount > 0
+                ? `Live suite inventory is synced to ${suiteOptionCount} configured options${totalCapacity > 0 ? ` and ${totalCapacity} total guest spots` : ""}. Early booking is recommended.`
+                : "Availability is synced to the current admin-configured suite inventory. Early booking is recommended."}
             </div>
           </div>
         </FadeUp>

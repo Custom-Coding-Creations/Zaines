@@ -13,6 +13,18 @@ vi.mock("@/lib/prisma", () => ({
   isDatabaseConfigured: vi.fn(),
 }));
 
+vi.mock("@/lib/api/admin-settings", () => ({
+  getAdminSettings: vi.fn(async () => ({
+    serviceSettings: {
+      serviceTiers: [
+        { id: "standard-suite", name: "Standard Suite", capacity: 3, isActive: true, displayOrder: 1 },
+        { id: "deluxe-suite", name: "Deluxe Suite", capacity: 2, isActive: true, displayOrder: 2 },
+        { id: "luxury-suite", name: "Luxury Suite", capacity: 1, isActive: true, displayOrder: 3 },
+      ],
+    },
+  })),
+}));
+
 describe("GET /api/availability", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -98,9 +110,9 @@ describe("GET /api/availability", () => {
     expect(data).toHaveProperty("checkOut", "2026-03-05");
     expect(data).toHaveProperty("availability");
     expect(data.availability).toEqual({
-      standard: 10,
-      deluxe: 8,
-      luxury: 5,
+      standard: 3,
+      deluxe: 2,
+      luxury: 1,
     });
     expect(data).toHaveProperty("isAvailable", true);
   });
@@ -150,9 +162,9 @@ describe("GET /api/availability", () => {
 
     expect(response.status).toBe(200);
     expect(data.availability).toEqual({
-      standard: 9,
-      deluxe: 8,
-      luxury: 5,
+      standard: 2,
+      deluxe: 2,
+      luxury: 1,
     });
   });
 
@@ -183,9 +195,9 @@ describe("GET /api/availability", () => {
 
     expect(response.status).toBe(200);
     expect(data.availability).toEqual({
-      standard: 8, // 10 - 2
-      deluxe: 7, // 8 - 1
-      luxury: 5, // 5 - 0
+      standard: 1,
+      deluxe: 1,
+      luxury: 1,
     });
   });
 

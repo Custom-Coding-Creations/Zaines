@@ -24,6 +24,7 @@ import {
 import { FadeUp, StaggerContainer, StaggerItem } from "@/components/motion";
 import { simplePageMetadataFromSettings } from "@/lib/seo-page-metadata";
 import { getAdminSettings } from "@/lib/api/admin-settings";
+import { getConfiguredSuiteCount, getTotalConfiguredSuiteCapacity } from "@/lib/site/service-tiers";
 
 // Metadata - note: using 'use client' requires export at module level if needed
 export async function generateMetadata(): Promise<Metadata> {
@@ -136,6 +137,8 @@ const amenities = [
 
 export default async function SuitesPage() {
   const settings = await getAdminSettings();
+  const configuredSuiteCount = getConfiguredSuiteCount(settings.serviceSettings.serviceTiers);
+  const totalCapacity = getTotalConfiguredSuiteCapacity(settings.serviceSettings.serviceTiers);
   
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -356,10 +359,12 @@ export default async function SuitesPage() {
         <section className="bg-gradient-to-r from-primary/90 to-primary py-16 md:py-24 text-primary-foreground">
           <div className="container mx-auto px-4 text-center">
             <h2 className="mb-4 font-display text-3xl md:text-4xl font-semibold">
-              Only 3 Suites — Book Early
+              Limited Capacity — Reserve Early
             </h2>
             <p className="mb-8 text-lg opacity-90 max-w-2xl mx-auto">
-              Zaine&apos;s maintains an intentionally small capacity to ensure your dog receives the personalized attention they deserve. Availability fills quickly during peak seasons.
+              {configuredSuiteCount > 0
+                ? `Zaine's currently offers ${configuredSuiteCount} configured suite option${configuredSuiteCount === 1 ? '' : 's'}${totalCapacity > 0 ? ` with ${totalCapacity} total guest spots` : ''}. Availability fills quickly during peak seasons.`
+                : "Zaine's maintains an intentionally small capacity so each guest receives personalized attention. Availability fills quickly during peak seasons."}
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button

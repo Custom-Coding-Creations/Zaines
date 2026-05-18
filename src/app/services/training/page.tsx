@@ -48,7 +48,7 @@ export default function TrainingPage() {
                 </span>
               </h1>
               <p className="mb-8 text-lg leading-relaxed text-white/90 md:text-xl">
-                Keep your pup's mind sharp and tail wagging with fun mental and physical challenges included in every daycare visit!
+                Keep your pup's mind sharp and tail wagging with fun mental and physical challenges that complement a calm, attentive stay.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Button
@@ -64,7 +64,7 @@ export default function TrainingPage() {
                     <span className="mr-2 text-xl" aria-hidden="true">
                       🐾
                     </span>
-                    Book a Playday
+                    Check Availability
                   </Link>
                 </Button>
                 <Button
@@ -73,7 +73,7 @@ export default function TrainingPage() {
                   variant="outline"
                   className="font-semibold text-base border-2 border-white bg-white/10 text-white backdrop-blur-sm hover:bg-white hover:text-primary"
                 >
-                  <Link href="/services/daycare">About Daycare</Link>
+                  <Link href="/pricing#add-ons">View Add-Ons</Link>
                 </Button>
               </div>
             </div>
@@ -102,7 +102,7 @@ export default function TrainingPage() {
                 Brain & Body Challenges
               </h2>
               <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                Included in every daycare visit — no extra charge!
+                Enrichment can be paired with stays when those care options are active in the admin dashboard.
               </p>
             </div>
           </FadeUp>
@@ -184,7 +184,7 @@ export default function TrainingPage() {
               Enrichment Included Every Day!
             </h2>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-white/90">
-              Every daycare visit includes mental and physical enrichment activities — no extra charge, just happy, tired pups!
+              Review current care options and start booking when you're ready.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button
@@ -200,7 +200,7 @@ export default function TrainingPage() {
                   <span className="mr-2 text-xl" aria-hidden="true">
                     🐾
                   </span>
-                  Book a Playday
+                    Check Availability
                 </Link>
               </Button>
               <Button

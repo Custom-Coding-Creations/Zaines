@@ -48,7 +48,7 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
               height="60"
               style={logo}
             />
-            <Text style={tagline}>Syracuse's Happiest Doggy Daycare 🐾</Text>
+            <Text style={tagline}>Private Dog Boarding & Care in Syracuse 🐾</Text>
           </Section>
 
           {/* Main Content */}

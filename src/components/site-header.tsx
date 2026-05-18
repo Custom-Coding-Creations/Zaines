@@ -58,7 +58,7 @@ export function SiteHeader() {
               {businessName || "Zaine's Stay & Play"}
             </span>
             <span className="text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">
-              Doggy Daycare
+              Private Dog Boarding
             </span>
           </div>
         </Link>
@@ -102,7 +102,7 @@ export function SiteHeader() {
             }}
           >
             <span className="mr-1.5" aria-hidden="true">🐾</span>
-            Book a Playday
+            Check Availability
           </Link>
           {showAdminCamera ? <AdminCameraCapture /> : null}
           <UserNav />

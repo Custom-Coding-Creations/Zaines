@@ -360,9 +360,9 @@ function BookPageContent() {
         <div className="paw-card mx-auto mb-8 max-w-5xl p-6 md:p-8">
           <div className="mb-6 text-center">
             <p className="mb-3 inline-flex items-center rounded-full border border-[oklch(0.78_0.13_208)] bg-[oklch(0.93_0.04_212)] px-3 py-1 text-xs font-semibold tracking-wide text-[oklch(0.78_0.13_208)]">
-              🐾 Book a Playday
+              🐾 Reserve a Stay
             </p>
-            <h1 className="heading-playful mb-2 text-4xl md:text-5xl">Reserve Your Pup's Day of Fun</h1>
+            <h1 className="heading-playful mb-2 text-4xl md:text-5xl">Reserve Your Pup's Stay</h1>
             <p className="text-lg text-muted-foreground">
               A guided, step-by-step booking path with transparent pricing before confirmation.
             </p>

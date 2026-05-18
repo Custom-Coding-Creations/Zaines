@@ -2,7 +2,7 @@ export const TRUST_PROFILE_EVIDENCE = {
   source:
     ".github/.system-state/model/business_owner_profile.zaine.yaml updated 2026-02-27",
   businessModel: "home-based private dog boarding in Syracuse, NY",
-  capacity: "only 3 private suites",
+  capacity: "limited private suites",
   ownerPresence: "owner onsite",
   safetyMonitoring: "camera-monitored safety",
   cleaningStandard: "no harsh chemicals",
@@ -10,7 +10,7 @@ export const TRUST_PROFILE_EVIDENCE = {
 } as const;
 
 export const TRUST_EVIDENCE_CLAIM =
-  "Only 3 private suites, owner onsite, camera-monitored safety, no harsh chemicals, and same-family dogs can stay together when approved.";
+  "Limited private suites, owner onsite, camera-monitored safety, no harsh chemicals, and same-family dogs can stay together when approved.";
 
 export const PRICING_TRUST_DISCLOSURE =
   "Premium but fair pricing includes clear subtotal, applicable tax, selected care items, and total shown before confirmation. No hidden fees, no surprise add-ons, or other undisclosed charges are introduced at checkout.";

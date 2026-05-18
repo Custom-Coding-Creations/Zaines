@@ -37,7 +37,7 @@ describe("Issue #64 trust and safety evidence layer", () => {
     expect(TRUST_PROFILE_EVIDENCE.source).toContain(
       "business_owner_profile.zaine.yaml",
     );
-    expect(TRUST_EVIDENCE_CLAIM).toContain("Only 3 private suites");
+    expect(TRUST_EVIDENCE_CLAIM.toLowerCase()).toContain("private suites");
     expect(TRUST_EVIDENCE_CLAIM).toContain("owner onsite");
     expect(TRUST_EVIDENCE_CLAIM).toContain("camera-monitored safety");
     expect(TRUST_EVIDENCE_CLAIM).toContain("no harsh chemicals");
@@ -76,6 +76,7 @@ describe("Issue #64 trust and safety evidence layer", () => {
       medicalAuthorizationAccepted: true,
       photoReleaseAccepted: true,
       policyAcknowledgmentAccepted: true,
+      reuseExistingWaivers: false,
       signature: "data:image/png;base64,signature",
       timestamp: new Date("2026-05-05T00:00:00.000Z"),
     } as const;

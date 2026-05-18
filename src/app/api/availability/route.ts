@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma, isDatabaseConfigured } from "@/lib/prisma";
+import { getAdminSettings } from "@/lib/api/admin-settings";
+import { getCanonicalCapacityMap } from "@/lib/site/service-tiers";
 import {
   errorResponse,
   getCorrelationId,
@@ -192,10 +194,15 @@ export async function GET(request: NextRequest) {
       {} as Record<string, number>,
     );
 
+    const settings = await getAdminSettings();
+    const configuredCapacities = getCanonicalCapacityMap(
+      settings.serviceSettings.serviceTiers,
+    );
+
     const capacity = {
-      STANDARD: 10,
-      DELUXE: 8,
-      LUXURY: 5,
+      STANDARD: configuredCapacities.standard ?? 0,
+      DELUXE: configuredCapacities.deluxe ?? 0,
+      LUXURY: configuredCapacities.luxury ?? 0,
     };
 
     // Calculate available suites

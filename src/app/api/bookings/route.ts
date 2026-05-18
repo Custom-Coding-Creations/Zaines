@@ -23,6 +23,7 @@ import {
 } from "@/lib/booking/package-redemption";
 import { ensureDefaultSuites } from "@/lib/booking/default-suites";
 import { getAdminSettings } from "@/lib/api/admin-settings";
+import { getCanonicalCapacityMap } from "@/lib/site/service-tiers";
 import {
   WAIVER_CONTENT_BY_TYPE,
   getAccountWaiverExpiry,
@@ -522,10 +523,13 @@ export async function POST(request: NextRequest) {
     const bookingNumber = `PB-${dateStr}-${randomNum}`;
 
     // Suite capacity configuration
+    const configuredCapacities = getCanonicalCapacityMap(
+      adminSettings.serviceSettings.serviceTiers,
+    );
     const capacity = {
-      standard: 10,
-      deluxe: 8,
-      luxury: 5,
+      standard: configuredCapacities.standard ?? 0,
+      deluxe: configuredCapacities.deluxe ?? 0,
+      luxury: configuredCapacities.luxury ?? 0,
     };
 
     // Log advisory lock acquisition

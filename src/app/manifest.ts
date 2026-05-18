@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Zaine's Stay & Play",
     short_name: "Zaine's Stay & Play",
     description:
-      'Fun, safe doggy daycare in Syracuse, NY with supervised play, enrichment activities, and tail-wagging care.',
+      'Private, small-capacity dog boarding in Syracuse, NY with owner-led care, transparent pricing, and daily updates.',
     start_url: '/',
     display: 'standalone',
     background_color: '#FFFDF5',

@@ -17,16 +17,16 @@ import { getAdminSettings } from "@/lib/api/admin-settings";
 
 export async function generateMetadata(): Promise<Metadata> {
   return simplePageMetadataFromSettings({
-    title: "Doggy Daycare Syracuse NY | Safe Supervised Play | Zaine's Stay & Play",
+    title: "Daily Care & Enrichment Syracuse NY | Zaine's Stay & Play",
     description:
-      "Premium doggy daycare in Syracuse with supervised play groups, enrichment activities, temperament screening, and photo updates. Full day and half day options available.",
+      "Owner-led daily care, enrichment, photo updates, and private-suite routines for dogs staying with Zaine's Stay & Play in Syracuse.",
     canonicalPath: "/services/daycare",
     keywords: [
-      "doggy daycare Syracuse",
-      "dog daycare Syracuse NY",
-      "supervised dog play",
-      "dog socialization",
-      "puppy daycare",
+      "dog care Syracuse",
+      "dog enrichment Syracuse",
+      "private dog boarding Syracuse",
+      "dog photo updates Syracuse",
+      "dog routines Syracuse",
     ],
   });
 }
@@ -85,9 +85,8 @@ export default async function DaycarePage() {
     maximumFractionDigits: 0,
   });
 
-  // Get active daycare-related service tiers from admin settings
-  const daycareTiers = settings.serviceSettings.serviceTiers
-    .filter((tier) => tier.isActive && tier.name.toLowerCase().includes("daycare"))
+  const careTiers = settings.serviceSettings.serviceTiers
+    .filter((tier) => tier.isActive)
     .sort((a, b) => a.displayOrder - b.displayOrder);
 
   return (
@@ -106,7 +105,7 @@ export default async function DaycarePage() {
             <FadeUp>
               <div className="text-white">
                 <h1 className="font-display mb-6 text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
-                  Doggy Daycare Done{" "}
+                  Daily Care Done{" "}
                   <span className="relative inline-block">
                     Right.
                     <svg
@@ -122,9 +121,9 @@ export default async function DaycarePage() {
                   </span>
                 </h1>
                 <p className="mb-8 max-w-xl text-lg leading-relaxed text-white/90">
-                  Supervised play groups, enrichment activities, rest breaks,
-                  and photo updates — all in a safe, clean, fun environment
-                  your dog will love.
+                  Owner-led routines, enrichment, rest breaks, and photo updates
+                  are built into every stay so your dog gets attentive care in a
+                  calm, private setting.
                 </p>
                 <div className="flex flex-wrap gap-4">
                   <Button
@@ -140,7 +139,7 @@ export default async function DaycarePage() {
                       <span className="mr-2 text-xl" aria-hidden="true">
                         🐾
                       </span>
-                      Book a Playday
+                      Check Availability
                     </Link>
                   </Button>
                   <Button
@@ -160,7 +159,7 @@ export default async function DaycarePage() {
               <div className="relative aspect-[4/3] overflow-hidden rounded-3xl shadow-2xl">
                 <Image
                   src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=800&h=600&fit=crop"
-                  alt="Dogs playing together at daycare"
+                  alt="Dog receiving attentive daily care"
                   fill
                   className="object-cover"
                   sizes="(max-width: 1024px) 100vw, 50vw"
@@ -186,14 +185,13 @@ export default async function DaycarePage() {
           <FadeUp>
             <div className="mb-12 text-center">
               <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-primary">
-                What's Included
+                Included in Every Stay
               </p>
               <h2 className="font-display mb-4 text-3xl font-bold text-foreground md:text-4xl">
-                Everything Your Dog Needs for a Great Day
+                Thoughtful Care Throughout the Day
               </h2>
               <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                We go beyond basic supervision to create an enriching, safe,
-                and fun daycare experience.
+                The same care model shown here supports the suite, pricing, and booking experiences across the site.
               </p>
             </div>
           </FadeUp>
@@ -230,23 +228,22 @@ export default async function DaycarePage() {
           <FadeUp>
             <div className="mb-12 text-center">
               <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-primary">
-                Simple Pricing
+                Current Stay Options
               </p>
               <h2 className="font-display mb-4 text-3xl font-bold text-foreground md:text-4xl">
-                Choose the Option That Works for You
+                Live Suite Rates
               </h2>
             </div>
           </FadeUp>
 
-          {daycareTiers.length > 0 ? (
+          {careTiers.length > 0 ? (
             <div className={`mx-auto grid max-w-5xl gap-6 ${
-              daycareTiers.length === 1 ? 'md:grid-cols-1 max-w-md' :
-              daycareTiers.length === 2 ? 'md:grid-cols-2' :
+              careTiers.length === 1 ? 'md:grid-cols-1 max-w-md' :
+              careTiers.length === 2 ? 'md:grid-cols-2' :
               'md:grid-cols-3'
             }`}>
-              {daycareTiers.map((tier, index) => {
-                // Determine if this tier should be marked as popular (middle tier or index 1)
-                const isPopular = daycareTiers.length > 1 && index === 1;
+              {careTiers.map((tier, index) => {
+                const isPopular = careTiers.length > 1 && index === 1;
                 
                 return (
                   <ScaleIn key={tier.id} delay={index * 0.1}>
@@ -300,7 +297,7 @@ export default async function DaycarePage() {
           ) : (
             <div className="text-center py-8">
               <p className="text-lg text-muted-foreground mb-4">
-                Daycare pricing options are being configured.
+                Stay options are being configured.
               </p>
               <p className="text-sm text-muted-foreground">
                 Please contact us for current rates or check back soon.
@@ -314,7 +311,7 @@ export default async function DaycarePage() {
                 href="/pricing"
                 className="text-base font-semibold text-primary hover:underline"
               >
-                View full pricing & packages →
+                View full pricing & add-ons →
               </Link>
             </div>
           </FadeUp>
@@ -333,11 +330,10 @@ export default async function DaycarePage() {
               }}
             >
               <h2 className="font-display mb-4 text-3xl font-bold text-white md:text-4xl">
-                Ready for Your Dog's First Playday?
+                Ready to Plan Your Dog's Stay?
               </h2>
               <p className="mx-auto mb-8 max-w-2xl text-lg text-white/90">
-                New customers start with a free meet & greet to ensure your
-                pup is a good fit for group play.
+                Start with availability, compare current suites, and contact us if you want help choosing the right stay option.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Button
@@ -353,7 +349,7 @@ export default async function DaycarePage() {
                     <span className="mr-2 text-xl" aria-hidden="true">
                       🐾
                     </span>
-                    Book a Playday
+                    Check Availability
                   </Link>
                 </Button>
                 <Button

@@ -255,7 +255,7 @@ export default function AboutPageContent() {
               </span>
             </h2>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-white/90">
-              Join the {displayName} family. Book a playday or schedule a free tour of our facility.
+              Join the {displayName} family. Check availability or schedule a free tour of our facility.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button
@@ -269,7 +269,7 @@ export default function AboutPageContent() {
               >
                 <Link href="/book">
                   <span className="mr-2 text-xl" aria-hidden="true">🐾</span>
-                  Book a Playday
+                  Check Availability
                 </Link>
               </Button>
               <Button

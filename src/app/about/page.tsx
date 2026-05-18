@@ -4,15 +4,15 @@ import { simplePageMetadataFromSettings } from "@/lib/seo-page-metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
   return simplePageMetadataFromSettings({
-    title: "About Zaine's Stay & Play | Best Doggy Daycare in Syracuse NY",
+    title: "About Zaine's Stay & Play | Private Dog Boarding in Syracuse NY",
     description:
-      "Learn about Syracuse's happiest doggy daycare. Safe supervised play, enrichment activities, photo updates, and a team that truly loves dogs. Meet the Zaine's Stay & Play family.",
+      "Learn about Zaine's Stay & Play and our owner-led private dog boarding approach in Syracuse, with calm routines, photo updates, and personalized care.",
     keywords: [
-      "doggy daycare Syracuse",
-      "dog daycare team",
+      "dog boarding Syracuse",
+      "private dog boarding team",
       "pet care philosophy",
       "Syracuse dog care",
-      "supervised dog play",
+      "owner-led dog care",
     ],
     canonicalPath: "/about",
   });

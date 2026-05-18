@@ -235,7 +235,7 @@ export default function ReviewsPage() {
               Join the {displayName} Family
             </h2>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-white/90">
-              Experience the difference that makes Syracuse dog parents so happy. Book a free meet & greet today!
+              Experience the difference that makes Syracuse dog parents so happy. Check availability or book a free meet & greet today.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button
@@ -251,7 +251,7 @@ export default function ReviewsPage() {
                   <span className="mr-2 text-xl" aria-hidden="true">
                     🐾
                   </span>
-                  Book a Playday
+                  Check Availability
                 </Link>
               </Button>
               <Button

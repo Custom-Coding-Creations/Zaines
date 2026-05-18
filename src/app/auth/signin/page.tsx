@@ -313,7 +313,7 @@ function SignInForm() {
                 Welcome Back to the Pack! 🐾
               </CardTitle>
               <CardDescription className="max-w-xl text-base text-[oklch(0.52_0.05_230)]">
-                Manage your pup's playdays, health records, photo updates, and more in your secure dashboard.
+                Manage your pup's stays, health records, photo updates, and more in your secure dashboard.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -471,7 +471,7 @@ function SignInForm() {
             <CardHeader>
               <CardTitle className="heading-playful text-xl">Your Pup's Data is Safe 🔒</CardTitle>
               <CardDescription className="text-[oklch(0.52_0.05_230)]">
-                Your account keeps all your pup's details, playdays, health records, and photo updates secure and private.
+                Your account keeps all your pup's details, stays, health records, and photo updates secure and private.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-[oklch(0.22_0.05_240)]">

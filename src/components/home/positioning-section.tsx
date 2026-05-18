@@ -3,6 +3,10 @@
 import { SlideInLeft, SlideInRight } from "@/components/motion";
 import { X, Check } from "lucide-react";
 import { useSiteSettings } from "@/hooks/use-site-settings";
+import {
+  getConfiguredSuiteCount,
+  getTotalConfiguredSuiteCapacity,
+} from "@/lib/site/service-tiers";
 
 const differentiators = [
   {
@@ -24,7 +28,9 @@ const differentiators = [
 ];
 
 export function PositioningSection() {
-  const { businessName } = useSiteSettings();
+  const { businessName, serviceSettings } = useSiteSettings();
+  const suiteOptionCount = getConfiguredSuiteCount(serviceSettings.serviceTiers);
+  const totalCapacity = getTotalConfiguredSuiteCapacity(serviceSettings.serviceTiers);
 
   return (
     <section
@@ -54,8 +60,13 @@ export function PositioningSection() {
               </p>
               <p>
                 {businessName} was built from the opposite
-                philosophy. We intentionally limit capacity to three suites so
-                that every guest receives focused attention, a consistent routine,
+                philosophy. We intentionally keep capacity limited
+                {suiteOptionCount > 0
+                  ? ` to ${suiteOptionCount} configured suite option${suiteOptionCount === 1 ? "" : "s"}${
+                      totalCapacity > 0 ? ` and ${totalCapacity} total guest spots` : ""
+                    }`
+                  : ""}
+                so that every guest receives focused attention, a consistent routine,
                 and genuine care.
               </p>
               <p className="font-medium text-background/90">

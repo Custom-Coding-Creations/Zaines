@@ -47,13 +47,13 @@ export function FinalCTASection() {
           <div className="text-white text-center lg:text-left">
             <FadeUp delay={0.1}>
               <h2 className="font-display text-4xl font-bold leading-tight mb-6 md:text-5xl">
-                Ready for Your Dog&apos;s Best Day Ever?
+                Ready to Reserve Your Dog&apos;s Stay?
               </h2>
             </FadeUp>
 
             <FadeUp delay={0.2}>
               <p className="text-lg text-white/90 mb-8 leading-relaxed">
-                Book a playday or schedule a tour today. Let&apos;s make your pup&apos;s tail wag!
+                Check live availability or schedule a tour today. We&apos;ll help you choose the right suite and add-ons.
               </p>
             </FadeUp>
 
@@ -70,7 +70,7 @@ export function FinalCTASection() {
                 >
                   <Link href="/book">
                     <span className="mr-2 text-xl" aria-hidden="true">🐾</span>
-                    Book a Playday
+                    Check Availability
                   </Link>
                 </Button>
                 <Button

@@ -13,120 +13,120 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, MessageCircle, PhoneIcon, Calendar, HelpCircle } from "lucide-react";
 import { FadeUp, ScaleIn } from "@/components/motion";
+import { useSiteSettings } from "@/hooks/use-site-settings";
 import { PRICING_TRUST_DISCLOSURE } from "@/config/trust-copy";
+import { getActiveSuiteTiers } from "@/lib/site/service-tiers";
 
 // Pricing policy contract required for Issue #31 CP1 compliance
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const PRICING_POLICY_COPY_CONTRACT = PRICING_TRUST_DISCLOSURE;
 
-const faqCategories = {
-  daycare: [
-    {
-      q: "What ages do you accept for doggy daycare?",
-      a: "We accept dogs 4 months and older who are fully vaccinated. Puppies must be 2 weeks past their final puppy shot series.",
-    },
-    {
-      q: "How do you group dogs for playtime?",
-      a: "Dogs are carefully matched by size, energy level, and play style. We conduct temperament screenings for all new guests to ensure safe, compatible playgroups.",
-    },
-    {
-      q: "What's included in a daycare day?",
-      a: "Every daycare day includes supervised group play, rest breaks, fresh water, enrichment activities, and photo updates sent to your phone!",
-    },
-    {
-      q: "Can I do a half day instead of full day?",
-      a: "Yes! We offer flexible Half Day (4 hours) and Full Day (8+ hours) options. Half Day is $28, Full Day is $38.",
-    },
-    {
-      q: "Do I need to book daycare in advance?",
-      a: "We recommend booking at least 24 hours in advance to guarantee a spot, especially for new guests. Walk-ins accepted based on availability.",
-    },
-    {
-      q: "What if my dog doesn't like group play?",
-      a: "No problem! We offer quieter enrichment activities and can arrange individual play sessions for dogs who prefer solo time.",
-    },
-  ],
-  general: [
-    {
-      q: "What are your hours of operation?",
-      a: "We're open 6:00 AM - 8:00 PM daily for drop-off and pick-up. We provide 24/7 supervision for overnight boarding guests.",
-    },
-    {
-      q: "What areas do you serve?",
-      a: "We serve Syracuse, Liverpool, Cicero, Baldwinsville, Fayetteville, Manlius, Clay, North Syracuse, and surrounding areas within 30 miles.",
-    },
-    {
-      q: "Do you offer tours of your facility?",
-      a: "Yes! We encourage all new clients to schedule a tour. Tours are available Monday-Saturday 10am-6pm. Book online or give us a call!",
-    },
-    {
-      q: "Are you licensed and insured?",
-      a: "Yes, we are fully licensed by the New York State Department of Agriculture and carry comprehensive liability insurance.",
-    },
-  ],
-  boarding: [
-    {
-      q: "What's included with overnight boarding?",
-      a: "All boarding stays include: comfortable accommodations, multiple potty breaks, group play sessions, meal service (you provide food), daily cleaning, 24/7 supervision, and photo updates.",
-    },
-    {
-      q: "Can I bring my dog's food?",
-      a: "Yes, we actually require it! Please bring enough food for your dog's entire stay, plus 1-2 extra days to prevent tummy upset from food changes.",
-    },
-    {
-      q: "What if my dog needs medication?",
-      a: "We're happy to administer medications at no additional charge. Please provide clear written instructions and medications in original packaging.",
-    },
-    {
-      q: "How often will I get photo updates?",
-      a: "We send daily photo updates via text or email during your dog's stay so you can see how they're doing!",
-    },
-  ],
-  health: [
-    {
-      q: "What vaccinations are required?",
-      a: "All dogs must be current on: Rabies, DHPP (Distemper/Parvo), and Bordetella (kennel cough). Canine Influenza vaccine is strongly recommended. Proof required before first visit.",
-    },
-    {
-      q: "Do you accept puppies?",
-      a: "Puppies must be at least 4 months old and fully vaccinated (2 weeks after final shots). We have special puppy play sessions available!",
-    },
-    {
-      q: "What if my dog has behavioral issues?",
-      a: "We welcome all dogs! For safety, dogs with a history of aggression toward people or other dogs may require an evaluation. Contact us to discuss.",
-    },
-    {
-      q: "Do you accept senior dogs?",
-      a: "Yes! We love senior dogs and accommodate special needs like mobility issues, frequent potty breaks, or medications.",
-    },
-    {
-      q: "What about flea/tick prevention?",
-      a: "All dogs must be on current flea/tick prevention. If fleas are discovered, we'll treat your dog (at owner's expense) to protect other guests.",
-    },
-  ],
-  payment: [
-    {
-      q: "When is payment due?",
-      a: "Payment is required at the time of booking. We accept all major credit cards, debit cards, and digital wallets (Apple Pay, Google Pay).",
-    },
-    {
-      q: "What's your cancellation policy?",
-      a: "Free cancellation up to 48 hours before check-in for full refund. Cancellations within 48 hours receive 50% refund. No-shows are not refunded.",
-    },
-    {
-      q: "Do you offer package deals?",
-      a: "Yes! We offer 5 Day Packages ($171) and Monthly Memberships (20 days for $520) that save you money on regular daycare visits.",
-    },
-    {
-      q: "What if I pick up late?",
-      a: "Late pickups (after 8 PM) are charged $25 per hour. If you're running late, please call us so we can arrange care for your pet.",
-    },
-  ],
-};
-
 export default function FAQPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("daycare");
+  const [activeCategory, setActiveCategory] = useState("suites");
+  const {
+    addOnsSettings,
+    availabilityRules,
+    businessHours,
+    cancellationPolicySettings,
+    contactInfo,
+    pricingSettings,
+    requiredVaccineSettings,
+    serviceSettings,
+    trustCopy,
+    websiteProfile,
+  } = useSiteSettings();
+
+  const activeTiers = getActiveSuiteTiers(serviceSettings.serviceTiers);
+  const activeAddOns = addOnsSettings.addOns.filter((addOn) => addOn.isActive);
+  const tierSummary = activeTiers
+    .map((tier) => `${tier.name} (${new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: pricingSettings.currency || "USD",
+      maximumFractionDigits: 0,
+    }).format(tier.baseNightlyRate)}/night)`)
+    .join(", ");
+
+  const faqCategories = {
+    suites: [
+      {
+        q: "Which suite options are currently available?",
+        a: tierSummary || "Suite options are configured in the admin dashboard and published here automatically.",
+      },
+      {
+        q: "How do I choose the right suite?",
+        a: activeTiers.length > 0
+          ? `Each suite card in booking uses the live admin description for that stay option. Current choices: ${activeTiers.map((tier) => tier.name).join(", ")}.`
+          : "Available suite options are shown live in the booking flow.",
+      },
+      {
+        q: "Are add-ons available during booking?",
+        a: activeAddOns.length > 0
+          ? `Yes. Current add-ons include ${activeAddOns.map((addOn) => addOn.name).join(", ")}. They are selectable during checkout and reflected in your quote before payment.`
+          : "Optional add-ons can be configured in the admin dashboard and will appear here when active.",
+      },
+    ],
+    availability: [
+      {
+        q: "How far in advance can I book?",
+        a: `Bookings open ${availabilityRules.advanceBookingWindowDays} days in advance, with a minimum lead time of ${availabilityRules.minimumLeadTimeDays} day${availabilityRules.minimumLeadTimeDays === 1 ? "" : "s"}.`,
+      },
+      {
+        q: "Is there a minimum or maximum stay length?",
+        a: `Yes. The current booking rules require at least ${availabilityRules.minNightsPerBooking} night and allow up to ${availabilityRules.maxNightsPerBooking} nights per reservation.`,
+      },
+      {
+        q: "How accurate is the availability shown online?",
+        a: "The site checks live booking availability in real time using the same suite capacity configuration managed in the admin dashboard.",
+      },
+    ],
+    general: [
+      {
+        q: "What are your hours of operation?",
+        a: `Current posted hours are Monday ${businessHours.monday.openTime}-${businessHours.monday.closeTime}, Tuesday ${businessHours.tuesday.openTime}-${businessHours.tuesday.closeTime}, Wednesday ${businessHours.wednesday.openTime}-${businessHours.wednesday.closeTime}, Thursday ${businessHours.thursday.openTime}-${businessHours.thursday.closeTime}, Friday ${businessHours.friday.openTime}-${businessHours.friday.closeTime}, Saturday ${businessHours.saturday.openTime}-${businessHours.saturday.closeTime}, and Sunday ${businessHours.sunday.openTime}-${businessHours.sunday.closeTime}.`,
+      },
+      {
+        q: "What areas do you serve?",
+        a: `We currently serve ${websiteProfile.serviceArea.join(", ")}.`,
+      },
+      {
+        q: "Do you offer tours before booking?",
+        a: "Yes. Use the contact page to request a tour or ask questions before reserving a stay.",
+      },
+    ],
+    health: [
+      {
+        q: "What vaccinations are required?",
+        a: `Required vaccines are ${requiredVaccineSettings.requiredVaccines.join(", ")}. ${requiredVaccineSettings.blockBookingsOnExpiredVaccines ? "Expired vaccines must be updated before a booking can be confirmed." : "Records are reviewed before confirmation."}`,
+      },
+      {
+        q: "Can you handle medications or special routines?",
+        a: "Yes. Provide clear instructions during booking so care routines can be reviewed before the stay.",
+      },
+      {
+        q: "Do you accept senior dogs or dogs with special needs?",
+        a: "Yes, as long as the requested care can be safely supported. Share details before booking so the stay can be planned appropriately.",
+      },
+    ],
+    payment: [
+      {
+        q: "When is payment due?",
+        a: "Your total is shown before confirmation during booking, including nightly rate, tax, and any selected add-ons.",
+      },
+      {
+        q: "What's your cancellation policy?",
+        a: `Full refunds are available up to ${cancellationPolicySettings.fullRefundHours} hours before check-in. Within ${cancellationPolicySettings.partialRefundHours} hours, ${cancellationPolicySettings.partialRefundPercent}% is refundable. No-shows receive ${cancellationPolicySettings.noShowRefundPercent}% back.`,
+      },
+      {
+        q: "Are there multi-pet discounts?",
+        a: `Yes. Two pets receive ${pricingSettings.twoPetDiscountPercent}% off and three or more pets receive ${pricingSettings.threePlusPetsDiscountPercent}% off when eligible.`,
+      },
+      {
+        q: "How do I know there are no hidden fees?",
+        a: trustCopy.pricingDisclosure,
+      },
+    ],
+  };
 
   const allFaqs = Object.values(faqCategories).flat();
 
@@ -164,7 +164,7 @@ export default function FAQPage() {
                 </span>
               </h1>
               <p className="mb-8 text-lg leading-relaxed text-white/90 md:text-xl">
-                Find answers to common questions about daycare, boarding, pricing, and more
+                Find answers tied to the current suite, pricing, add-on, and booking settings shown across the site.
               </p>
 
               {/* Search */}
@@ -204,14 +204,14 @@ export default function FAQPage() {
                 className="w-full"
               >
                 <TabsList className="mb-12 grid w-full grid-cols-2 gap-2 lg:grid-cols-5 h-auto">
-                  <TabsTrigger value="daycare" className="text-sm md:text-base py-3">
-                    🐾 Daycare
+                  <TabsTrigger value="suites" className="text-sm md:text-base py-3">
+                    🏠 Suites
+                  </TabsTrigger>
+                  <TabsTrigger value="availability" className="text-sm md:text-base py-3">
+                    📅 Availability
                   </TabsTrigger>
                   <TabsTrigger value="general" className="text-sm md:text-base py-3">
                     📋 General
-                  </TabsTrigger>
-                  <TabsTrigger value="boarding" className="text-sm md:text-base py-3">
-                    🏠 Boarding
                   </TabsTrigger>
                   <TabsTrigger value="health" className="text-sm md:text-base py-3">
                     💉 Health
@@ -310,16 +310,16 @@ export default function FAQPage() {
                   Call Us
                 </h3>
                 <p className="mb-2 text-sm text-muted-foreground">
-                  Mon-Sat 10am-6pm
+                  Reach us during posted business hours
                 </p>
                 <p className="mb-6 text-base font-bold text-foreground">
-                  (315) 657-1332
+                  {contactInfo.phone}
                 </p>
                 <Button
                   className="paw-button-secondary w-full"
                   asChild
                 >
-                  <a href="tel:3156571332">Call Now</a>
+                  <a href={`tel:${contactInfo.phone.replace(/\D/g, '')}`}>Call Now</a>
                 </Button>
               </div>
             </ScaleIn>
@@ -358,10 +358,10 @@ export default function FAQPage() {
         <div className="container relative z-10 mx-auto px-4 text-center">
           <FadeUp>
             <h2 className="font-display mb-6 text-3xl font-bold text-white md:text-4xl lg:text-5xl">
-              Ready for Your Dog's Best Day?
+              Ready to Reserve a Stay?
             </h2>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-white/90">
-              We're here to answer any remaining questions and get your pup scheduled for tail-wagging fun!
+              Start your booking when you're ready, or reach out if you need help choosing a suite or reviewing add-ons.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button
@@ -377,7 +377,7 @@ export default function FAQPage() {
                   <span className="mr-2 text-xl" aria-hidden="true">
                     🐾
                   </span>
-                  Book a Playday
+                  Check Availability
                 </Link>
               </Button>
               <Button

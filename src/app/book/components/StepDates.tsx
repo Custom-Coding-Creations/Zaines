@@ -39,6 +39,7 @@ import {
 } from "@/app/book/components/step-dates-contract";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 import { cn } from "@/lib/utils";
+import { getActiveSuiteTiers } from "@/lib/site/service-tiers";
 
 interface StepDatesProps {
   data: Partial<StepDatesData>;
@@ -58,8 +59,20 @@ type TimeSlotOption = {
 };
 
 export function StepDates({ data, onUpdate, onNext, onCancel }: StepDatesProps) {
-  const { availabilityRules } = useSiteSettings();
+  const { availabilityRules, serviceSettings, pricingSettings } = useSiteSettings();
   const minNights = Math.max(1, availabilityRules.minNightsPerBooking || 1);
+  const activeSuiteTiers = getActiveSuiteTiers(serviceSettings.serviceTiers);
+  const nightlyRates = activeSuiteTiers
+    .map((tier) => tier.baseNightlyRate)
+    .filter((rate) => Number.isFinite(rate) && rate > 0);
+  const minRate = nightlyRates.length > 0 ? Math.min(...nightlyRates) : null;
+  const maxRate = nightlyRates.length > 0 ? Math.max(...nightlyRates) : null;
+  const nightlyRateHint =
+    minRate !== null && maxRate !== null
+      ? minRate === maxRate
+        ? `${pricingSettings.currency}${minRate}/night`
+        : `${pricingSettings.currency}${minRate}-${maxRate}/night`
+      : "Rate shown after suite selection";
 
   const [availabilityState, setAvailabilityState] =
     useState<AvailabilityState>("idle");
@@ -505,7 +518,7 @@ export function StepDates({ data, onUpdate, onNext, onCancel }: StepDatesProps) 
                 <div className="flex flex-col items-start">
                   <span className="font-medium">Overnight Boarding</span>
                   <span className="text-sm text-muted-foreground">
-                    $65-120/night
+                    {nightlyRateHint}
                   </span>
                 </div>
               </SelectItem>
