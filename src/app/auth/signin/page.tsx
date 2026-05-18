@@ -81,6 +81,18 @@ function SignInForm() {
   const [message, setMessage] = useState("");
   const [correlationId, setCorrelationId] = useState<string | null>(null);
 
+  // Reset busy state when page is restored from bfcache (e.g. user navigates
+  // back after an interrupted OAuth redirect to Google).
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        setBusy(false);
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
 
@@ -290,8 +302,18 @@ function SignInForm() {
     setBusy(true);
     setMessage("");
     try {
-      await signIn(providerId, { callbackUrl });
-    } catch {
+      const result = await signIn(providerId, { callbackUrl, redirect: false });
+      if (result?.error) {
+        console.error("[auth] OAuth signIn error:", result.error, result.code, result.status);
+        updateError("Unable to continue with that provider. Please retry.");
+        setBusy(false);
+        return;
+      }
+      if (result?.url) {
+        window.location.href = result.url;
+      }
+    } catch (err) {
+      console.error("[auth] OAuth signIn exception:", err);
       updateError("Unable to continue with that provider. Please retry.");
       setBusy(false);
     }
