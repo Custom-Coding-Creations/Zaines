@@ -35,9 +35,9 @@ const nextConfig: NextConfig = {
           "font-src 'self' data: https://vercel.live",
           "style-src 'self' 'unsafe-inline'",
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://m.stripe.network https://vercel.live",
-          "connect-src 'self' https://api.stripe.com https://r.stripe.com https://m.stripe.network https://js.stripe.com https://vercel.live https://*.vercel.app https://zainesstayandplay.com wss://ws-us3.pusher.com https://sockjs-us3.pusher.com",
-          "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.stripe.com https://vercel.live",
-          "form-action 'self'",
+          "connect-src 'self' https://api.stripe.com https://r.stripe.com https://m.stripe.network https://js.stripe.com https://vercel.live https://*.vercel.app https://zainesstayandplay.com wss://ws-us3.pusher.com https://sockjs-us3.pusher.com https://accounts.google.com https://oauth2.googleapis.com",
+          "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://*.stripe.com https://vercel.live https://accounts.google.com",
+          "form-action 'self' https://accounts.google.com",
         ].join("; "),
       },
     ];
