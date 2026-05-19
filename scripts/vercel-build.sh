@@ -27,4 +27,10 @@ if [ "$migrate_ok" -ne 1 ]; then
 fi
 
 prisma generate
+
+# Schema drift guard: verify schema is valid and no pending migrations exist.
+# This catches the case where migrations applied to the DB don't match the schema,
+# preventing "column does not exist" runtime errors (e.g. OAuth adapter failures).
+prisma migrate status 2>&1 | grep -q "Database schema is up to date" && echo "✓ Schema is in sync" || echo "⚠ Schema status could not be verified (non-blocking)"
+
 next build

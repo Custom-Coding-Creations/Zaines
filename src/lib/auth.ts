@@ -409,23 +409,6 @@ export const authConfig: NextAuthConfig = {
   logger: {
     error: (error: Error) => {
       console.error("[auth][error]", error.name, error.message, error.stack);
-      // TEMPORARY: Write error details to database for remote debugging.
-      // The cause chain contains the actual oauth4webapi/PKCE error.
-      const causeMsg = (() => {
-        const c = (error as any)?.cause;
-        if (!c) return "";
-        const parts: string[] = [];
-        if (c.err) parts.push(`err: ${c.err.message ?? c.err}`);
-        if (c.provider) parts.push(`provider: ${c.provider}`);
-        if (c.err?.cause) parts.push(`innerCause: ${JSON.stringify(c.err.cause)}`);
-        return parts.join(" | ");
-      })();
-      prisma.$executeRawUnsafe(
-        `INSERT INTO "_AuthDebugLog" (error_name, error_message, error_cause, created_at) VALUES ($1, $2, $3, NOW())`,
-        error.name ?? "unknown",
-        (error.message ?? "").substring(0, 500),
-        causeMsg.substring(0, 1000),
-      ).catch(() => { /* non-blocking */ });
     },
     warn: (code: string) => {
       console.warn("[auth][warn]", code);
