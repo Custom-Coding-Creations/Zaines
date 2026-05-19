@@ -298,21 +298,10 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
     setBusy(true);
     setMessage("");
     try {
-      const result = await signIn(providerId, { callbackUrl, redirect: false });
-      if (result?.error) {
-        console.error("[auth] OAuth signIn error:", result.error, result.code, result.status);
-        updateError("Unable to continue with that provider. Please retry.");
-        setBusy(false);
-        return;
-      }
-      if (result?.url) {
-        window.location.href = result.url;
-        // If still on the page after a brief delay (navigation blocked), reset
-        setTimeout(() => setBusy(false), 3000);
-        return;
-      }
-      // signIn returned no url (e.g. internal redirect to error page)
-      setBusy(false);
+      // OAuth providers require a full-page redirect to the provider's
+      // authorization page. Do NOT use redirect:false — it causes fetch to
+      // follow the 302 cross-origin to Google, resulting in an opaque response.
+      await signIn(providerId, { redirectTo: callbackUrl });
     } catch (err) {
       console.error("[auth] OAuth signIn exception:", err);
       updateError("Unable to continue with that provider. Please retry.");
