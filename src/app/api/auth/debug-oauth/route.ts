@@ -82,14 +82,23 @@ export async function GET() {
     };
   }
 
-  // 4. Test Google token endpoint reachability (OPTIONS/HEAD)
+  // 4. Test Google token endpoint with real client_id (fake code - expect invalid_grant)
   try {
     const tokenUrl = "https://oauth2.googleapis.com/token";
+    const clientId = process.env.AUTH_GOOGLE_CLIENT_ID ?? "";
+    const clientSecret = process.env.AUTH_GOOGLE_CLIENT_SECRET ?? "";
     const startTime = Date.now();
     const tokenResponse = await fetch(tokenUrl, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: "grant_type=authorization_code&code=test&redirect_uri=test&client_id=test&client_secret=test",
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code: "fake_diagnostic_code",
+        redirect_uri: "https://zainesstayandplay.com/api/auth/callback/google",
+        client_id: clientId,
+        client_secret: clientSecret,
+        code_verifier: "test_verifier",
+      }).toString(),
       signal: AbortSignal.timeout(5000),
     });
     const tokenTime = Date.now() - startTime;
@@ -99,9 +108,10 @@ export async function GET() {
       reachable: true,
       timeMs: tokenTime,
       status: tokenResponse.status,
-      // We expect an error since we're using fake credentials
+      // Expected error: invalid_grant (fake code) or invalid_client (bad secret)
       errorCode: tokenBody.error,
       errorDescription: tokenBody.error_description?.substring(0, 100),
+      credentialsValid: tokenBody.error !== "invalid_client",
     };
   } catch (err) {
     results.tokenEndpoint = {
@@ -118,13 +128,53 @@ export async function GET() {
     clientSecretLength: process.env.AUTH_GOOGLE_CLIENT_SECRET?.length ?? 0,
   };
 
-  // 6. Check database connectivity
+  // 6. Check database connectivity and OAuth tables
   try {
     const { prisma } = await import("@/lib/prisma");
     const userCount = await prisma.user.count();
+    const accountCount = await (prisma as any).account.count();
     results.database = {
       connected: true,
       userCount,
+      accountCount,
+    };
+  } catch (err) {
+    results.database = {
+      connected: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  // 7. Test PKCE cookie encrypt/decrypt roundtrip with current secret
+  try {
+    const { encode, decode } = await import("next-auth/jwt");
+    const testPayload = { value: "test-pkce-verifier-12345" };
+    const cookieName = "__Secure-authjs.pkce.code_verifier";
+    
+    const encoded = await encode({
+      token: testPayload,
+      secret: authSecret!,
+      salt: cookieName,
+      maxAge: 900,
+    });
+    
+    const decoded = await decode({
+      token: encoded,
+      secret: authSecret!,
+      salt: cookieName,
+    });
+    
+    results.pkceRoundtrip = {
+      success: decoded?.value === "test-pkce-verifier-12345",
+      encodedLength: encoded.length,
+      decodedValue: decoded?.value ? "matches" : "mismatch",
+    };
+  } catch (err) {
+    results.pkceRoundtrip = {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
     };
   } catch (err) {
     results.database = {
