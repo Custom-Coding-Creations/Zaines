@@ -175,10 +175,22 @@ export async function GET() {
       error: err instanceof Error ? err.message : String(err),
     };
   }
-    };
+
+  // 8. Read last auth error from database (written by auth logger)
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const rows: Array<{ error_name: string; error_message: string; error_cause: string; created_at: Date }> =
+      await prisma.$queryRawUnsafe(
+        `SELECT error_name, error_message, error_cause, created_at FROM "_AuthDebugLog" ORDER BY created_at DESC LIMIT 3`
+      );
+    results.lastAuthErrors = rows.map((r) => ({
+      name: r.error_name,
+      message: r.error_message,
+      cause: r.error_cause,
+      at: r.created_at,
+    }));
   } catch (err) {
-    results.database = {
-      connected: false,
+    results.lastAuthErrors = {
       error: err instanceof Error ? err.message : String(err),
     };
   }
