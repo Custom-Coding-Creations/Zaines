@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { ShieldCheck, Sparkles, KeyRound, PawPrint, ArrowLeft } from "lucide-react";
+import { oauthSignIn } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -298,12 +299,13 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
     setBusy(true);
     setMessage("");
     try {
-      // OAuth providers require a full-page redirect to the provider's
-      // authorization page. Do NOT use redirect:false — it causes fetch to
-      // follow the 302 cross-origin to Google, resulting in an opaque response.
-      await signIn(providerId, { redirectTo: callbackUrl });
-    } catch (err) {
-      console.error("[auth] OAuth signIn exception:", err);
+      // Use server action for OAuth sign-in. This handles the full redirect
+      // flow server-side, ensuring PKCE/state cookies are properly set in the
+      // same response as the redirect (avoids client-side fetch+navigate issues).
+      await oauthSignIn(providerId, callbackUrl);
+    } catch {
+      // Server action redirect errors are handled by Next.js internally.
+      // If we reach here with an actual error, show it to the user.
       updateError("Unable to continue with that provider. Please retry.");
       setBusy(false);
     }
