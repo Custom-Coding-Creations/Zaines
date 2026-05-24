@@ -7,7 +7,6 @@ import {
   redeemPoints,
 } from '@/lib/loyalty/paw-points';
 import { getAdminSettings } from '@/lib/api/admin-settings';
-import { getFeatureFlag } from '@/lib/feature-flags';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
@@ -20,15 +19,14 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const enabled = getFeatureFlag('loyalty-program', session.user.id);
-  if (!enabled) {
+  const settings = await getAdminSettings();
+  if (!settings.loyaltyProgramSettings.enabled) {
     return NextResponse.json({ error: 'Loyalty program not enabled' }, { status: 404 });
   }
 
-  const [balance, transactions, settings, user] = await Promise.all([
+  const [balance, transactions, user] = await Promise.all([
     getPointsBalance(session.user.id),
     getLoyaltyTransactions(session.user.id, 20),
-    getAdminSettings(),
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: { loyaltyTier: true },
@@ -53,8 +51,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const enabled = getFeatureFlag('loyalty-program', session.user.id);
-  if (!enabled) {
+  const adminSettings = await getAdminSettings();
+  if (!adminSettings.loyaltyProgramSettings.enabled) {
     return NextResponse.json({ error: 'Loyalty program not enabled' }, { status: 404 });
   }
 

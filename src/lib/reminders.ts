@@ -1,6 +1,9 @@
 import { prisma, isDatabaseConfigured } from '@/lib/prisma';
 import { getAdminSettings } from '@/lib/api/admin-settings';
 import { sendReminderNotification } from '@/lib/notifications';
+import { render } from '@react-email/render';
+import { VaccineExpiryReminder } from '@/emails/VaccineExpiryReminder';
+import React from 'react';
 
 type ReminderType =
   | 'booking_reminder'
@@ -270,6 +273,7 @@ function buildReminderContent(reminder: {
         text: `Zaine's Stay & Play: we'd love to welcome you back. Rebook your next stay whenever you're ready.`,
         html: `<p>Hi ${customerName}, we'd love to welcome you back. Rebook your next stay whenever you're ready.</p>`,
       };
+    // vaccine_expiry is handled separately via buildVaccineReminderContent
     case 'vaccine_expiry':
       return {
         subject: `${reminder.pet?.name || 'Your pet'} vaccine reminder`,
@@ -283,6 +287,60 @@ function buildReminderContent(reminder: {
         html: `<p>Hi ${customerName}, ${reminder.pet?.name || 'your pet'} may need an updated behavior assessment soon.</p>`,
       };
   }
+}
+
+async function buildVaccineReminderContent(reminder: {
+  scheduledFor: Date;
+  petId: string | null;
+  pet: { name: string } | null;
+  recipientUser: { name: string | null } | null;
+}): Promise<{ subject: string; html: string; text: string }> {
+  const petName = reminder.pet?.name ?? 'your pet';
+  const customerName = reminder.recipientUser?.name ?? 'there';
+
+  // Fetch the vaccine that's expiring closest to the scheduled send date
+  let vaccineType = 'vaccine';
+  let expiryDate = new Date(reminder.scheduledFor.getTime() + 7 * 86400_000);
+
+  if (reminder.petId && isDatabaseConfigured()) {
+    const vaccines = await prisma.vaccine.findMany({
+      where: { petId: reminder.petId },
+      select: { name: true, expiryDate: true },
+    });
+    const nearest = vaccines.reduce<{ name: string; expiryDate: Date; diff: number } | null>(
+      (closest, v) => {
+        const diff = Math.abs(v.expiryDate.getTime() - reminder.scheduledFor.getTime());
+        if (!closest || diff < closest.diff) return { name: v.name, expiryDate: v.expiryDate, diff };
+        return closest;
+      },
+      null,
+    );
+    if (nearest) {
+      vaccineType = nearest.name;
+      expiryDate = nearest.expiryDate;
+    }
+  }
+
+  const daysUntilExpiry = Math.max(
+    1,
+    Math.ceil((expiryDate.getTime() - Date.now()) / 86400_000),
+  );
+
+  const subject = `${petName}'s ${vaccineType} expires in ${daysUntilExpiry} day${daysUntilExpiry === 1 ? '' : 's'}`;
+  const text = `Hi ${customerName}, ${petName}'s ${vaccineType} record expires on ${expiryDate.toLocaleDateString()}. Please upload renewed records before your next booking.`;
+
+  const html = await render(
+    React.createElement(VaccineExpiryReminder, {
+      customerName,
+      petName,
+      vaccineType,
+      expiryDate: expiryDate.toISOString(),
+      daysUntilExpiry,
+      recordsUrl: `${process.env.NEXTAUTH_URL ?? 'https://zainesstayandplay.com'}/dashboard/records`,
+    }),
+  );
+
+  return { subject, html, text };
 }
 
 export async function dispatchDueAutomatedReminders(limit = 50) {
@@ -312,7 +370,17 @@ export async function dispatchDueAutomatedReminders(limit = 50) {
       ...reminder,
       type: reminder.type as ReminderType,
     };
-    const content = buildReminderContent(typedReminder);
+
+    const content =
+      typedReminder.type === 'vaccine_expiry'
+        ? await buildVaccineReminderContent({
+            scheduledFor: reminder.scheduledFor,
+            petId: reminder.petId,
+            pet: reminder.pet,
+            recipientUser: reminder.recipientUser,
+          })
+        : buildReminderContent(typedReminder);
+
     const result = await sendReminderNotification({
       channel: reminder.channel as 'email' | 'sms',
       toEmail: reminder.recipientEmail,

@@ -3,7 +3,8 @@
 import type { ComponentType } from "react";
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { Camera, ClipboardList, MessageSquareMore, NotebookPen } from "lucide-react";
+import Link from "next/link";
+import { Camera, ClipboardList, MessageSquareMore, NotebookPen, RefreshCw } from "lucide-react";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { MessageThread } from "@/components/MessageThread";
@@ -306,6 +307,15 @@ export default function BookingDetailClient({
                         currentDropoffTimeSlot={booking.dropoffTimeSlot ?? null}
                         currentPickupTimeSlot={booking.pickupTimeSlot ?? null}
                       />
+                    )}
+                    {(booking.status === "completed" || booking.status === "cancelled") && (
+                      <Link
+                        href={`/book?rebook=${booking.id}`}
+                        className="inline-flex items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+                      >
+                        <RefreshCw className="size-4" />
+                        Rebook this stay
+                      </Link>
                     )}
                   </div>
                 </div>

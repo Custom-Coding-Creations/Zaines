@@ -73,6 +73,29 @@ function BookPageContent() {
     }
   }, [searchParams, resetWizard]);
 
+  // Pre-fill wizard when rebooking a previous stay
+  useEffect(() => {
+    const rebookId = searchParams.get("rebook");
+    if (!rebookId) return;
+
+    resetWizard();
+    clearBookingProgress();
+
+    fetch(`/api/bookings/${rebookId}/summary`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: { suiteType?: string; petIds?: string[] } | null) => {
+        if (!data) return;
+        if (data.suiteType) {
+          updateStepData("suites", { suiteType: data.suiteType as "standard" | "deluxe" | "luxury" });
+        }
+        if (data.petIds?.length) {
+          updateStepData("pets", { selectedPetIds: data.petIds });
+        }
+      })
+      .catch(() => { /* silent fallback — user can select manually */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Auto-save progress on wizard data changes (Phase 5: Progress Saving)
   useEffect(() => {
     // Only save if user has started filling out the wizard

@@ -2,12 +2,11 @@
  * Paw Points Loyalty Engine
  *
  * Core logic for awarding, redeeming, and managing loyalty points.
- * All operations are gated by the feature flag and admin settings.
+ * Gated by admin settings (loyaltyProgramSettings.enabled).
  */
 
 import { prisma, isDatabaseConfigured } from '@/lib/prisma';
 import { getAdminSettings } from '@/lib/api/admin-settings';
-import { getFeatureFlag } from '@/lib/feature-flags';
 import type { LoyaltyProgramSettings } from '@/types/admin';
 import type { LoyaltyTransaction } from '@prisma/client';
 
@@ -15,7 +14,6 @@ export type { LoyaltyTransaction };
 
 async function isLoyaltyEnabled(): Promise<boolean> {
   if (!isDatabaseConfigured()) return false;
-  if (!getFeatureFlag('loyalty-program')) return false;
   const settings = await getAdminSettings();
   return settings.loyaltyProgramSettings.enabled;
 }

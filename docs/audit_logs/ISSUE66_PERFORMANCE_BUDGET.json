@@ -1,6 +1,6 @@
 {
   "base": "http://localhost:3000",
-  "measuredAt": "2026-05-06T11:53:29.237Z",
+  "measuredAt": "2026-05-06T14:30:18.071Z",
   "budgets": {
     "domNodes": 1800,
     "documentCompleteMs": 5000,
@@ -13,80 +13,80 @@
       "route": "/",
       "name": "home",
       "url": "http://localhost:3000/",
-      "status": 200,
-      "wallTimeMs": 2664,
-      "documentCompleteMs": 2193,
-      "domNodes": 355,
-      "encodedBytes": 972922,
-      "scriptBytes": 902806,
-      "styleBytes": 20409,
-      "violations": []
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"networkidle\"\u001b[22m\n",
+      "violations": [
+        {
+          "metric": "route_load",
+          "budget": "no error",
+          "actual": "error"
+        }
+      ]
     },
     {
       "route": "/book",
       "name": "booking",
       "url": "http://localhost:3000/book",
-      "status": 200,
-      "wallTimeMs": 1834,
-      "documentCompleteMs": 1266,
-      "domNodes": 269,
-      "encodedBytes": 249009,
-      "scriptBytes": 199369,
-      "styleBytes": 300,
-      "violations": []
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/book\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/book\", waiting until \"networkidle\"\u001b[22m\n",
+      "violations": [
+        {
+          "metric": "route_load",
+          "budget": "no error",
+          "actual": "error"
+        }
+      ]
     },
     {
       "route": "/pricing",
       "name": "pricing",
       "url": "http://localhost:3000/pricing",
-      "status": 200,
-      "wallTimeMs": 1187,
-      "documentCompleteMs": 596,
-      "domNodes": 357,
-      "encodedBytes": 90386,
-      "scriptBytes": 41354,
-      "styleBytes": 300,
-      "violations": []
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/pricing\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/pricing\", waiting until \"networkidle\"\u001b[22m\n",
+      "violations": [
+        {
+          "metric": "route_load",
+          "budget": "no error",
+          "actual": "error"
+        }
+      ]
     },
     {
       "route": "/services/boarding",
       "name": "boarding",
       "url": "http://localhost:3000/services/boarding",
-      "status": 200,
-      "wallTimeMs": 1269,
-      "documentCompleteMs": 626,
-      "domNodes": 471,
-      "encodedBytes": 54436,
-      "scriptBytes": 5100,
-      "styleBytes": 300,
-      "violations": []
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/services/boarding\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/services/boarding\", waiting until \"networkidle\"\u001b[22m\n",
+      "violations": [
+        {
+          "metric": "route_load",
+          "budget": "no error",
+          "actual": "error"
+        }
+      ]
     },
     {
       "route": "/dog",
       "name": "dog-mode",
       "url": "http://localhost:3000/dog",
-      "status": 200,
-      "wallTimeMs": 1499,
-      "documentCompleteMs": 532,
-      "domNodes": 320,
-      "encodedBytes": 167954,
-      "scriptBytes": 118314,
-      "styleBytes": 300,
-      "violations": []
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/dog\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/dog\", waiting until \"networkidle\"\u001b[22m\n",
+      "violations": [
+        {
+          "metric": "route_load",
+          "budget": "no error",
+          "actual": "error"
+        }
+      ]
     },
     {
       "route": "/auth/signin",
       "name": "sign-in",
       "url": "http://localhost:3000/auth/signin",
-      "status": 200,
-      "wallTimeMs": 1916,
-      "documentCompleteMs": 929,
-      "domNodes": 232,
-      "encodedBytes": 65588,
-      "scriptBytes": 15948,
-      "styleBytes": 300,
-      "violations": []
+      "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/auth/signin\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/auth/signin\", waiting until \"networkidle\"\u001b[22m\n",
+      "violations": [
+        {
+          "metric": "route_load",
+          "budget": "no error",
+          "actual": "error"
+        }
+      ]
     }
   ],
-  "pass": true
+  "pass": false
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma, isDatabaseConfigured } from '@/lib/prisma';
+import { awardBookingCompletionPoints } from '@/lib/loyalty/paw-points';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -39,6 +40,11 @@ export async function POST(request: NextRequest) {
     where: { id: bookingId },
     data: { status: 'completed' },
   });
+
+  // Award loyalty points for completed stay (fire-and-forget, non-blocking)
+  awardBookingCompletionPoints(bookingId).catch((err) =>
+    console.error('[check-out] loyalty award failed:', err),
+  );
 
   return NextResponse.json({ booking: updated });
 }
