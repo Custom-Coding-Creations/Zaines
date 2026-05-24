@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,8 +24,17 @@ import {
   LogOut,
 } from "lucide-react";
 
+export function buildSignInHref(pathname: string | null): string {
+  return pathname
+    ? `/auth/signin?callbackUrl=${encodeURIComponent(pathname)}`
+    : "/auth/signin";
+}
+
 export function UserNav() {
+  const pathname = usePathname();
   const { data: session, status } = useSession();
+
+  const signInHref = buildSignInHref(pathname);
 
   if (status === "loading") {
     return <div className="h-9 w-9 animate-pulse rounded-full bg-muted" />;
@@ -32,13 +42,8 @@ export function UserNav() {
 
   if (!session) {
     return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => signIn()}
-        className="hidden sm:inline-flex"
-      >
-        Sign In
+      <Button variant="outline" size="sm" asChild className="hidden sm:inline-flex">
+        <Link href={signInHref}>Sign In</Link>
       </Button>
     );
   }
