@@ -35,7 +35,10 @@ export async function GET(request: Request) {
     orderBy: { expiryDate: 'asc' },
   });
 
-  return NextResponse.json({ vaccines });
+  const response = NextResponse.json({ vaccines });
+  // Cache for 60 seconds; vaccines change infrequently and the list is user-scoped
+  response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=300');
+  return response;
 }
 
 export async function POST(request: Request) {

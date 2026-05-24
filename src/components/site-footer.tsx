@@ -4,7 +4,8 @@ import { type FormEvent, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSiteSettings } from "@/hooks/use-site-settings";
-import { Facebook, Instagram, Twitter, MapPin, Phone, Mail, Clock } from "lucide-react";
+import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import { FacebookIcon, InstagramIcon, TwitterXIcon } from "@/components/ui/social-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getActiveSuiteTiers } from "@/lib/site/service-tiers";
@@ -99,7 +100,7 @@ export function SiteFooter() {
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                <Facebook className="h-5 w-5" aria-hidden="true" />
+                <FacebookIcon className="h-5 w-5" aria-hidden="true" />
               </Link>
               <Link
                 href={socialLinks.instagram}
@@ -108,7 +109,7 @@ export function SiteFooter() {
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                <Instagram className="h-5 w-5" aria-hidden="true" />
+                <InstagramIcon className="h-5 w-5" aria-hidden="true" />
               </Link>
               <Link
                 href={socialLinks.twitter}
@@ -117,7 +118,7 @@ export function SiteFooter() {
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                <Twitter className="h-5 w-5" aria-hidden="true" />
+                <TwitterXIcon className="h-5 w-5" aria-hidden="true" />
               </Link>
             </div>
           </div>

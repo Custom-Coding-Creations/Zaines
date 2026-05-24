@@ -25,15 +25,40 @@ interface BookingDetailClientProps {
     checkOutDate: Date;
     total: number;
     status: string;
+    dropoffTimeSlot?: string | null;
+    pickupTimeSlot?: string | null;
     suite?: { name?: string; tier?: string } | null;
     bookingPets: Array<{ id: string; pet?: { name?: string } | null }>;
     payments: Array<{ id: string; status: string; amount: number }>;
   };
   canCancel: boolean;
+  canModify: boolean;
   CancelButton: ComponentType<{
     bookingId: string;
     bookingStatus: string;
     canCancel: boolean;
+    checkInDate?: Date;
+    total?: number;
+    cancellationPolicy?: {
+      fullRefundHours: number;
+      partialRefundHours: number;
+      partialRefundPercent: number;
+    };
+  }>;
+  cancelButtonProps?: {
+    checkInDate: Date;
+    total: number;
+    cancellationPolicy: {
+      fullRefundHours: number;
+      partialRefundHours: number;
+      partialRefundPercent: number;
+    };
+  };
+  ModifyButton: ComponentType<{
+    bookingId: string;
+    currentCheckOutDate: Date;
+    currentDropoffTimeSlot: string | null;
+    currentPickupTimeSlot: string | null;
   }>;
 }
 
@@ -76,7 +101,10 @@ function formatDateTime(dateValue: Date | string): string {
 export default function BookingDetailClient({
   booking,
   canCancel,
+  canModify,
   CancelButton,
+  cancelButtonProps,
+  ModifyButton,
 }: BookingDetailClientProps) {
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const { settings } = useSettings();
@@ -262,13 +290,24 @@ export default function BookingDetailClient({
                       Cancellation policy: {fullRefundHours}+ hours full refund, {partialRefundHours}-{fullRefundHours} hours {partialRefundPercent}%
                       refund, under {partialRefundHours} hours no refund.
                   </p>
-                  {canCancel && (
-                    <CancelButton
-                      bookingId={booking.id}
-                      bookingStatus={booking.status}
-                      canCancel={canCancel}
-                    />
-                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {canCancel && (
+                      <CancelButton
+                        bookingId={booking.id}
+                        bookingStatus={booking.status}
+                        canCancel={canCancel}
+                        {...cancelButtonProps}
+                      />
+                    )}
+                    {canModify && (
+                      <ModifyButton
+                        bookingId={booking.id}
+                        currentCheckOutDate={booking.checkOutDate}
+                        currentDropoffTimeSlot={booking.dropoffTimeSlot ?? null}
+                        currentPickupTimeSlot={booking.pickupTimeSlot ?? null}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

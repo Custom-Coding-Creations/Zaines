@@ -7,10 +7,8 @@ import {
   Phone,
   Mail,
   Clock,
-  Facebook,
-  Instagram,
-  Twitter,
 } from "lucide-react";
+import { FacebookIcon, InstagramIcon, TwitterXIcon } from "@/components/ui/social-icons";
 import Link from "next/link";
 import { ContactSubmissionForm } from "@/app/contact/components/ContactSubmissionForm";
 import { FadeUp, ScaleIn } from "@/components/motion";
@@ -224,21 +222,21 @@ export default function ContactPageContent() {
                         className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary transition-all hover:scale-110 hover:bg-primary hover:text-white"
                       >
                         <span className="sr-only">Visit our Facebook page</span>
-                        <Facebook className="h-6 w-6" />
+                        <FacebookIcon className="h-6 w-6" />
                       </Link>
                       <Link
                         href={socialLinks.instagram}
                         className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary transition-all hover:scale-110 hover:bg-primary hover:text-white"
                       >
                         <span className="sr-only">Visit our Instagram page</span>
-                        <Instagram className="h-6 w-6" />
+                        <InstagramIcon className="h-6 w-6" />
                       </Link>
                       <Link
                         href={socialLinks.twitter}
                         className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary transition-all hover:scale-110 hover:bg-primary hover:text-white"
                       >
                         <span className="sr-only">Visit our X profile</span>
-                        <Twitter className="h-6 w-6" />
+                        <TwitterXIcon className="h-6 w-6" />
                       </Link>
                     </div>
                   </div>

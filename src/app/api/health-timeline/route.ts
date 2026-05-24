@@ -25,6 +25,9 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const petId = searchParams.get('petId');
+  const limitParam = searchParams.get('limit');
+  const cursor = searchParams.get('cursor'); // ISO date string — return items older than this date
+  const pageSize = Math.min(Math.max(parseInt(limitParam ?? '50', 10) || 50, 1), 200);
 
   // Fetch all health-related data for the user's pets
   const whereClause = petId
@@ -162,6 +165,14 @@ export async function GET(request: Request) {
   // Sort by date descending
   timeline.sort((a, b) => b.date.getTime() - a.date.getTime());
 
+  // Apply cursor-based pagination
+  const cursorDate = cursor ? new Date(cursor) : null;
+  const filtered = cursorDate
+    ? timeline.filter((item) => item.date.getTime() < cursorDate.getTime())
+    : timeline;
+  const page = filtered.slice(0, pageSize);
+  const nextCursor = page.length === pageSize ? page[page.length - 1]?.date.toISOString() : null;
+
   // Get alerts summary
   const alerts = {
     critical: timeline.filter((item) => item.alert === 'critical').length,
@@ -169,9 +180,13 @@ export async function GET(request: Request) {
     info: timeline.filter((item) => item.alert === 'info').length,
   };
 
-  return NextResponse.json({
-    timeline,
+  const response = NextResponse.json({
+    timeline: page,
     alerts,
     total: timeline.length,
+    nextCursor,
+    hasMore: nextCursor !== null,
   });
+  response.headers.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=120');
+  return response;
 }

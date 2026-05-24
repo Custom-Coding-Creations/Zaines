@@ -1,5 +1,7 @@
 import { FadeIn } from "@/components/motion";
-import { Award, HeartHandshake, Eye, Syringe, Clock } from "lucide-react";
+import { Award, HeartHandshake, Eye, Syringe, Clock, Star } from "lucide-react";
+import { getAdminSettings } from "@/lib/api/admin-settings";
+import { getReviewsData } from "@/lib/google-reviews";
 
 const trustSignals = [
   {
@@ -34,7 +36,25 @@ const trustSignals = [
   },
 ];
 
-export function TrustBar() {
+export async function TrustBar() {
+  const settings = await getAdminSettings();
+  const { fallbackRating, fallbackReviewCount } = settings.googleReviewsSettings;
+
+  let displayRating = fallbackRating;
+  let displayCount = fallbackReviewCount;
+
+  try {
+    const liveData = await getReviewsData();
+    if (liveData) {
+      displayRating = liveData.rating;
+      displayCount = liveData.totalReviews;
+    }
+  } catch {
+    // use fallback values
+  }
+
+  const ratingLabel = `⭐ ${displayRating.toFixed(1)} (${displayCount}+ reviews)`;
+
   return (
     <section
       className="section-padding-tight border-y border-border bg-card/70"
@@ -47,6 +67,10 @@ export function TrustBar() {
             <h2 className="headline-display text-3xl font-semibold text-foreground md:text-4xl">
               Designed for Safety, Proven by Process
             </h2>
+            <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-yellow-50 px-4 py-1.5 text-sm font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" aria-hidden="true" />
+              <span>{ratingLabel}</span>
+            </div>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {trustSignals.map(({ icon: Icon, label, detail }) => (

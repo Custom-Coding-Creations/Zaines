@@ -13,12 +13,39 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
+type CancellationPolicy = {
+  fullRefundHours: number;
+  partialRefundHours: number;
+  partialRefundPercent: number;
+};
+
 type CancelBookingButtonProps = {
   bookingId: string;
   bookingStatus: string;
   canCancel: boolean;
   compact?: boolean;
+  checkInDate?: Date;
+  total?: number;
+  cancellationPolicy?: CancellationPolicy;
 };
+
+function getRefundPreview(
+  checkInDate: Date,
+  total: number,
+  policy: CancellationPolicy,
+): string {
+  const hoursUntilCheckIn =
+    (checkInDate.getTime() - Date.now()) / (1000 * 60 * 60);
+
+  if (hoursUntilCheckIn >= policy.fullRefundHours) {
+    return `Full refund: $${total.toFixed(2)}`;
+  }
+  if (hoursUntilCheckIn >= policy.partialRefundHours) {
+    const amount = (total * policy.partialRefundPercent) / 100;
+    return `Partial refund: $${amount.toFixed(2)} (${policy.partialRefundPercent}%)`;
+  }
+  return "No refund (under 24 hours before check-in)";
+}
 
 type CancellationPayload = {
   error?: string;
@@ -35,6 +62,9 @@ export function CancelBookingButton({
   bookingStatus,
   canCancel,
   compact = false,
+  checkInDate,
+  total,
+  cancellationPolicy,
 }: CancelBookingButtonProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -94,7 +124,18 @@ export function CancelBookingButton({
           <DialogHeader>
             <DialogTitle>Cancel Booking?</DialogTitle>
             <DialogDescription>
-              Cancellation terms and refund policy will be applied based on your stay dates.
+              {checkInDate && total != null && cancellationPolicy ? (
+                <>
+                  <span className="block font-medium text-foreground">
+                    {getRefundPreview(checkInDate, total, cancellationPolicy)}
+                  </span>
+                  <span className="block mt-1 text-sm">
+                    This action cannot be undone.
+                  </span>
+                </>
+              ) : (
+                "Cancellation terms and refund policy will be applied based on your stay dates."
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

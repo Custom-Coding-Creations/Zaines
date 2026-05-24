@@ -3,7 +3,9 @@ import { prisma, isDatabaseConfigured } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardUnavailableState } from "@/components/dashboard/dashboard-states";
+import { getAdminSettings } from "@/lib/api/admin-settings";
 import { CancelBookingButton } from "./CancelBookingButton";
+import { ModifyBookingButton } from "./ModifyBookingButton";
 import BookingDetailClient from "./BookingDetailClient";
 
 type Props = { params: Promise<{ id: string }> };
@@ -25,6 +27,8 @@ type BookingDetailPrisma = {
       checkOutDate: Date;
       total: number;
       status: string;
+      dropoffTimeSlot?: string | null;
+      pickupTimeSlot?: string | null;
       createdAt: Date;
       suite?: { name?: string; tier?: string } | null;
       bookingPets: Array<{ id: string; pet?: { name?: string } | null }>;
@@ -46,6 +50,7 @@ export default async function BookingDetail({ params }: Props) {
     const now = new Date();
     const checkout = new Date(now);
     checkout.setDate(checkout.getDate() + 2);
+    const e2ePolicy = { fullRefundHours: 48, partialRefundHours: 24, partialRefundPercent: 50 };
 
     return (
       <BookingDetailClient
@@ -56,12 +61,17 @@ export default async function BookingDetail({ params }: Props) {
           checkOutDate: checkout,
           total: 199,
           status: "confirmed",
+          dropoffTimeSlot: null,
+          pickupTimeSlot: null,
           suite: { name: "E2E Suite", tier: "Deluxe" },
           bookingPets: [{ id: "e2e-bp-1", pet: { name: "E2E Pet" } }],
           payments: [{ id: "e2e-pay-1", status: "succeeded", amount: 199 }],
         }}
         canCancel
+        canModify
         CancelButton={CancelBookingButton}
+        cancelButtonProps={{ checkInDate: now, total: 199, cancellationPolicy: e2ePolicy }}
+        ModifyButton={ModifyBookingButton}
       />
     );
   }
@@ -78,14 +88,17 @@ export default async function BookingDetail({ params }: Props) {
     );
   }
 
-  const booking = await bookingDetailPrisma.booking.findUnique({
-    where: { id },
-    include: {
-      suite: true,
-      bookingPets: { include: { pet: true } },
-      payments: true,
-    },
-  });
+  const [booking, settings] = await Promise.all([
+    bookingDetailPrisma.booking.findUnique({
+      where: { id },
+      include: {
+        suite: true,
+        bookingPets: { include: { pet: true } },
+        payments: true,
+      },
+    }),
+    getAdminSettings(),
+  ]);
 
   if (!booking || booking.userId !== session.user.id) {
     return (
@@ -98,12 +111,22 @@ export default async function BookingDetail({ params }: Props) {
 
   const canCancel =
     booking.status === "pending" || booking.status === "confirmed";
+  const canModify =
+    booking.status === "pending" || booking.status === "confirmed";
 
   return (
     <BookingDetailClient
       booking={booking}
       canCancel={canCancel}
+      canModify={canModify}
       CancelButton={CancelBookingButton}
+      cancelButtonProps={{
+        checkInDate: booking.checkInDate,
+        total: booking.total,
+        cancellationPolicy: settings.cancellationPolicySettings,
+      }}
+      ModifyButton={ModifyBookingButton}
     />
   );
 }
+
