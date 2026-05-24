@@ -82,6 +82,68 @@ function createBookingValidationDetails(validationError: z.ZodError): {
   return { fields: uniqueSortedFields };
 }
 
+function normalizeVaccineName(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function sanitizeRequiredVaccineNames(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function getVaccineAliases(value: string): string[] {
+  const normalized = normalizeVaccineName(value);
+  const aliases = new Set<string>([normalized]);
+
+  if (normalized === "dhpp") {
+    aliases.add("dhlpp");
+    aliases.add("da2pp");
+    aliases.add("dappp");
+    aliases.add("distemper");
+  }
+
+  if (normalized === "bordetella") {
+    aliases.add("kennelcough");
+  }
+
+  return [...aliases];
+}
+
+function vaccineNameMatchesRequirement(recordName: string, requiredName: string): boolean {
+  const record = normalizeVaccineName(recordName);
+  const requiredCandidates = getVaccineAliases(requiredName);
+
+  return requiredCandidates.some(
+    (required) =>
+      record === required ||
+      record.includes(required) ||
+      required.includes(record),
+  );
+}
+
+function isCurrentVaccineRecord(expiryDate: Date, referenceDate: Date): boolean {
+  // Vaccine expiry values are treated as date-only values and stored at UTC midnight.
+  // Compare using UTC day boundaries to avoid false negatives from local timezone shifts.
+  const expiryUtcDay = Date.UTC(
+    expiryDate.getUTCFullYear(),
+    expiryDate.getUTCMonth(),
+    expiryDate.getUTCDate(),
+  );
+  const referenceUtcDay = Date.UTC(
+    referenceDate.getUTCFullYear(),
+    referenceDate.getUTCMonth(),
+    referenceDate.getUTCDate(),
+  );
+
+  return expiryUtcDay >= referenceUtcDay;
+}
+
 type BookingsApiPrisma = {
   $transaction: <T>(
     fn: (tx: BookingsTransactionClient) => Promise<T>,
@@ -394,9 +456,9 @@ export async function POST(request: NextRequest) {
 
     if (selectedPetIds.length > 0) {
       const requiredVaccines =
-        adminSettings.requiredVaccineSettings?.requiredVaccines?.map((name) =>
-          name.toLowerCase(),
-        ) ?? [];
+        sanitizeRequiredVaccineNames(
+          adminSettings.requiredVaccineSettings?.requiredVaccines,
+        );
 
       const blockOnExpiredVaccines =
         adminSettings.requiredVaccineSettings?.blockBookingsOnExpiredVaccines !==
@@ -409,6 +471,7 @@ export async function POST(request: NextRequest) {
         },
         select: {
           id: true,
+          name: true,
           vaccines: {
             select: {
               name: true,
@@ -429,39 +492,63 @@ export async function POST(request: NextRequest) {
       }
 
       const now = new Date();
-      // Normalize to start of today for date-only comparisons so vaccines
-      // expiring "today" (stored as midnight UTC) are still treated as valid.
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       if (blockOnExpiredVaccines && requiredVaccines.length > 0) {
-        const invalidVaccinePetIds = petRecords
-          .filter((pet) => {
-            const validVaccineNames = pet.vaccines
-              .filter((vaccine) => {
-                const expiry = new Date(vaccine.expiryDate);
-                const expiryDay = new Date(expiry.getFullYear(), expiry.getMonth(), expiry.getDate());
-                return expiryDay >= todayStart;
-              })
-              .map((vaccine) => vaccine.name.toLowerCase());
-            // Use partial/substring matching so "Rabies Vaccine" satisfies "Rabies"
-            // and "DHLPP" satisfies "DHPP".
-            return requiredVaccines.some(
-              (required) =>
-                !validVaccineNames.some(
-                  (name) => name.includes(required) || required.includes(name),
-                ),
-            );
-          })
-          .map((pet) => pet.id);
+        const invalidPets = petRecords
+          .map((pet) => {
+            const missingRequiredVaccines: string[] = [];
+            const expiredRequiredVaccines: string[] = [];
 
-        if (invalidVaccinePetIds.length > 0) {
+            for (const requiredVaccine of requiredVaccines) {
+              const matchingRecords = pet.vaccines.filter((record) =>
+                vaccineNameMatchesRequirement(record.name, requiredVaccine),
+              );
+
+              if (matchingRecords.length === 0) {
+                missingRequiredVaccines.push(requiredVaccine);
+                continue;
+              }
+
+              const hasCurrentRecord = matchingRecords.some((record) =>
+                isCurrentVaccineRecord(new Date(record.expiryDate), now),
+              );
+
+              if (!hasCurrentRecord) {
+                expiredRequiredVaccines.push(requiredVaccine);
+              }
+            }
+
+            if (
+              missingRequiredVaccines.length === 0 &&
+              expiredRequiredVaccines.length === 0
+            ) {
+              return null;
+            }
+
+            return {
+              id: pet.id,
+              name: pet.name,
+              missingRequiredVaccines,
+              expiredRequiredVaccines,
+            };
+          })
+          .filter((pet): pet is NonNullable<typeof pet> => pet !== null);
+
+        if (invalidPets.length > 0) {
           return errorResponse({
             status: 409,
             errorCode: 'BOOKING_REQUIRES_CURRENT_VACCINES',
             message:
-              'One or more selected pets are missing required current vaccines.',
+              'Some selected pets need updated vaccine records before booking can continue.',
             retryable: false,
             correlationId,
-            details: { petIds: invalidVaccinePetIds, requiredVaccines },
+            details: {
+              petIds: invalidPets.map((pet) => pet.id),
+              pets: invalidPets,
+              requiredVaccines,
+              resolutionPath: '/dashboard/records',
+              resolutionMessage:
+                'Update vaccine records in your dashboard, then return to complete this booking.',
+            },
           });
         }
       }
@@ -476,6 +563,19 @@ export async function POST(request: NextRequest) {
       const missingVaccinePetIds = (data.newPets ?? [])
         .map((_, index) => `new-${index}`)
         .filter((petId) => !vaccineRecordsByPetId.has(petId));
+      const missingNewPetDetails = missingVaccinePetIds.map((petId) => {
+        const index = Number.parseInt(petId.replace("new-", ""), 10);
+        const newPet = Number.isNaN(index) ? null : data.newPets?.[index];
+        return {
+          id: petId,
+          name: newPet?.name ?? `New Pet ${index + 1}`,
+          missingRequiredVaccines:
+            sanitizeRequiredVaccineNames(
+              adminSettings.requiredVaccineSettings?.requiredVaccines,
+            ),
+          expiredRequiredVaccines: [],
+        };
+      });
 
       if (missingVaccinePetIds.length > 0) {
         return errorResponse({
@@ -485,7 +585,16 @@ export async function POST(request: NextRequest) {
             'One or more newly added pets are missing vaccine records required to book.',
           retryable: false,
           correlationId,
-          details: { petIds: missingVaccinePetIds },
+          details: {
+            petIds: missingVaccinePetIds,
+            pets: missingNewPetDetails,
+            requiredVaccines: sanitizeRequiredVaccineNames(
+              adminSettings.requiredVaccineSettings?.requiredVaccines,
+            ),
+            resolutionPath: '/book?step=pets',
+            resolutionMessage:
+              'Upload vaccine records for each new pet, then continue checkout.',
+          },
         });
       }
     }

@@ -12,6 +12,12 @@ In CI, the `Auth Reliability` workflow runs this gate automatically on push/PR.
 
 The command exits non-zero when critical auth prerequisites are missing.
 
+Additional pre-deploy gates now enforced in CI:
+
+- `pnpm prisma:migrate:deploy`
+- `pnpm db:drift:check`
+- `pnpm exec playwright test tests/e2e/auth-smoke.spec.ts --project=chromium`
+
 ## Required Runtime Configuration
 
 - `AUTH_SECRET` (preferred) or `NEXTAUTH_SECRET`
@@ -65,9 +71,24 @@ GitHub Actions workflow: `.github/workflows/auth-reliability.yml`
 It validates:
 
 1. Dependency installation and Prisma client generation.
-2. `pnpm auth:readiness` preflight gate.
-3. Auth reliability test suites for classifier and health endpoint.
-4. Live startup probe of `/api/admin/health/auth` using `pnpm audit:admin:auth-health`.
+2. Prisma migration deploy against CI Postgres service.
+3. Database/schema drift gate via `pnpm db:drift:check`.
+4. `pnpm auth:readiness` preflight gate.
+5. Auth reliability test suites for classifier and health endpoint.
+6. Browser auth smoke tests for Google OAuth initiation, account creation, and credentials sign-in.
+7. Live startup probe of `/api/admin/health/auth` using `pnpm audit:admin:auth-health`.
+
+## Production Smoke Coverage
+
+GitHub Actions workflow: `.github/workflows/auth-smoke-production.yml`
+
+It runs daily and on manual trigger against production (or a manually provided `base_url`) and verifies:
+
+1. Google OAuth initiation redirects correctly to Google.
+2. Create Account flow completes and lands on dashboard.
+3. Email/password sign-in succeeds for a freshly created account.
+
+Use this workflow as the first signal for post-deploy auth regressions.
 
 The workflow uploads:
 

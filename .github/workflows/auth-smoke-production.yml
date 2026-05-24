@@ -1,0 +1,51 @@
+name: "Auth Smoke Production"
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Target URL for smoke checks"
+        required: false
+        type: string
+        default: "https://zainesstayandplay.com"
+  schedule:
+    - cron: "15 10 * * *"
+
+jobs:
+  auth-smoke-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.5
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run production auth smoke suite
+        run: |
+          BASE_URL="${{ github.event.inputs.base_url || 'https://zainesstayandplay.com' }}"
+          echo "Running auth smoke tests against ${BASE_URL}"
+          PLAYWRIGHT_BASE_URL="${BASE_URL}" pnpm exec playwright test tests/e2e/auth-smoke.spec.ts --project=chromium
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-smoke-production-report
+          path: playwright-report
+          if-no-files-found: ignore

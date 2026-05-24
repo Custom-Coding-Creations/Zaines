@@ -114,6 +114,88 @@ interface StepPaymentProps {
   } | null;
 }
 
+type VaccineBookingIssue = {
+  id: string;
+  name?: string;
+  missingRequiredVaccines?: string[];
+  expiredRequiredVaccines?: string[];
+};
+
+type BookingErrorDetailsState = {
+  pets: VaccineBookingIssue[];
+  requiredVaccines: string[];
+  resolutionPath: string;
+  resolutionMessage?: string;
+};
+
+type BookingCreateErrorPayload = {
+  error?: string;
+  message?: string;
+  errorCode?: string;
+  code?: string;
+  details?: {
+    pets?: VaccineBookingIssue[];
+    requiredVaccines?: string[];
+    resolutionPath?: string;
+    resolutionMessage?: string;
+  };
+};
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function parseBookingCreateError(payload: BookingCreateErrorPayload): {
+  message: string;
+  details: BookingErrorDetailsState | null;
+} {
+  const fallbackMessage =
+    payload.error || payload.message || "Failed to initialize booking payment.";
+  const errorCode = payload.errorCode || payload.code;
+
+  if (errorCode !== "BOOKING_REQUIRES_CURRENT_VACCINES") {
+    return {
+      message: fallbackMessage,
+      details: null,
+    };
+  }
+
+  const pets = Array.isArray(payload.details?.pets)
+    ? payload.details?.pets.filter((pet): pet is VaccineBookingIssue =>
+        Boolean(pet && typeof pet.id === "string"),
+      )
+    : [];
+
+  const requiredVaccines = normalizeStringArray(payload.details?.requiredVaccines);
+  const resolutionPath =
+    typeof payload.details?.resolutionPath === "string" &&
+    payload.details.resolutionPath.startsWith("/")
+      ? payload.details.resolutionPath
+      : "/dashboard/records";
+
+  const details: BookingErrorDetailsState = {
+    pets,
+    requiredVaccines,
+    resolutionPath,
+    resolutionMessage:
+      typeof payload.details?.resolutionMessage === "string"
+        ? payload.details.resolutionMessage
+        : undefined,
+  };
+
+  return {
+    message: fallbackMessage,
+    details,
+  };
+}
+
 function PricingDisclosureCard({
   subtotal,
   tax,
@@ -338,6 +420,8 @@ export function StepPayment({
     Boolean(data.pricingDisclosureAccepted),
   );
   const [bookingError, setBookingError] = useState<string>("");
+  const [bookingErrorDetails, setBookingErrorDetails] =
+    useState<BookingErrorDetailsState | null>(null);
   const [quickPayError, setQuickPayError] = useState<string>("");
   const [quickPayHint, setQuickPayHint] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -456,7 +540,9 @@ export function StepPayment({
     }
 
     setBookingError("");
+    setBookingErrorDetails(null);
     setIsLoading(true);
+    let hasStructuredBookingError = false;
 
     try {
       const response = await fetch("/api/bookings", {
@@ -466,15 +552,13 @@ export function StepPayment({
       });
 
       if (!response.ok) {
-        const errorBody = (await response.json().catch(() => ({}))) as {
-          error?: string;
-          message?: string;
-        };
-        throw new Error(
-          errorBody.error ||
-            errorBody.message ||
-            "Failed to initialize booking payment",
-        );
+        const errorBody =
+          (await response.json().catch(() => ({}))) as BookingCreateErrorPayload;
+        const parsedError = parseBookingCreateError(errorBody);
+        setBookingError(parsedError.message);
+        setBookingErrorDetails(parsedError.details);
+        hasStructuredBookingError = parsedError.details !== null;
+        throw new Error(parsedError.message);
       }
 
       const payload = (await response.json()) as {
@@ -533,6 +617,9 @@ export function StepPayment({
         paymentMode: nextPaymentMode,
       });
     } catch (error: unknown) {
+      if (!hasStructuredBookingError) {
+        setBookingErrorDetails(null);
+      }
       const message =
         error instanceof Error
           ? error.message
@@ -773,6 +860,58 @@ export function StepPayment({
       ? clientSecret.startsWith("cs_")
       : clientSecret.startsWith("pi_");
 
+  const renderBookingError = () => {
+    if (!bookingError) {
+      return null;
+    }
+
+    return (
+      <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+        <p className="whitespace-pre-line">{bookingError}</p>
+        {bookingErrorDetails?.pets.length ? (
+          <ul className="list-disc space-y-1 pl-5">
+            {bookingErrorDetails.pets.map((pet) => {
+              const missing = normalizeStringArray(pet.missingRequiredVaccines);
+              const expired = normalizeStringArray(pet.expiredRequiredVaccines);
+              const issueParts: string[] = [];
+
+              if (missing.length > 0) {
+                issueParts.push(`missing: ${missing.join(", ")}`);
+              }
+
+              if (expired.length > 0) {
+                issueParts.push(`expired: ${expired.join(", ")}`);
+              }
+
+              return (
+                <li key={pet.id}>
+                  <strong>{pet.name?.trim() || "Unnamed pet"}</strong>
+                  {issueParts.length > 0 ? ` (${issueParts.join("; ")})` : ""}
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+        {bookingErrorDetails?.requiredVaccines.length ? (
+          <p>
+            Required vaccines: {bookingErrorDetails.requiredVaccines.join(", ")}.
+          </p>
+        ) : null}
+        <p>
+          {bookingErrorDetails?.resolutionMessage ||
+            "Update vaccine records and retry checkout."}{" "}
+          <a
+            href={bookingErrorDetails?.resolutionPath || "/dashboard/records"}
+            className="font-medium underline"
+          >
+            Open records
+          </a>
+          .
+        </p>
+      </div>
+    );
+  };
+
   useEffect(() => {
     if (!bookingId || !clientSecret || hasValidSecretForMode || isRecoveringPayment) {
       if (hasValidSecretForMode) {
@@ -855,9 +994,7 @@ export function StepPayment({
               ? "Preparing your booking..."
               : "Preparing secure checkout..."}
           </p>
-          {bookingError ? (
-            <p className="text-sm text-destructive">{bookingError}</p>
-          ) : null}
+          {renderBookingError()}
           <Button
             className="focus-ring"
             onClick={initializeBookingAndPayment}
@@ -909,9 +1046,7 @@ export function StepPayment({
             Your booking has been created. Payment processing is currently
             unavailable, and your reservation remains pending confirmation.
           </p>
-          {bookingError ? (
-            <p className="text-sm text-destructive">{bookingError}</p>
-          ) : null}
+          {renderBookingError()}
           <div className="flex justify-between pt-4">
             <Button type="button" variant="outline" className="focus-ring" onClick={onBack}>
               <ArrowLeft className="mr-2 h-4 w-4" />

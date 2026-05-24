@@ -12,6 +12,28 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-explicit-any": "warn",
     },
   },
+  {
+    files: ["src/app/api/**/*.{ts,tsx}", "src/lib/auth.ts", "src/lib/auth/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@auth/core", "@auth/core/*"],
+              message:
+                "Do not import from @auth/core in app routes/server auth entrypoints; use next-auth provider wrappers and local auth helpers.",
+            },
+            {
+              group: ["next-auth/lib/*"],
+              message:
+                "Do not import internal next-auth/lib/* modules in runtime code. These imports are not deployment-safe on Vercel Turbopack.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

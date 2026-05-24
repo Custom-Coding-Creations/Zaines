@@ -9,8 +9,24 @@ jobs:
   auth-reliability:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: zaines_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d zaines_ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     env:
       AUTH_SECRET: ci-test-auth-secret
+      AUTH_GOOGLE_CLIENT_ID: ci-google-client-id.apps.googleusercontent.com
+      AUTH_GOOGLE_CLIENT_SECRET: ci-google-client-secret
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/zaines_ci
       AUTH_ENABLE_DATABASE_SESSIONS: "true"
       NODE_ENV: test
@@ -32,8 +48,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Prisma client generate
         run: pnpm prisma:generate
+
+      - name: Apply Prisma migrations
+        run: pnpm prisma:migrate:deploy
+
+      - name: Verify database/schema drift
+        run: pnpm db:drift:check
 
       - name: Validate auth schema
         run: pnpm audit:auth-schema-validation
@@ -43,6 +68,9 @@ jobs:
 
       - name: Auth reliability tests
         run: pnpm vitest run src/lib/api/__tests__/auth-error-classification.test.ts src/app/api/admin/health/auth/__tests__/route.test.ts src/__tests__/auth-oauth-env.test.ts
+
+      - name: Auth smoke tests (OAuth init, create account, credentials)
+        run: pnpm exec playwright test tests/e2e/auth-smoke.spec.ts --project=chromium
 
       - name: Start app for auth health probe
         run: pnpm dev --hostname 127.0.0.1 --port 3000 > /tmp/zaines-dev.log 2>&1 &
