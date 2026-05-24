@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og';
-import { getSeoRuntimeConfig } from '@/lib/seo';
+import { siteConfig } from '@/config/site';
 
 export const runtime = 'edge';
 export const alt = "Zaine's Stay and Play - Premium Dog Boarding in Syracuse, NY";
@@ -13,16 +13,9 @@ const SAGE = '#A8C696';
 const CREAM = '#FDF6EE';
 
 export default async function OgImage() {
-  let siteName = "Zaine's Stay & Play";
+  const siteName = siteConfig.name;
   const rating = '5.0';
   const reviewCount = '47';
-
-  try {
-    const seo = await getSeoRuntimeConfig();
-    siteName = seo.siteName;
-  } catch {
-    // use defaults
-  }
 
   // Load fonts
   const [fredoka, nunito] = await Promise.all([
