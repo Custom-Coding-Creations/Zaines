@@ -389,16 +389,18 @@ export const authConfig: NextAuthConfig = {
   session: {
     strategy: authSessionStrategy,
   },
-  debug: true,
+  debug: process.env.NODE_ENV === "development",
   logger: {
     error: (error: Error) => {
-      console.error("[auth][error]", error.name, error.message, JSON.stringify({ stack: error.stack, cause: (error as any).cause?.message }));
+      console.error("[auth][error]", error.name, error.message);
     },
     warn: (code: string) => {
       console.warn("[auth][warn]", code);
     },
     debug: (message: string, metadata?: unknown) => {
-      console.debug("[auth][debug]", message, JSON.stringify(metadata));
+      if (process.env.NODE_ENV === "development") {
+        console.debug("[auth][debug]", message, metadata);
+      }
     },
   },
 };
