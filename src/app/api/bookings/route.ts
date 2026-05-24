@@ -161,6 +161,7 @@ type BookingsTransactionClient = {
       args: Record<string, unknown>,
     ) => Promise<{ id: string } | null>;
     upsert: (args: Record<string, unknown>) => Promise<{ id: string }>;
+    create: (args: Record<string, unknown>) => Promise<{ id: string }>;
   };
   pet: {
     findMany: (args: Record<string, unknown>) => Promise<Array<{ id: string }>>;
@@ -200,7 +201,7 @@ const bookingsPrisma = prisma as unknown as BookingsApiPrisma;
 
 async function resolveBookingUserId(
   tx: BookingsTransactionClient,
-  session: Awaited<ReturnType<typeof auth>>,
+  session: { user?: { id?: string | null } | null } | null,
   data: z.infer<typeof bookingSchema>,
 ): Promise<string> {
   if (session?.user?.id) {
