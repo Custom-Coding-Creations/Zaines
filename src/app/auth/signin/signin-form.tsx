@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { ShieldCheck, Sparkles, KeyRound, PawPrint, ArrowLeft } from "lucide-react";
-import { oauthSignIn } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -290,7 +289,7 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
     }
   };
 
-  const handleOAuth = async (providerId: string) => {
+  const handleOAuth = (providerId: string) => {
     if (!authOperational) {
       updateError("Social sign-in is temporarily unavailable. Please contact support.");
       return;
@@ -298,17 +297,12 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
 
     setBusy(true);
     setMessage("");
-    try {
-      // Use server action for OAuth sign-in. This handles the full redirect
-      // flow server-side, ensuring PKCE/state cookies are properly set in the
-      // same response as the redirect (avoids client-side fetch+navigate issues).
-      await oauthSignIn(providerId, callbackUrl);
-    } catch {
-      // Server action redirect errors are handled by Next.js internally.
-      // If we reach here with an actual error, show it to the user.
-      updateError("Unable to continue with that provider. Please retry.");
-      setBusy(false);
-    }
+
+    // Navigate directly to the OAuth start endpoint. This uses a standard
+    // browser navigation + 302 redirect, ensuring PKCE cookies are set in the
+    // same response as the redirect (most reliable across all environments).
+    const params = new URLSearchParams({ provider: providerId, callbackUrl });
+    window.location.href = `/api/auth/oauth-start?${params.toString()}`;
   };
 
   return (
