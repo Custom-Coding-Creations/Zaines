@@ -1,11 +1,9 @@
 /**
  * Feature Flags Configuration
- * 
+ *
  * Defines feature flags for A/B testing and gradual rollouts.
- * 
- * NOTE: @vercel/flags is deprecated - migrate to 'flags' package when ready
- * See: https://github.com/vercel/flags/blob/main/packages/flags/guides/upgrade-to-v4.md
- * 
+ * This module is framework-agnostic and remains API-compatible for callers.
+ *
  * Usage:
  * import { getFeatureFlag } from '@/lib/feature-flags';
  * const isEnabled = await getFeatureFlag('new-checkout-flow');
@@ -85,17 +83,20 @@ export function getFeatureFlag(
   sessionId?: string
 ): boolean {
   const flag = FEATURE_FLAGS[flagKey];
-  
-  // If fully disabled or enabled, return default
-  if (flag.rolloutPercentage === 0) return false;
-  if (flag.rolloutPercentage === 100) return true;
+
+  const rollout = flag.rolloutPercentage;
+  if (rollout === undefined) {
+    return flag.defaultValue;
+  }
+  if (rollout <= 0) return false;
+  if (rollout >= 100) return true;
 
   // Use consistent hashing to determine flag value
   const identifier = userId || sessionId || 'anonymous';
   const hash = simpleHash(identifier + flagKey);
   const userPercentage = hash % 100;
 
-  return userPercentage < (flag.rolloutPercentage || 0);
+  return userPercentage < rollout;
 }
 
 /**
@@ -106,11 +107,11 @@ export function getAllFeatureFlags(
   sessionId?: string
 ): Record<FeatureFlagKey, boolean> {
   const flags = {} as Record<FeatureFlagKey, boolean>;
-  
+
   for (const key of Object.keys(FEATURE_FLAGS) as FeatureFlagKey[]) {
     flags[key] = getFeatureFlag(key, userId, sessionId);
   }
-  
+
   return flags;
 }
 
@@ -146,7 +147,7 @@ export function useFeatureFlag(
       sessionId = Math.random().toString(36).substring(7);
       localStorage.setItem('session_id', sessionId);
     }
-  } catch (e) {
+  } catch {
     sessionId = 'anonymous';
   }
 

@@ -18,8 +18,7 @@ import { PRICING_TRUST_DISCLOSURE } from "@/config/trust-copy";
 import { 
   saveBookingProgress, 
   loadBookingProgress, 
-  clearBookingProgress,
-  getProgressTimeRemaining 
+  clearBookingProgress
 } from "@/lib/booking/progress-saver";
 
 // Pricing policy contract required for Issue #31 CP1 compliance

@@ -6,7 +6,6 @@ import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-heade
 import { DashboardUnavailableState } from "@/components/dashboard/dashboard-states";
 import { WalletManager } from "./wallet-manager";
 import { PawPointsWidget } from "@/components/loyalty/PawPointsWidget";
-import { getFeatureFlag } from "@/lib/feature-flags";
 import { getPointsBalance, getLoyaltyTransactions } from "@/lib/loyalty/paw-points";
 import { prisma } from "@/lib/prisma";
 
@@ -20,9 +19,7 @@ export default async function WalletPage() {
   if (!session?.user?.id) return redirect("/auth/signin");
 
   const settings = await getAdminSettings();
-  const loyaltyEnabled =
-    getFeatureFlag("loyalty-program", session.user.id) &&
-    settings.loyaltyProgramSettings.enabled;
+  const loyaltyEnabled = settings.loyaltyProgramSettings.enabled;
 
   // Fetch loyalty data server-side when enabled
   let loyaltyData: {
@@ -84,4 +81,3 @@ export default async function WalletPage() {
     </div>
   );
 }
-
