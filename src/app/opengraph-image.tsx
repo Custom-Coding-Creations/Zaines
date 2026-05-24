@@ -14,8 +14,8 @@ const CREAM = '#FDF6EE';
 
 export default async function OgImage() {
   let siteName = "Zaine's Stay & Play";
-  let rating = '5.0';
-  let reviewCount = '47';
+  const rating = '5.0';
+  const reviewCount = '47';
 
   try {
     const seo = await getSeoRuntimeConfig();
