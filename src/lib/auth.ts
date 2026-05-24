@@ -251,24 +251,6 @@ export const authConfig: NextAuthConfig = {
   // NextAuth v5 prefers AUTH_SECRET; providing it here makes both work.
   ...(authSecret ? { secret: authSecret } : {}),
 
-  // Explicit PKCE cookie configuration ensures the verifier survives the
-  // OAuth redirect across all serverless environments.
-  cookies: {
-    pkceCodeVerifier: {
-      name: isProduction
-        ? "__Secure-authjs.pkce.code_verifier"
-        : "authjs.pkce.code_verifier",
-      options: {
-        httpOnly: true,
-        sameSite: "lax" as const,
-        path: "/",
-        secure: isProduction,
-        // 15 minutes is sufficient to complete the OAuth redirect flow.
-        maxAge: 60 * 15,
-      },
-    },
-  },
-
   providers,
   pages: {
     signIn: "/auth/signin",
