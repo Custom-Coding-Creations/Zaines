@@ -91,8 +91,9 @@ async function createPaymentObject(args: {
     user: { email: string | null };
   };
   mode: BookingPaymentMode;
+  idempotencyKey: string;
 }) {
-  const { booking, mode } = args;
+  const { booking, mode, idempotencyKey } = args;
 
   if (mode === "embedded_checkout") {
     const session = await stripeLib.stripe.checkout.sessions.create(
@@ -129,7 +130,7 @@ async function createPaymentObject(args: {
         },
       },
       {
-        idempotencyKey: `booking:${booking.id}:mode:embedded_checkout`,
+        idempotencyKey,
       },
     );
 
@@ -154,7 +155,7 @@ async function createPaymentObject(args: {
       receipt_email: booking.user.email || undefined,
     },
     {
-      idempotencyKey: `booking:${booking.id}:mode:payment_element`,
+      idempotencyKey,
     },
   );
 
@@ -348,7 +349,14 @@ export async function POST(request: NextRequest) {
     }
 
     const mode = resolveFlowMode(preferredFlow);
-    const created = await createPaymentObject({ booking, mode });
+    const idempotencyKey = existingPayment
+      ? `booking:${booking.id}:mode:${mode}:refresh:${Date.now()}`
+      : `booking:${booking.id}:mode:${mode}:create`;
+    const created = await createPaymentObject({ booking, mode, idempotencyKey });
+
+    if (!created.clientSecret) {
+      throw new Error("PAYMENT_SETUP_CLIENT_SECRET_MISSING");
+    }
 
     let paymentId = existingPayment?.id;
     if (existingPayment) {

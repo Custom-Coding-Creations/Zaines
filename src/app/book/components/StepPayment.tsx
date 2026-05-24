@@ -314,9 +314,20 @@ function PaymentForm({
         setSubmitError(message);
         toast.error(message);
         setIsProcessing(false);
-      } else if (paymentIntent && paymentIntent.status === "succeeded") {
+      } else if (
+        paymentIntent &&
+        ["succeeded", "processing", "requires_capture"].includes(
+          paymentIntent.status,
+        )
+      ) {
         toast.success("Payment successful!");
         onSuccess();
+      } else {
+        const statusLabel = paymentIntent?.status || "unknown";
+        const message = `Payment status is ${statusLabel}. Please retry or refresh your payment session.`;
+        setSubmitError(message);
+        toast.error(message);
+        setIsProcessing(false);
       }
     } catch {
       const message = "An error occurred during payment";

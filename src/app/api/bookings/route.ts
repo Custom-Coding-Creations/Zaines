@@ -1214,7 +1214,7 @@ export async function POST(request: NextRequest) {
                   receipt_email: data.email,
                 },
               }, {
-                idempotencyKey: `booking:${booking.id}:mode:embedded_checkout:refresh`,
+                idempotencyKey: `booking:${booking.id}:mode:embedded_checkout:refresh:${Date.now()}`,
               });
 
               await bookingsPrisma.payment.update({
@@ -1252,7 +1252,7 @@ export async function POST(request: NextRequest) {
                 description: `Booking #${booking.bookingNumber} at Zaine's Stay & Play`,
                 receipt_email: data.email,
               }, {
-                idempotencyKey: `booking:${booking.id}:mode:payment_element:refresh`,
+                idempotencyKey: `booking:${booking.id}:mode:payment_element:refresh:${Date.now()}`,
               });
 
               await bookingsPrisma.payment.update({

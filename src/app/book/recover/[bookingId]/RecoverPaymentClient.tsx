@@ -194,7 +194,7 @@ export default function RecoverPaymentClient({ bookingId, bookingNumber, total }
   const hasValidSetupSecret = setup
     ? setup.paymentMode === "embedded_checkout"
       ? setup.clientSecret.startsWith("cs_")
-      : setup.clientSecret.startsWith("cs_")
+      : setup.clientSecret.startsWith("pi_")
     : false;
 
   useEffect(() => {

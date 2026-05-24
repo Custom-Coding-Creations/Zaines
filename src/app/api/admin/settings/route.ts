@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { isDatabaseConfigured } from '@/lib/prisma';
 import { getAdminSettings, updateAdminSettings } from '@/lib/api/admin-settings';
-import { fullSettingsSchema } from '@/lib/validations/admin-settings';
+import { fullSettingsPartialSchema } from '@/lib/validations/admin-settings';
 import type { AdminSettings, ApiResponse } from '@/types/admin';
 
 /**
@@ -68,7 +68,7 @@ export async function PUT(request: NextRequest) {
     const body = (await request.json()) as Partial<AdminSettings>;
 
     // Validate the request body with Zod (allow partial updates)
-    const validation = fullSettingsSchema.partial().safeParse(body);
+    const validation = fullSettingsPartialSchema.safeParse(body);
     
     if (!validation.success) {
       return NextResponse.json(

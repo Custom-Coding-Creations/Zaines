@@ -297,7 +297,7 @@ export const testimonialsSettingsSchema = z.object({
 // FULL SETTINGS SCHEMA (for API-side validation)
 // ============================================================================
 
-export const fullSettingsSchema = z.object({
+export const fullSettingsBaseSchema = z.object({
   // General
   businessHours: generalSettingsSchema.shape.businessHours,
   contactPhone: generalSettingsSchema.shape.contactPhone,
@@ -333,13 +333,17 @@ export const fullSettingsSchema = z.object({
   // Website
   websiteProfileSettings: websiteSettingsSchema.shape.websiteProfileSettings,
   trustCopySettings: websiteSettingsSchema.shape.trustCopySettings,
-}).refine(
+});
+
+export const fullSettingsSchema = fullSettingsBaseSchema.refine(
   (data) => data.cancellationPolicySettings.fullRefundHours > data.cancellationPolicySettings.partialRefundHours,
   {
     path: ['cancellationPolicySettings', 'fullRefundHours'],
     message: 'Full refund window must be greater than partial refund window',
   },
 );
+
+export const fullSettingsPartialSchema = fullSettingsBaseSchema.partial();
 
 // ============================================================================
 // INFERRED TYPES
