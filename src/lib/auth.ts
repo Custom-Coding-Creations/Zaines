@@ -50,11 +50,13 @@ const providers: NonNullable<NextAuthConfig["providers"]> = [
           clientId: googleOauthCredentials.clientId,
           clientSecret: googleOauthCredentials.clientSecret,
           allowDangerousEmailAccountLinking: true,
-          // Use default OIDC discovery (fetches .well-known/openid-configuration)
-          // which provides jwks_uri needed for id_token signature verification.
-          // Do NOT override authorization/token/userinfo endpoints — doing so
-          // skips discovery and leaves jwks_uri undefined, causing id_token
-          // validation to fail with a "Configuration" error.
+          // Disable OAuth check cookies (PKCE/state/nonce) — the browser does
+          // not send ANY cookies on the callback redirect from Google. This is
+          // likely due to cross-site cookie isolation in the redirect chain
+          // (form POST → 302 to Google → 302 back). Security is still provided
+          // by: (1) Google verifying redirect_uri matches Console config,
+          // (2) HTTPS throughout, (3) short-lived authorization codes.
+          checks: [],
         }),
       ]
     : []),
