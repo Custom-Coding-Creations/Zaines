@@ -56,18 +56,22 @@ export default async function DashboardPage() {
     );
   }
 
-  const [
-    upcomingBookings,
-    recentBookings,
-    bookingCount,
-    pets,
-    activeVaccinePets,
-    accountWaivers,
-    validAssessmentsCount,
-    unreadStaffMessages,
-    adminSettings,
-    loyaltyUser,
-  ] = await Promise.all([
+  function resolveQueryResult<T>(
+    result: PromiseSettledResult<T>,
+    fallback: T,
+    label: string,
+  ): T {
+    if (result.status === "fulfilled") {
+      return result.value;
+    }
+
+    console.error(`[dashboard] Failed to load ${label}:`, result.reason);
+    return fallback;
+  }
+
+  const defaultAdminSettings = await getAdminSettings();
+
+  const dashboardDataPromises = [
     prisma.booking.findMany({
       where: {
         userId: session.user.id,
@@ -123,7 +127,59 @@ export default async function DashboardPage() {
       where: { id: session.user.id },
       select: { loyaltyPoints: true, loyaltyTier: true },
     }),
-  ]);
+  ] as const;
+
+  const [
+    upcomingBookingsResult,
+    recentBookingsResult,
+    bookingCountResult,
+    petsResult,
+    activeVaccinePetsResult,
+    accountWaiversResult,
+    validAssessmentsCountResult,
+    unreadStaffMessagesResult,
+    adminSettingsResult,
+    loyaltyUserResult,
+  ] = await Promise.allSettled(dashboardDataPromises);
+
+  const upcomingBookings = resolveQueryResult(
+    upcomingBookingsResult,
+    [],
+    "upcoming bookings",
+  );
+  const recentBookings = resolveQueryResult(
+    recentBookingsResult,
+    [],
+    "recent bookings",
+  );
+  const bookingCount = resolveQueryResult(bookingCountResult, 0, "booking count");
+  const pets = resolveQueryResult(petsResult, [], "pets");
+  const activeVaccinePets = resolveQueryResult(
+    activeVaccinePetsResult,
+    [],
+    "active vaccine pets",
+  );
+  const accountWaivers = resolveQueryResult(
+    accountWaiversResult,
+    [],
+    "account waivers",
+  );
+  const validAssessmentsCount = resolveQueryResult(
+    validAssessmentsCountResult,
+    0,
+    "valid assessments count",
+  );
+  const unreadStaffMessages = resolveQueryResult(
+    unreadStaffMessagesResult,
+    0,
+    "unread staff messages",
+  );
+  const adminSettings = resolveQueryResult(
+    adminSettingsResult,
+    defaultAdminSettings,
+    "admin settings",
+  );
+  const loyaltyUser = resolveQueryResult(loyaltyUserResult, null, "loyalty user");
 
   const loyaltyEnabled = adminSettings.loyaltyProgramSettings.enabled;
 
