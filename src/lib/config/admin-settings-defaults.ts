@@ -90,7 +90,7 @@ export const bookingSettingsDefaults: BookingSettingsFormValues = {
     rebookNudgeEnabled: true,
     rebookNudgeDaysAfterCheckout: 7,
     vaccineReminderEnabled: true,
-    vaccineReminderDaysBeforeExpiry: [30, 14, 7],
+    vaccineReminderDaysBeforeExpiry: [30, 7, 1],
     assessmentReminderEnabled: true,
     assessmentReminderDaysBeforeExpiry: [30, 7],
   },
@@ -264,6 +264,37 @@ export const testimonialsSettingsDefaults: TestimonialsSettingsFormValues = {
 // COMBINED DEFAULTS (for full settings form)
 // ============================================================================
 
+export const loyaltyProgramSettingsDefaults = {
+  loyaltyProgramSettings: {
+    enabled: false,
+    pointsPerNight: 10,
+    pointsPerAddon: 5,
+    pointsPerReferral: 50,
+    pointsPerReview: 25,
+    tierThresholds: {
+      goodDog: 500,
+      topDog: 1500,
+      vip: 3000,
+    },
+    redemptionRate: 100,
+    minRedemptionPoints: 100,
+    maxRedemptionPercent: 50,
+    pointExpiryDays: 365,
+  },
+};
+
+export const googleReviewsSettingsDefaults = {
+  googleReviewsSettings: {
+    enabled: false,
+    placeId: '',
+    apiKey: '',
+    maxReviewsToShow: 6,
+    minRatingToShow: 4,
+    fallbackRating: 5.0,
+    fallbackReviewCount: 47,
+  },
+};
+
 export const fullSettingsDefaults = {
   ...generalSettingsDefaults,
   ...bookingSettingsDefaults,
@@ -272,4 +303,6 @@ export const fullSettingsDefaults = {
   ...servicesSettingsDefaults,
   ...websiteSettingsDefaults,
   ...testimonialsSettingsDefaults,
+  ...loyaltyProgramSettingsDefaults,
+  ...googleReviewsSettingsDefaults,
 };

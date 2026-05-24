@@ -9,6 +9,10 @@ import { QuickActions } from "@/components/dashboard/QuickActions";
 import { ActivityFeed, generateActivityItems } from "@/components/dashboard/ActivityFeed";
 import { Button } from "@/components/ui/button";
 import { getBookingStatusMeta } from "@/lib/dashboard-status";
+import { getFeatureFlag } from "@/lib/feature-flags";
+import { getAdminSettings } from "@/lib/api/admin-settings";
+import { getPointsBalance } from "@/lib/loyalty/paw-points";
+import { LoyaltyDashboardWidget } from "@/components/loyalty/LoyaltyDashboardWidget";
 
 const dashboardDateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "numeric",
@@ -63,6 +67,8 @@ export default async function DashboardPage() {
     accountWaivers,
     validAssessmentsCount,
     unreadStaffMessages,
+    adminSettings,
+    loyaltyUser,
   ] = await Promise.all([
     prisma.booking.findMany({
       where: {
@@ -114,7 +120,16 @@ export default async function DashboardPage() {
         isRead: false,
       },
     }),
+    getAdminSettings(),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { loyaltyPoints: true, loyaltyTier: true },
+    }),
   ]);
+
+  const loyaltyEnabled =
+    getFeatureFlag("loyalty-program", session.user.id) &&
+    adminSettings.loyaltyProgramSettings.enabled;
 
   const totalBookings = recentBookings.length;
   const activeStays = recentBookings.filter((b) =>
@@ -383,6 +398,14 @@ export default async function DashboardPage() {
               Review pet profiles
             </Link>
           </div>
+
+          {loyaltyEnabled && loyaltyUser && (
+            <LoyaltyDashboardWidget
+              balance={loyaltyUser.loyaltyPoints}
+              tier={loyaltyUser.loyaltyTier}
+              loyaltySettings={adminSettings.loyaltyProgramSettings}
+            />
+          )}
         </div>
       </section>
 

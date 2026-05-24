@@ -9,6 +9,8 @@ import {
   Globe,
   MessageSquare,
   Settings,
+  Trophy,
+  Star,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
@@ -19,7 +21,9 @@ export type SettingsSection =
   | 'blackout-dates'
   | 'services'
   | 'website'
-  | 'testimonials';
+  | 'testimonials'
+  | 'loyalty'
+  | 'reviews';
 
 type SettingsSidebarItem = {
   id: SettingsSection;
@@ -70,6 +74,18 @@ const sidebarItems: SettingsSidebarItem[] = [
     label: 'Testimonials',
     icon: MessageSquare,
     description: 'Customer testimonials',
+  },
+  {
+    id: 'loyalty',
+    label: 'Loyalty Program',
+    icon: Trophy,
+    description: 'Paw Points rewards program',
+  },
+  {
+    id: 'reviews',
+    label: 'Reviews',
+    icon: Star,
+    description: 'Google Reviews live integration',
   },
 ];
 

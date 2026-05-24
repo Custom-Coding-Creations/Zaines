@@ -17,6 +17,8 @@ import type {
   AddOnsSettings,
   TestimonialsSettings,
   StripeCapabilityFlags,
+  LoyaltyProgramSettings,
+  GoogleReviewsSettings,
 } from '@/types/admin';
 import { fullSettingsDefaults } from '@/lib/config/admin-settings-defaults';
 
@@ -81,6 +83,8 @@ const SETTINGS_KEYS: Record<string, string> = {
   REMINDER_SETTINGS: 'admin.reminder_settings', // JSON object
   REQUIRED_VACCINE_SETTINGS: 'admin.required_vaccine_settings', // JSON object
   HOLIDAY_SURCHARGES: 'admin.holiday_surcharges', // JSON array
+  LOYALTY_PROGRAM_SETTINGS: 'admin.loyalty_program_settings', // JSON object
+  GOOGLE_REVIEWS_SETTINGS: 'admin.google_reviews_settings', // JSON object
 };
 
 const LEGACY_COPY_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
@@ -364,6 +368,28 @@ export async function getAdminSettings(): Promise<AdminSettings> {
           return json ? JSON.parse(json) : getDefaultTestimonialsSettings();
         } catch {
           return getDefaultTestimonialsSettings();
+        }
+      })(),
+      // Loyalty Program
+      loyaltyProgramSettings: (() => {
+        try {
+          const json = settingsMap.get(SETTINGS_KEYS.LOYALTY_PROGRAM_SETTINGS);
+          return json
+            ? { ...getDefaultLoyaltyProgramSettings(), ...(JSON.parse(json) as Partial<LoyaltyProgramSettings>) }
+            : getDefaultLoyaltyProgramSettings();
+        } catch {
+          return getDefaultLoyaltyProgramSettings();
+        }
+      })(),
+      // Phase 12: Google Reviews Integration
+      googleReviewsSettings: (() => {
+        try {
+          const json = settingsMap.get(SETTINGS_KEYS.GOOGLE_REVIEWS_SETTINGS);
+          return json
+            ? { ...getDefaultGoogleReviewsSettings(), ...(JSON.parse(json) as Partial<GoogleReviewsSettings>) }
+            : getDefaultGoogleReviewsSettings();
+        } catch {
+          return getDefaultGoogleReviewsSettings();
         }
       })(),
     };
@@ -799,6 +825,34 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
       );
     }
 
+    // Loyalty Program
+    if (updates.loyaltyProgramSettings !== undefined) {
+      updatePromises.push(
+        settingsModel.upsert({
+          where: { key: SETTINGS_KEYS.LOYALTY_PROGRAM_SETTINGS },
+          update: { value: JSON.stringify(updates.loyaltyProgramSettings) },
+          create: {
+            key: SETTINGS_KEYS.LOYALTY_PROGRAM_SETTINGS,
+            value: JSON.stringify(updates.loyaltyProgramSettings),
+          },
+        }),
+      );
+    }
+
+    // Phase 12: Google Reviews Integration
+    if (updates.googleReviewsSettings !== undefined) {
+      updatePromises.push(
+        settingsModel.upsert({
+          where: { key: SETTINGS_KEYS.GOOGLE_REVIEWS_SETTINGS },
+          update: { value: JSON.stringify(updates.googleReviewsSettings) },
+          create: {
+            key: SETTINGS_KEYS.GOOGLE_REVIEWS_SETTINGS,
+            value: JSON.stringify(updates.googleReviewsSettings),
+          },
+        }),
+      );
+    }
+
     await Promise.all(updatePromises);
 
     // Return updated settings
@@ -851,6 +905,46 @@ function getDefaultAddOnsSettings(): AddOnsSettings {
 
 function getDefaultTestimonialsSettings(): TestimonialsSettings {
   return getDefaultSettings().testimonialsSettings;
+}
+
+function getDefaultLoyaltyProgramSettings(): LoyaltyProgramSettings {
+  return getDefaultSettings().loyaltyProgramSettings;
+}
+
+function getDefaultGoogleReviewsSettings(): GoogleReviewsSettings {
+  return getDefaultSettings().googleReviewsSettings;
+}
+
+/**
+ * Save loyalty program settings
+ */
+export async function saveLoyaltyProgramSettings(settings: LoyaltyProgramSettings): Promise<void> {
+  if (!isDatabaseConfigured()) return;
+
+  const settingsModel = getSettingsModel();
+  if (!settingsModel) return;
+
+  await settingsModel.upsert({
+    where: { key: SETTINGS_KEYS.LOYALTY_PROGRAM_SETTINGS },
+    update: { value: JSON.stringify(settings) },
+    create: { key: SETTINGS_KEYS.LOYALTY_PROGRAM_SETTINGS, value: JSON.stringify(settings) },
+  });
+}
+
+/**
+ * Save Google Reviews settings
+ */
+export async function saveGoogleReviewsSettings(settings: GoogleReviewsSettings): Promise<void> {
+  if (!isDatabaseConfigured()) return;
+
+  const settingsModel = getSettingsModel();
+  if (!settingsModel) return;
+
+  await settingsModel.upsert({
+    where: { key: SETTINGS_KEYS.GOOGLE_REVIEWS_SETTINGS },
+    update: { value: JSON.stringify(settings) },
+    create: { key: SETTINGS_KEYS.GOOGLE_REVIEWS_SETTINGS, value: JSON.stringify(settings) },
+  });
 }
 
 /**

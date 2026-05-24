@@ -1,13 +1,9 @@
 /**
  * Loyalty Tier Badge Component
  * 
- * Phase 7: AI & Automation - Display loyalty status and benefits
- * 
- * Features:
- * - Tier badge with color coding
- * - Progress to next tier
- * - Perks list
- * - Tier-specific styling
+ * Displays loyalty tier status, progress to next tier, and perks.
+ * Supports both the legacy referral-system tiers (bronze/silver/gold/platinum)
+ * and the Paw Points tiers (pup/good_dog/top_dog/vip).
  */
 
 "use client";
@@ -35,11 +31,34 @@ import {
   type LoyaltyTier 
 } from "@/lib/loyalty/referral-system";
 
-interface LoyaltyTierBadgeProps {
+// Legacy props (backward compat) — uses referral-system tiers
+interface LoyaltyTierBadgeLegacyProps {
   tier: LoyaltyTier;
   lifetimeSpend: number;
+  // Real data overrides (optional — future use)
+  balance?: never;
+  nextTierThreshold?: never;
   className?: string;
 }
+
+// Real data props — uses Paw Points tiers (pup/good_dog/top_dog/vip)
+interface LoyaltyTierBadgeRealProps {
+  tier: LoyaltyTier | 'pup' | 'good_dog' | 'top_dog' | 'vip';
+  balance: number;
+  nextTierThreshold: number | null;
+  lifetimeSpend?: never;
+  className?: string;
+}
+
+type LoyaltyTierBadgeProps = LoyaltyTierBadgeLegacyProps | LoyaltyTierBadgeRealProps;
+
+// Map Paw Points tiers to closest legacy tier for styling
+const PAW_TIER_MAP: Record<string, LoyaltyTier> = {
+  pup: 'bronze',
+  good_dog: 'silver',
+  top_dog: 'gold',
+  vip: 'platinum',
+};
 
 const TIER_ICONS = {
   bronze: Trophy,
@@ -55,7 +74,70 @@ const TIER_STYLES = {
   platinum: "bg-[#E5E4E2]/10 text-[#52525B] border-[#E5E4E2]/30",
 };
 
-export function LoyaltyTierBadge({ tier, lifetimeSpend, className }: LoyaltyTierBadgeProps) {
+const PAW_TIER_LABELS: Record<string, string> = {
+  pup: 'Pup',
+  good_dog: 'Good Dog',
+  top_dog: 'Top Dog',
+  vip: 'VIP',
+};
+
+export function LoyaltyTierBadge(props: LoyaltyTierBadgeProps) {
+  const { className } = props;
+
+  // Real data mode
+  if ('balance' in props && props.balance !== undefined) {
+    const { balance, nextTierThreshold, tier } = props;
+    const displayTier = PAW_TIER_MAP[tier] ?? (tier as LoyaltyTier);
+    const Icon = TIER_ICONS[displayTier] ?? Trophy;
+    const label = PAW_TIER_LABELS[tier] ?? tier;
+    const progressPercent = nextTierThreshold && nextTierThreshold > 0
+      ? Math.min(100, Math.round((balance / nextTierThreshold) * 100))
+      : 100;
+
+    return (
+      <Card className={cn("paw-card", className)}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={cn("flex h-12 w-12 items-center justify-center rounded-full", TIER_STYLES[displayTier])}>
+                <Icon className="h-6 w-6" aria-hidden="true" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">{label} Tier</CardTitle>
+                <CardDescription>{balance.toLocaleString()} Paw Points</CardDescription>
+              </div>
+            </div>
+            <Badge variant="outline" className={TIER_STYLES[displayTier]}>
+              {label.toUpperCase()}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {nextTierThreshold !== null ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  <TrendingUp className="h-4 w-4" />
+                  Progress to next tier
+                </span>
+                <span className="font-semibold">{balance} / {nextTierThreshold}</span>
+              </div>
+              <Progress value={progressPercent} className="h-2" />
+            </div>
+          ) : (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-center">
+              <p className="text-sm font-semibold text-primary">
+                🎉 You&apos;ve reached VIP — the highest tier!
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Legacy mode (uses lifetimeSpend + referral-system tiers)
+  const { tier, lifetimeSpend } = props as LoyaltyTierBadgeLegacyProps;
   const tierConfig = LOYALTY_TIERS[tier];
   const nextTierInfo = getNextTierProgress({ currentTier: tier, lifetimeSpend });
   const Icon = TIER_ICONS[tier];
@@ -108,7 +190,7 @@ export function LoyaltyTierBadge({ tier, lifetimeSpend, className }: LoyaltyTier
         {tier === "platinum" && (
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-center">
             <p className="text-sm font-semibold text-primary">
-              🎉 You've reached the highest tier! Enjoy exclusive platinum perks.
+              🎉 You&apos;ve reached the highest tier! Enjoy exclusive platinum perks.
             </p>
           </div>
         )}
@@ -129,3 +211,4 @@ export function LoyaltyTierBadge({ tier, lifetimeSpend, className }: LoyaltyTier
     </Card>
   );
 }
+

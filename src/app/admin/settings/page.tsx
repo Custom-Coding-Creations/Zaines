@@ -15,6 +15,8 @@ import { BlackoutDatesTab } from '@/components/admin/settings/tabs/BlackoutDates
 import { ServicesTab } from '@/components/admin/settings/tabs/ServicesTab';
 import { WebsiteTab } from '@/components/admin/settings/tabs/WebsiteTab';
 import { TestimonialsTab } from '@/components/admin/settings/tabs/TestimonialsTab';
+import { LoyaltyTab } from '@/components/admin/settings/tabs/LoyaltyTab';
+import { ReviewsTab } from '@/components/admin/settings/tabs/ReviewsTab';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -26,6 +28,8 @@ const VALID_SECTIONS: SettingsSection[] = [
   'services',
   'website',
   'testimonials',
+  'loyalty',
+  'reviews',
 ];
 
 type TabProps = {
@@ -40,6 +44,8 @@ const SECTION_COMPONENTS: Record<SettingsSection, ComponentType<TabProps>> = {
   services: ServicesTab,
   website: WebsiteTab,
   testimonials: TestimonialsTab,
+  loyalty: LoyaltyTab,
+  reviews: ReviewsTab,
 };
 
 function formatSectionLabel(section: SettingsSection): string {

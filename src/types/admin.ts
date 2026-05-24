@@ -127,6 +127,16 @@ export interface TestimonialsSettings {
   testimonials: TestimonialItem[];
 }
 
+export interface GoogleReviewsSettings {
+  enabled: boolean;
+  placeId: string;
+  apiKey: string;
+  maxReviewsToShow: number;
+  minRatingToShow: number;
+  fallbackRating: number;
+  fallbackReviewCount: number;
+}
+
 export interface StripeCapabilityFlags {
   billingSubscriptionsEnabled: boolean;
   customerPortalEnabled: boolean;
@@ -193,6 +203,23 @@ export interface RequiredVaccineSettings {
   blockBookingsOnExpiredVaccines: boolean;
 }
 
+export interface LoyaltyProgramSettings {
+  enabled: boolean;
+  pointsPerNight: number;
+  pointsPerAddon: number;
+  pointsPerReferral: number;
+  pointsPerReview: number;
+  tierThresholds: {
+    goodDog: number;
+    topDog: number;
+    vip: number;
+  };
+  redemptionRate: number;         // points per $1 discount
+  minRedemptionPoints: number;
+  maxRedemptionPercent: number;   // max % of booking total
+  pointExpiryDays: number;        // 0 = never expires
+}
+
 export interface AdminSettings {
   // Operational Preferences
   autoConfirmBookings: boolean;
@@ -244,6 +271,12 @@ export interface AdminSettings {
 
   // Phase 11: Testimonials Configuration
   testimonialsSettings: TestimonialsSettings;
+
+  // Loyalty Program
+  loyaltyProgramSettings: LoyaltyProgramSettings;
+
+  // Phase 12: Google Reviews Integration
+  googleReviewsSettings: GoogleReviewsSettings;
 }
 
 // ============================================================================

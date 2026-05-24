@@ -33,6 +33,9 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  loyaltyPoints     Int      @default(0)
+  loyaltyTier       String   @default("pup") // pup | good_dog | top_dog | vip
+
   accounts          Account[]
   sessions          Session[]
   passwordCredential PasswordCredential?
@@ -50,6 +53,7 @@ model User {
   customerPackages  CustomerPackage[]
   recurringBookings RecurringBooking[]
   automatedReminders AutomatedReminder[]
+  loyaltyTransactions LoyaltyTransaction[]
 
   @@map("users")
 }
@@ -348,6 +352,7 @@ model Booking {
   incidentReports IncidentReport[]
   playGroupAssignments PlayGroupAssignment[]
   automatedReminders AutomatedReminder[]
+  loyaltyTransactions LoyaltyTransaction[]
 
   @@index([userId])
   @@index([suiteId])
@@ -1079,4 +1084,27 @@ model PhotoNotification {
   @@index([sent])
   @@index([scheduledFor])
   @@map("photo_notifications")
+}
+
+// ============================================================================
+// LOYALTY PROGRAM
+// ============================================================================
+
+model LoyaltyTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // earn | redeem | expire | adjustment
+  points      Int      // positive = earn, negative = redeem/expire
+  reason      String   // booking_completion | addon_purchase | referral | review | redemption | admin_adjustment
+  bookingId   String?
+  description String?
+  createdAt   DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("loyalty_transactions")
 }
