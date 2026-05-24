@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import SignaturePad from "signature_pad";
 import {
   Card,
@@ -35,6 +36,7 @@ export function StepWaiver({
   onBack,
   onCancel,
 }: StepWaiverProps) {
+  const { data: session } = useSession();
   const [savedWaiverTypes, setSavedWaiverTypes] = useState<string[]>([]);
   const [isLoadingSavedWaivers, setIsLoadingSavedWaivers] = useState(false);
   const [reuseExistingWaivers, setReuseExistingWaivers] = useState(
@@ -58,6 +60,13 @@ export function StepWaiver({
     let isCancelled = false;
 
     const loadSavedWaivers = async () => {
+      if (!session?.user?.id) {
+        if (!isCancelled) {
+          setIsLoadingSavedWaivers(false);
+        }
+        return;
+      }
+
       setIsLoadingSavedWaivers(true);
 
       try {
@@ -96,7 +105,7 @@ export function StepWaiver({
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [session?.user?.id]);
 
   useEffect(() => {
     const canvas = signaturePadRef.current;

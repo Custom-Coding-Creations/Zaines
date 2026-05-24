@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma, isDatabaseConfigured } from "@/lib/prisma";
@@ -196,6 +197,46 @@ type BookingsTransactionClient = {
 };
 
 const bookingsPrisma = prisma as unknown as BookingsApiPrisma;
+
+async function resolveBookingUserId(
+  tx: BookingsTransactionClient,
+  session: Awaited<ReturnType<typeof auth>>,
+  data: z.infer<typeof bookingSchema>,
+): Promise<string> {
+  if (session?.user?.id) {
+    const existingUser = await tx.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true },
+    });
+
+    if (existingUser?.id) {
+      return existingUser.id;
+    }
+
+    throw new Error("BOOKING_USER_NOT_FOUND");
+  }
+
+  const existingGuest = await tx.user.findUnique({
+    where: { email: data.email },
+    select: { id: true },
+  });
+
+  if (existingGuest?.id) {
+    return existingGuest.id;
+  }
+
+  const guestUser = await tx.user.create({
+    data: {
+      id: randomUUID(),
+      email: data.email,
+      name: `${data.firstName} ${data.lastName}`,
+      phone: data.phone,
+    },
+    select: { id: true },
+  });
+
+  return guestUser.id;
+}
 
 const bookingSchema = z.object({
   checkIn: z.string(),
@@ -645,24 +686,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 5. Create or find user inside transaction
-        let user;
-        if (session?.user?.id) {
-          user = await tx.user.findUnique({
-            where: { id: session.user.id },
-          });
-        } else {
-          user = await tx.user.upsert({
-            where: { email: data.email },
-            create: {
-              email: data.email,
-              name: `${data.firstName} ${data.lastName}`,
-              phone: data.phone,
-            },
-            update: {
-              phone: data.phone,
-            },
-          });
-        }
+        const userId = await resolveBookingUserId(tx, session, data);
 
         const now = new Date();
         const reuseExistingWaivers = data.reuseExistingWaivers !== false;
@@ -673,7 +697,7 @@ export async function POST(request: NextRequest) {
 
         const existingAccountWaivers = supportsWaiverPersistence
           ? await tx.accountWaiver.findMany({
-              where: { userId: user!.id },
+              where: { userId },
             })
           : [];
         const bookingWaivers: Array<{
@@ -717,12 +741,12 @@ export async function POST(request: NextRequest) {
           const accountWaiver = await tx.accountWaiver.upsert({
             where: {
               userId_type: {
-                userId: user!.id,
+                userId,
                 type,
               },
             },
             create: {
-              userId: user!.id,
+              userId,
               type,
               content: WAIVER_CONTENT_BY_TYPE[type],
               signature: data.waiver.signature,
@@ -762,7 +786,7 @@ export async function POST(request: NextRequest) {
           const existingPets = await tx.pet.findMany({
             where: {
               id: { in: selectedPetIds },
-              userId: user!.id,
+              userId,
             },
             select: { id: true },
           });
@@ -779,7 +803,7 @@ export async function POST(request: NextRequest) {
             (data.newPets ?? []).map((pet) =>
               tx.pet.create({
                 data: {
-                  userId: user!.id,
+                  userId,
                   name: pet.name,
                   breed: pet.breed,
                   age: pet.age,
@@ -800,7 +824,7 @@ export async function POST(request: NextRequest) {
         // 6. Create booking atomically
         const createdBooking = await tx.booking.create({
           data: {
-            userId: user!.id,
+            userId,
             suiteId: availableSuite.id,
             packageId: packageRedemption?.packageId || null,
             bookingNumber,
