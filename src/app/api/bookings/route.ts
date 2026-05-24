@@ -387,15 +387,27 @@ export async function POST(request: NextRequest) {
       }
 
       const now = new Date();
+      // Normalize to start of today for date-only comparisons so vaccines
+      // expiring "today" (stored as midnight UTC) are still treated as valid.
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       if (blockOnExpiredVaccines && requiredVaccines.length > 0) {
         const invalidVaccinePetIds = petRecords
           .filter((pet) => {
-            const validVaccineNames = new Set(
-              pet.vaccines
-                .filter((vaccine) => new Date(vaccine.expiryDate) > now)
-                .map((vaccine) => vaccine.name.toLowerCase()),
+            const validVaccineNames = pet.vaccines
+              .filter((vaccine) => {
+                const expiry = new Date(vaccine.expiryDate);
+                const expiryDay = new Date(expiry.getFullYear(), expiry.getMonth(), expiry.getDate());
+                return expiryDay >= todayStart;
+              })
+              .map((vaccine) => vaccine.name.toLowerCase());
+            // Use partial/substring matching so "Rabies Vaccine" satisfies "Rabies"
+            // and "DHLPP" satisfies "DHPP".
+            return requiredVaccines.some(
+              (required) =>
+                !validVaccineNames.some(
+                  (name) => name.includes(required) || required.includes(name),
+                ),
             );
-            return requiredVaccines.some((required) => !validVaccineNames.has(required));
           })
           .map((pet) => pet.id);
 
