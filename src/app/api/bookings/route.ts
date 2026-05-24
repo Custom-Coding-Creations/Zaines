@@ -350,17 +350,6 @@ export async function POST(request: NextRequest) {
     const adminSettings = await getAdminSettings();
     const selectedPetIds = [...new Set((data.petIds ?? []).filter(Boolean))];
 
-    if ((data.newPets ?? []).length > 0) {
-      return errorResponse({
-        status: 409,
-        errorCode: 'BOOKING_REQUIRES_EXISTING_ASSESSED_PET',
-        message:
-          'New pets must complete profile setup, vaccine upload, and temperament assessment before booking.',
-        retryable: false,
-        correlationId,
-      });
-    }
-
     if (selectedPetIds.length > 0) {
       const requiredVaccines =
         adminSettings.requiredVaccineSettings?.requiredVaccines?.map((name) =>
@@ -384,15 +373,6 @@ export async function POST(request: NextRequest) {
               expiryDate: true,
             },
           },
-          assessments: {
-            where: {
-              overallResult: { in: ['approved', 'conditional'] },
-              OR: [{ validUntil: null }, { validUntil: { gt: new Date() } }],
-            },
-            select: { id: true },
-            orderBy: { assessmentDate: 'desc' },
-            take: 1,
-          },
         },
       });
 
@@ -407,22 +387,6 @@ export async function POST(request: NextRequest) {
       }
 
       const now = new Date();
-      const missingAssessmentPetIds = petRecords
-        .filter((pet) => pet.assessments.length === 0)
-        .map((pet) => pet.id);
-
-      if (missingAssessmentPetIds.length > 0) {
-        return errorResponse({
-          status: 409,
-          errorCode: 'BOOKING_REQUIRES_BEHAVIOR_ASSESSMENT',
-          message:
-            'Every pet must have a valid behavior assessment before booking.',
-          retryable: false,
-          correlationId,
-          details: { petIds: missingAssessmentPetIds },
-        });
-      }
-
       if (blockOnExpiredVaccines && requiredVaccines.length > 0) {
         const invalidVaccinePetIds = petRecords
           .filter((pet) => {
@@ -446,6 +410,29 @@ export async function POST(request: NextRequest) {
             details: { petIds: invalidVaccinePetIds, requiredVaccines },
           });
         }
+      }
+    }
+
+    if ((data.newPets ?? []).length > 0) {
+      const vaccineRecordsByPetId = new Set(
+        (data.vaccines ?? [])
+          .map((record) => record.petId)
+          .filter((petId) => typeof petId === "string" && petId.length > 0),
+      );
+      const missingVaccinePetIds = (data.newPets ?? [])
+        .map((_, index) => `new-${index}`)
+        .filter((petId) => !vaccineRecordsByPetId.has(petId));
+
+      if (missingVaccinePetIds.length > 0) {
+        return errorResponse({
+          status: 409,
+          errorCode: 'BOOKING_REQUIRES_CURRENT_VACCINES',
+          message:
+            'One or more newly added pets are missing vaccine records required to book.',
+          retryable: false,
+          correlationId,
+          details: { petIds: missingVaccinePetIds },
+        });
       }
     }
 

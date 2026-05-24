@@ -81,6 +81,19 @@ const { prismaMock } = vi.hoisted(() => {
       count: vi.fn(async () => 1),
       upsert: vi.fn(async () => ({ id: "suite-standard-1" })),
     },
+    pet: {
+      findMany: vi.fn(async () => [
+        {
+          id: "pet-001",
+          vaccines: [
+            {
+              name: "Rabies",
+              expiryDate: new Date("2030-01-01"),
+            },
+          ],
+        },
+      ]),
+    },
   };
 
   return { prismaMock: mock };
@@ -231,5 +244,47 @@ describe("Issue #31 CP2 booking security remediation", () => {
         correlationId: "issue31-reuse-waiver-correlation",
       }),
     );
+  });
+
+  it("does not block booking on missing behavior assessments", async () => {
+    const request = new Request("http://localhost:3000/api/bookings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-correlation-id": "issue31-no-assessment-gate-correlation",
+      },
+      body: JSON.stringify({
+        checkIn: "2026-03-10",
+        checkOut: "2026-03-12",
+        suiteType: "luxury",
+        petCount: 1,
+        petIds: ["pet-001"],
+        firstName: "Morgan",
+        lastName: "Lee",
+        email: "morgan@example.com",
+        phone: "3155551234",
+        petNames: "Scout",
+        waiver: {
+          liabilityAccepted: true,
+          medicalAuthorizationAccepted: true,
+          photoReleaseAccepted: true,
+          policyAcknowledgmentAccepted: true,
+          signature: "Morgan Lee",
+        },
+      }),
+    });
+
+    const response = await createBooking(request as NextRequest);
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload).toEqual(
+      expect.objectContaining({
+        code: "INVALID_STAY_LENGTH",
+        error: "Minimum stay is 10 nights.",
+        correlationId: "issue31-no-assessment-gate-correlation",
+      }),
+    );
+    expect(payload.code).not.toBe("BOOKING_REQUIRES_BEHAVIOR_ASSESSMENT");
   });
 });
