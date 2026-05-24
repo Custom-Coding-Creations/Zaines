@@ -289,7 +289,7 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
     }
   };
 
-  const handleOAuth = (providerId: string) => {
+  const handleOAuth = async (providerId: string) => {
     if (!authOperational) {
       updateError("Social sign-in is temporarily unavailable. Please contact support.");
       return;
@@ -298,11 +298,35 @@ export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
     setBusy(true);
     setMessage("");
 
-    // Navigate directly to the OAuth start endpoint. This uses a standard
-    // browser navigation + 302 redirect, ensuring PKCE cookies are set in the
-    // same response as the redirect (most reliable across all environments).
-    const params = new URLSearchParams({ provider: providerId, callbackUrl });
-    window.location.href = `/api/auth/oauth-start?${params.toString()}`;
+    try {
+      // Fetch CSRF token, then submit a hidden form via standard POST.
+      // This ensures the PKCE cookie is set in the same 302 response that
+      // redirects to Google — the most reliable cookie delivery mechanism.
+      const csrfRes = await fetch("/api/auth/csrf");
+      const { csrfToken } = await csrfRes.json();
+
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = `/api/auth/signin/${providerId}`;
+
+      const csrfInput = document.createElement("input");
+      csrfInput.type = "hidden";
+      csrfInput.name = "csrfToken";
+      csrfInput.value = csrfToken;
+      form.appendChild(csrfInput);
+
+      const callbackInput = document.createElement("input");
+      callbackInput.type = "hidden";
+      callbackInput.name = "callbackUrl";
+      callbackInput.value = callbackUrl;
+      form.appendChild(callbackInput);
+
+      document.body.appendChild(form);
+      form.submit();
+    } catch {
+      updateError("Unable to continue with that provider. Please retry.");
+      setBusy(false);
+    }
   };
 
   return (
