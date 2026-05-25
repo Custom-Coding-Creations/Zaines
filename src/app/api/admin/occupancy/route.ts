@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireStaffSession } from '@/lib/api/admin-auth';
 import { prisma, isDatabaseConfigured } from '@/lib/prisma';
+import { DEFAULT_SUITES } from '@/lib/booking/default-suites';
 
 export async function GET() {
   try {
@@ -13,8 +14,11 @@ export async function GET() {
       return NextResponse.json({ suites: [], summary: { suites: 0, occupiedSuites: 0, occupiedPets: 0 } });
     }
 
+    // Only query suites that are in the current configuration
+    const activeSuiteIds = DEFAULT_SUITES.map((s) => s.id);
+
     const suites = await prisma.suite.findMany({
-      where: { isActive: true },
+      where: { id: { in: activeSuiteIds }, isActive: true },
       include: {
         bookings: {
           where: { status: 'checked_in' },
