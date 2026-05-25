@@ -105,6 +105,7 @@ export async function GET() {
     const [
       checkInsToday,
       checkOutsToday,
+      currentOccupancy,
       pendingConfirmations,
       unresolvedMessages,
       failedPayments,
@@ -134,6 +135,11 @@ export async function GET() {
             gte: todayStart,
             lte: todayEnd,
           },
+          status: 'checked_in',
+        },
+      }),
+      prisma.booking.count({
+        where: {
           status: 'checked_in',
         },
       }),
@@ -280,6 +286,14 @@ export async function GET() {
           href: '/admin/bookings?status=checked_in',
           description: 'Active stays expected to check out today.',
           severity: checkOutsToday > 0 ? 'attention' : 'normal',
+        },
+        {
+          id: 'current_occupancy',
+          label: 'Current occupancy',
+          count: currentOccupancy,
+          href: '/admin/occupancy',
+          description: 'Dogs currently checked in across all active stays.',
+          severity: currentOccupancy > 0 ? 'attention' : 'normal',
         },
         {
           id: 'pending_confirmations',

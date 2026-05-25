@@ -32,6 +32,14 @@ interface KPICard {
   };
 }
 
+function getQueueCount(
+  items: AdminQueueItem[],
+  id: AdminQueueItem['id'],
+): number | null {
+  const match = items.find((item) => item.id === id);
+  return match ? match.count : null;
+}
+
 type DashboardStaffingFixSummary = {
   mode: 'preview' | 'apply';
   attempted: number;
@@ -64,21 +72,24 @@ function getDateRange(
   dateRangeType: 'today' | 'today_tomorrow' | 'this_week',
 ): { startDate: Date; endDate: Date } {
   const today = new Date();
+  const startDate = new Date(today);
+  startDate.setHours(0, 0, 0, 0);
 
-  let endDate = new Date(today);
+  let endDate = new Date(startDate);
   endDate.setHours(23, 59, 59, 999);
   if (dateRangeType === 'today_tomorrow') {
-    endDate = new Date(today);
+    endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + 1);
+    endDate.setHours(23, 59, 59, 999);
   } else if (dateRangeType === 'this_week') {
-    const dayOfWeek = today.getDay();
+    const dayOfWeek = startDate.getDay();
     const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
-    endDate = new Date(today);
+    endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + daysUntilSunday);
     endDate.setHours(23, 59, 59, 999);
   }
 
-  return { startDate: today, endDate };
+  return { startDate, endDate };
 }
 
 interface AdminDashboardClientProps {
@@ -114,13 +125,15 @@ export default function AdminDashboardClient({
   const staffingHasWork = staffingSummaryItems.some((item) => item.count > 0);
   const invalidSlotCount = queueById('invalid_play_group_time_slots')?.count ?? 0;
 
-  // Calculate KPIs from bookings
-  function calculateKPIs(bookingList: AdminBookingResponse[]) {
+  // Calculate KPIs from shared queue counters (when available) to keep all overview widgets in sync.
+  function calculateKPIs(
+    bookingList: AdminBookingResponse[],
+    queueItems: AdminQueueItem[],
+  ) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Count check-ins today
-    const checkInsToday = bookingList.filter((b) => {
+    const computedCheckInsToday = bookingList.filter((b) => {
       const checkInDate = new Date(b.checkInDate);
       checkInDate.setHours(0, 0, 0, 0);
       return (
@@ -128,25 +141,31 @@ export default function AdminDashboardClient({
         (b.status === 'confirmed' || b.status === 'checked_in')
       );
     }).length;
+    const checkInsToday =
+      getQueueCount(queueItems, 'check_ins_today') ?? computedCheckInsToday;
 
-    // Count check-outs today
-    const checkOutsToday = bookingList.filter((b) => {
+    const computedCheckOutsToday = bookingList.filter((b) => {
       const checkOutDate = new Date(b.checkOutDate);
       checkOutDate.setHours(0, 0, 0, 0);
       return (
         checkOutDate.getTime() === today.getTime() && b.status === 'checked_in'
       );
     }).length;
+    const checkOutsToday =
+      getQueueCount(queueItems, 'check_outs_today') ?? computedCheckOutsToday;
 
-    // Count pending confirmations
-    const pendingConfirmations = bookingList.filter(
+    const computedPendingConfirmations = bookingList.filter(
       (b) => b.status === 'pending',
     ).length;
+    const pendingConfirmations =
+      getQueueCount(queueItems, 'pending_confirmations') ??
+      computedPendingConfirmations;
 
-    // Count currently checked in (occupancy)
-    const checkedIn = bookingList.filter(
+    const computedCheckedIn = bookingList.filter(
       (b) => b.status === 'checked_in',
     ).length;
+    const checkedIn =
+      getQueueCount(queueItems, 'current_occupancy') ?? computedCheckedIn;
 
     const newKPIs: KPICard[] = [
       {
@@ -226,14 +245,12 @@ export default function AdminDashboardClient({
         };
       }>(staffingExceptionsRes, {});
 
-      if (data.data) {
-        setBookings(data.data);
-        calculateKPIs(data.data);
-      }
+      const nextBookings = data.data ?? [];
+      const nextQueueItems = queueData.data?.items ?? [];
 
-      if (queueData.data?.items) {
-        setOperationsQueue(queueData.data.items);
-      }
+      setBookings(nextBookings);
+      setOperationsQueue(nextQueueItems);
+      calculateKPIs(nextBookings, nextQueueItems);
 
       setActionableStaffingGroupIds(
         (exceptionsPayload.data?.items ?? [])

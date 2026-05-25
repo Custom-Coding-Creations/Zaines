@@ -185,12 +185,29 @@ export async function getAdminBookings(filters?: BookingListFilters): Promise<Ad
   }
 
   if (filters?.startDate || filters?.endDate) {
-    where.checkInDate = {};
-    if (filters.startDate) {
-      (where.checkInDate as Record<string, Date>).gte = filters.startDate;
-    }
-    if (filters.endDate) {
-      (where.checkInDate as Record<string, Date>).lte = filters.endDate;
+    if (filters.startDate && filters.endDate) {
+      // Include any booking that overlaps the selected window.
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : []),
+        {
+          checkInDate: {
+            lte: filters.endDate,
+          },
+        },
+        {
+          checkOutDate: {
+            gte: filters.startDate,
+          },
+        },
+      ];
+    } else if (filters.startDate) {
+      where.checkOutDate = {
+        gte: filters.startDate,
+      };
+    } else if (filters.endDate) {
+      where.checkInDate = {
+        lte: filters.endDate,
+      };
     }
   }
 
