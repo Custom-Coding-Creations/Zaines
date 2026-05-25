@@ -5,7 +5,6 @@ import { LiveAvailabilityTeaser } from "@/components/home/live-availability-teas
 import { TrustBar } from "@/components/home/trust-bar";
 import { ServicesSection } from "@/components/home/services-section";
 import { HowItWorksSection } from "@/components/home/how-it-works";
-import { SuiteShowcase } from "@/components/home/suite-showcase";
 import { ComparisonTable } from "@/components/home/comparison-table";
 import { SafetyPromiseSection } from "@/components/home/safety-promise";
 import { GalleryPreviewSection } from "@/components/home/gallery-preview";
@@ -54,7 +53,6 @@ export default async function Home() {
       <TrustFeatureStrip />
       <TrustBar />
       <ServicesSection />
-      <SuiteShowcase />
       <ComparisonTable />
       <HowItWorksSection />
       <SafetyPromiseSection />

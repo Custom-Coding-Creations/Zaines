@@ -2,7 +2,7 @@
 
 import { FadeUp } from "@/components/motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BedDouble, Bone } from "lucide-react";
+import { ArrowRight, Bone, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSiteSettings } from "@/hooks/use-site-settings";
@@ -17,7 +17,20 @@ const cardAccents = [
 ];
 
 export function ServicesSection() {
-  const { serviceSettings, addOnsSettings } = useSiteSettings();
+  const { serviceSettings, addOnsSettings, pricingSettings } = useSiteSettings();
+
+  const formatter = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: pricingSettings.currency || "USD",
+    maximumFractionDigits: 0,
+  });
+
+  const suiteFeatures = [
+    "Private suite environment",
+    "Structured care and routines",
+    "Daily updates during stay",
+    "Configured and managed in real time",
+  ];
 
   const activeTiers = serviceSettings.serviceTiers
     .filter((tier) => tier.isActive)
@@ -26,10 +39,9 @@ export function ServicesSection() {
       id: tier.id,
       title: tier.name,
       description: tier.description,
+      nightlyRate: tier.baseNightlyRate,
       image: tier.imageUrl,
-      href: `/suites#${tier.id}`,
-      icon: BedDouble,
-      badge: "Suite",
+      href: "/book?fresh=true",
       accent: cardAccents[index % cardAccents.length],
     }));
 
@@ -52,51 +64,65 @@ export function ServicesSection() {
         <FadeUp>
           <div className="text-center mb-12">
             <h2 className="heading-playful text-3xl font-bold text-foreground md:text-4xl mb-4">
-              Stay Options & Extras
+              Private Suites & Optional Add-Ons
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Every card below is pulled from the live admin configuration for suites and optional add-ons.
+              All suites and extras below are pulled from live admin configuration and update in real time.
             </p>
           </div>
         </FadeUp>
 
-        <div className="mx-auto grid max-w-6xl gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10">
+        <div className="mx-auto mb-10 grid w-full max-w-6xl justify-center gap-8 [grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),22rem))]">
           {activeTiers.map((item, index) => (
             <FadeUp key={index} delay={index * 0.08}>
-              <Link href={item.href} className="group block">
-                <div className="paw-card overflow-hidden p-0">
-                  <div className="relative aspect-[4/3] overflow-hidden">
+              <article className="playful-card relative flex h-full flex-col border-border">
+                <div className="relative mb-6 flex h-48 w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-muted to-accent">
+                  <Link href={item.href} className="group block h-full w-full" aria-label={`Book ${item.title}`}>
                     {item.image ? (
                       <Image
                         src={item.image}
-                        alt={item.title}
+                        alt={`${item.title} preview`}
                         fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-110"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, 22rem"
                       />
                     ) : (
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.65),_transparent_35%),linear-gradient(135deg,var(--color-sky),var(--color-deep-sky))]" />
                     )}
-                    <div
-                      className="absolute top-4 right-4 flex h-12 w-12 items-center justify-center rounded-full shadow-lg"
-                      style={{ backgroundColor: item.accent }}
-                    >
-                      <item.icon className="h-6 w-6 text-white" aria-hidden="true" />
-                    </div>
-                    <div className="absolute left-4 top-4 rounded-full bg-background/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-foreground shadow-sm">
-                      {item.badge}
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="heading-playful text-xl font-bold text-foreground mb-2">
-                      {item.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {item.description}
-                    </p>
-                  </div>
+                  </Link>
                 </div>
-              </Link>
+
+                <div className="mb-2">
+                  <p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">
+                    Private Suite · Configured in Admin
+                  </p>
+                  <h3 className="font-display text-2xl font-semibold text-foreground">
+                    {item.title}
+                  </h3>
+                </div>
+
+                <div className="mb-3 flex items-baseline gap-1">
+                  <span className="text-3xl font-bold text-primary">{formatter.format(item.nightlyRate)}</span>
+                  <span className="text-sm text-muted-foreground">per night</span>
+                </div>
+
+                <p className="mb-6 text-sm leading-relaxed text-muted-foreground">{item.description}</p>
+
+                <ul className="mb-8 flex-1 space-y-2.5">
+                  {suiteFeatures.map((feature) => (
+                    <li key={`${item.id}-${feature}`} className="flex items-start gap-2.5 text-sm">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" aria-hidden="true" />
+                      <span className="text-foreground/80">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-auto">
+                  <Button className="focus-ring w-full" asChild variant="outline">
+                    <Link href={item.href}>Book This Suite</Link>
+                  </Button>
+                </div>
+              </article>
             </FadeUp>
           ))}
         </div>
@@ -143,6 +169,16 @@ export function ServicesSection() {
             </div>
           </FadeUp>
         ) : null}
+
+        <FadeUp delay={0.32}>
+          <p className="mb-10 text-center text-sm text-muted-foreground">
+            Multi-dog family?{" "}
+            <Link href="/pricing#multi-dog-discounts" className="font-medium text-primary hover:underline">
+              View our multi-dog discounts
+            </Link>{" "}
+            — {pricingSettings.twoPetDiscountPercent}% off the second dog, {pricingSettings.threePlusPetsDiscountPercent}% off the third.
+          </p>
+        </FadeUp>
 
         <FadeUp delay={0.4}>
           <div className="text-center">
