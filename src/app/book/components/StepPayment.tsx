@@ -504,6 +504,7 @@ export function StepPayment({
     ?.split(",")
     ?.map((name) => name.trim())
     ?.find((name) => name.length > 0);
+  const bookingEmail = bookingPayload?.email;
   const personalizedActionLabel = premiumCopyEnabled
     ? leadPetName
       ? `Reserve ${leadPetName}'s Stay`
@@ -674,6 +675,7 @@ export function StepPayment({
         body: JSON.stringify({
           bookingId,
           preferredFlow: paymentMode,
+          guestEmail: bookingEmail,
         }),
       });
 
@@ -719,6 +721,7 @@ export function StepPayment({
       setIsRecoveringPayment(false);
     }
   }, [
+    bookingEmail,
     bookingId,
     handleAlreadyCompletedPayment,
     onUpdate,

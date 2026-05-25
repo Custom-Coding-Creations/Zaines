@@ -13,6 +13,7 @@ import {
 const setupSchema = z.object({
   bookingId: z.string().min(1),
   preferredFlow: z.enum(["payment_element", "embedded_checkout"]).optional(),
+  guestEmail: z.string().email().optional(),
 });
 
 type BookingPaymentMode = "payment_element" | "embedded_checkout";
@@ -255,18 +256,6 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await auth();
-    if (!session?.user?.id) {
-      return errorResponse({
-        status: 401,
-        errorCode: "AUTH_REQUIRED",
-        message: "Authentication required",
-        retryable: false,
-        correlationId,
-      });
-    }
-
-    const role = (session.user as { id: string; role?: string }).role;
-    const isStaffOrAdmin = !!role && ["staff", "admin"].includes(role);
 
     const body = await request.json();
     const validation = setupSchema.safeParse(body);
@@ -280,7 +269,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { bookingId, preferredFlow } = validation.data;
+    const { bookingId, preferredFlow, guestEmail } = validation.data;
     const booking = await setupPrisma.booking.findUnique({
       where: { id: bookingId },
       include: { user: true },
@@ -296,12 +285,33 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const isOwner = booking.userId === session.user.id;
-    const isEmailMatch =
+    const role = session?.user?.id
+      ? (session.user as { id: string; role?: string }).role
+      : undefined;
+    const isStaffOrAdmin = !!role && ["staff", "admin"].includes(role);
+    const isOwner = !!session?.user?.id && booking.userId === session.user.id;
+    const isSessionEmailMatch =
       !!booking.email &&
-      !!session.user.email &&
+      !!session?.user?.email &&
       booking.email.toLowerCase() === session.user.email.toLowerCase();
-    const hasAccess = isOwner || isStaffOrAdmin || isEmailMatch;
+    const normalizedGuestEmail = guestEmail?.trim().toLowerCase();
+    const isGuestEmailMatch =
+      !!normalizedGuestEmail &&
+      ((!!booking.email && booking.email.toLowerCase() === normalizedGuestEmail) ||
+        (!!booking.user.email &&
+          booking.user.email.toLowerCase() === normalizedGuestEmail));
+    const hasAccess =
+      isOwner || isStaffOrAdmin || isSessionEmailMatch || isGuestEmailMatch;
+
+    if (!session?.user?.id && !isGuestEmailMatch) {
+      return errorResponse({
+        status: 401,
+        errorCode: "AUTH_REQUIRED",
+        message: "Authentication required",
+        retryable: false,
+        correlationId,
+      });
+    }
 
     if (!hasAccess) {
       return errorResponse({
