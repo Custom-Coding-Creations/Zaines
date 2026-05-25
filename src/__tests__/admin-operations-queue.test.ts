@@ -5,12 +5,12 @@ const {
   isDatabaseConfiguredMock,
   prismaMock,
   getAdminSettingsMock,
+  getRecentContactSubmissionsMock,
 } = vi.hoisted(() => ({
   authMock: vi.fn(),
   isDatabaseConfiguredMock: vi.fn(() => true),
   prismaMock: {
     booking: { count: vi.fn() },
-    message: { count: vi.fn() },
     payment: { count: vi.fn() },
     automatedReminder: { count: vi.fn() },
     inventoryItem: { count: vi.fn(), fields: { reorderLevel: 'reorderLevel' } },
@@ -20,6 +20,7 @@ const {
     staffSchedule: { findMany: vi.fn() },
   },
   getAdminSettingsMock: vi.fn(),
+  getRecentContactSubmissionsMock: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -33,6 +34,10 @@ vi.mock('@/lib/prisma', () => ({
 
 vi.mock('@/lib/api/admin-settings', () => ({
   getAdminSettings: getAdminSettingsMock,
+}));
+
+vi.mock('@/lib/api/issue26', () => ({
+  getRecentContactSubmissions: getRecentContactSubmissionsMock,
 }));
 
 import { GET } from '@/app/api/admin/operations/queue/route';
@@ -63,7 +68,11 @@ describe('GET /api/admin/operations/queue', () => {
       .mockResolvedValueOnce(2)
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(3);
-    prismaMock.message.count.mockResolvedValueOnce(4);
+    getRecentContactSubmissionsMock.mockResolvedValueOnce([
+      { submissionId: '1', status: 'open', fullName: 'Test', email: 'test@example.com', message: 'Test message', createdAt: '2026-05-16T00:00:00Z', phone: null, conversation: [] },
+      { submissionId: '2', status: 'resolved', fullName: 'Test2', email: 'test2@example.com', message: 'Test message 2', createdAt: '2026-05-16T00:00:00Z', phone: null, conversation: [] },
+      { submissionId: '3', status: 'resolved', fullName: 'Test3', email: 'test3@example.com', message: 'Test message 3', createdAt: '2026-05-16T00:00:00Z', phone: null, conversation: [] },
+    ]);
     prismaMock.automatedReminder.count.mockResolvedValueOnce(2);
     prismaMock.inventoryItem.count.mockResolvedValueOnce(1);
     prismaMock.customerPackage.count.mockResolvedValueOnce(3);
@@ -106,6 +115,7 @@ describe('GET /api/admin/operations/queue', () => {
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
     expect(body.data.items).toHaveLength(16);
+    expect(body.data.items.find((item: { id: string }) => item.id === 'unresolved_messages')?.count).toBe(1);
     expect(body.data.items.find((item: { id: string }) => item.id === 'failed_payments')?.count).toBe(5);
     expect(body.data.items.find((item: { id: string }) => item.id === 'pending_reminders')?.count).toBe(2);
     expect(body.data.items.find((item: { id: string }) => item.id === 'low_stock_items')?.count).toBe(1);

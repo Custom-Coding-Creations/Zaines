@@ -33,6 +33,10 @@ vi.mock("@/lib/api/admin-settings", () => ({
   })),
 }));
 
+vi.mock("@/lib/api/issue26", () => ({
+  getRecentContactSubmissions: vi.fn(async () => []),
+}));
+
 vi.mock("@/lib/booking/default-suites", () => ({
   ensureDefaultSuites: vi.fn(async () => undefined),
 }));

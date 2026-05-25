@@ -4,6 +4,7 @@ import type { AdminOperationsQueueResponse } from '@/types/admin';
 import { getAdminSettings, getDefaultSettings } from '@/lib/api/admin-settings';
 import { requireStaffSession } from '@/lib/api/admin-auth';
 import { collectStaffingExceptions } from '@/lib/play-groups/staffing-exceptions';
+import { getRecentContactSubmissions } from '@/lib/api/issue26';
 
 function startOfToday(): Date {
   const date = new Date();
@@ -141,12 +142,10 @@ export async function GET() {
           status: 'pending',
         },
       }),
-      prisma.message.count({
-        where: {
-          senderType: 'customer',
-          isRead: false,
-        },
-      }),
+      (async () => {
+        const submissions = await getRecentContactSubmissions(1000);
+        return submissions.filter((s) => s.status === 'open').length;
+      })(),
       prisma.payment.count({
         where: {
           status: 'failed',
@@ -295,7 +294,7 @@ export async function GET() {
           label: 'Unresolved messages',
           count: unresolvedMessages,
           href: '/admin/messages',
-          description: 'Unread customer messages requiring a response.',
+          description: 'Contact form submissions awaiting resolution.',
           severity: unresolvedMessages >= 10 ? 'critical' : unresolvedMessages > 0 ? 'attention' : 'normal',
         },
         {
