@@ -271,7 +271,10 @@ export async function getAdminBookings(filters?: BookingListFilters): Promise<Ad
           },
         },
       },
-      orderBy: { checkInDate: 'asc' },
+      orderBy: [
+        { createdAt: 'desc' },
+        { checkInDate: 'desc' },
+      ],
     });
 
     return bookings as AdminBookingResponse[];

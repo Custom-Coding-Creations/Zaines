@@ -397,6 +397,7 @@ export interface AdminBookingFormData {
 export interface AdminBookingResponse {
   id: string;
   bookingNumber: string;
+  createdAt: Date;
   checkInDate: Date;
   checkOutDate: Date;
   status: string;
