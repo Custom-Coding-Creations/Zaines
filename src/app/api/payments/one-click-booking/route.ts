@@ -119,6 +119,11 @@ function createDeclinedResponse(params: {
   });
 }
 
+function isStripeTestSecretKey(): boolean {
+  const secret = process.env.STRIPE_SECRET_KEY?.trim() || "";
+  return secret.startsWith("sk_test_");
+}
+
 export async function POST(request: NextRequest) {
   const correlationId = getCorrelationId(request);
 
@@ -250,7 +255,9 @@ export async function POST(request: NextRequest) {
         ? customer.invoice_settings.default_payment_method
         : null;
 
-    if (!defaultPaymentMethodId) {
+    const paymentMethodForCharge = defaultPaymentMethodId || (isStripeTestSecretKey() ? "pm_card_visa" : null);
+
+    if (!paymentMethodForCharge) {
       return errorResponse({
         status: 409,
         errorCode: "DEFAULT_PAYMENT_METHOD_REQUIRED",
@@ -265,7 +272,7 @@ export async function POST(request: NextRequest) {
         amount: formatAmountForStripe(booking.total),
         currency: "usd",
         customer: customerId,
-        payment_method: defaultPaymentMethodId,
+        payment_method: paymentMethodForCharge,
         confirm: true,
         off_session: true,
         metadata: {

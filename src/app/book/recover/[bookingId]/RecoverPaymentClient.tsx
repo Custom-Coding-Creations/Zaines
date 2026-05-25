@@ -23,6 +23,7 @@ type Props = {
 };
 
 function PaymentElementRecoveryForm({ bookingId }: { bookingId: string }) {
+  const STRIPE_CONFIRM_TIMEOUT_MS = 20_000;
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -41,13 +42,23 @@ function PaymentElementRecoveryForm({ bookingId }: { bookingId: string }) {
     setIsSubmitting(true);
 
     try {
-      // With Checkout Sessions (ui_mode: "elements"), confirmPayment works seamlessly
-      const { error: stripeError } = await stripe.confirmPayment({
+      const confirmPromise = stripe.confirmPayment({
         elements,
         confirmParams: {
           return_url: `${window.location.origin}/book/confirmation?bookingId=${bookingId}`,
         },
       });
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        const timeoutId = window.setTimeout(() => {
+          reject(new Error("PAYMENT_CONFIRM_TIMEOUT"));
+        }, STRIPE_CONFIRM_TIMEOUT_MS);
+        void timeoutId;
+      });
+
+      const { error: stripeError } = await Promise.race([
+        confirmPromise,
+        timeoutPromise,
+      ]);
 
       if (stripeError) {
         throw new Error(stripeError.message || "Unable to complete payment.");
@@ -55,7 +66,9 @@ function PaymentElementRecoveryForm({ bookingId }: { bookingId: string }) {
     } catch (submitError) {
       setError(
         submitError instanceof Error
-          ? submitError.message
+          ? submitError.message === "PAYMENT_CONFIRM_TIMEOUT"
+            ? "Payment confirmation timed out. Refresh your payment session and retry."
+            : submitError.message
           : "Unable to complete payment.",
       );
       setIsSubmitting(false);

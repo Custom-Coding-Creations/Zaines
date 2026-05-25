@@ -287,6 +287,7 @@ function PaymentForm({
   actionLabel: string;
   premiumLoadingEnabled: boolean;
 }) {
+  const STRIPE_CONFIRM_TIMEOUT_MS = 20_000;
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -303,11 +304,22 @@ function PaymentForm({
     setSubmitError("");
 
     try {
-      // With Checkout Sessions (ui_mode: "elements"), confirmPayment works seamlessly
-      const { error, paymentIntent } = await stripe.confirmPayment({
+      // Guard against Stripe frame/network stalls that can leave checkout in a perpetual loading state.
+      const confirmPromise = stripe.confirmPayment({
         elements,
         redirect: "if_required",
       });
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        const timeoutId = window.setTimeout(() => {
+          reject(new Error("PAYMENT_CONFIRM_TIMEOUT"));
+        }, STRIPE_CONFIRM_TIMEOUT_MS);
+        void timeoutId;
+      });
+
+      const { error, paymentIntent } = await Promise.race([
+        confirmPromise,
+        timeoutPromise,
+      ]);
 
       if (error) {
         const message = error.message || "Payment failed";
@@ -329,8 +341,11 @@ function PaymentForm({
         toast.error(message);
         setIsProcessing(false);
       }
-    } catch {
-      const message = "An error occurred during payment";
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message === "PAYMENT_CONFIRM_TIMEOUT"
+          ? "Payment confirmation timed out. Refresh your payment session and retry."
+          : "An error occurred during payment";
       setSubmitError(message);
       toast.error(message);
       setIsProcessing(false);
@@ -481,6 +496,9 @@ export function StepPayment({
   const oneClickRebookingEnabled =
     (stripeFlags?.savedPaymentMethodsEnabled ?? false) &&
     (stripeFlags?.oneClickRebookingEnabled ?? false);
+  const testModeOneClickFallbackEnabled =
+    typeof process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY === "string" &&
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.startsWith("pk_test_");
   const leadPetName = bookingPayload?.petNames
     ?.split(",")
     ?.map((name) => name.trim())
@@ -1195,9 +1213,36 @@ export function StepPayment({
           <div className="rounded-lg border border-dashed bg-muted/20 p-4">
             <p className="text-sm font-medium">One-click rebooking unavailable</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Add a default saved card in Wallet to unlock instant one-click payments.
+              {testModeOneClickFallbackEnabled
+                ? "No default saved card found. In test mode, you can still complete checkout with one-click fallback."
+                : "Add a default saved card in Wallet to unlock instant one-click payments."}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
+              {testModeOneClickFallbackEnabled ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="focus-ring"
+                  size="sm"
+                  onClick={() => {
+                    void handleOneClickPayment();
+                  }}
+                  disabled={
+                    !pricingDisclosureAccepted ||
+                    isOneClickSubmitting ||
+                    isRecoveringPayment
+                  }
+                >
+                  {isOneClickSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing Fallback...
+                    </>
+                  ) : (
+                    "Pay With One-Click Fallback"
+                  )}
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"

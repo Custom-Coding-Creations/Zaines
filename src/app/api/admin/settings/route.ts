@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { isDatabaseConfigured } from '@/lib/prisma';
 import { getAdminSettings, updateAdminSettings } from '@/lib/api/admin-settings';
@@ -81,6 +82,11 @@ export async function PUT(request: NextRequest) {
     }
 
     const settings = await updateAdminSettings(validation.data as Partial<AdminSettings>);
+
+    // Refresh public pages that read admin settings directly via server components.
+    revalidatePath('/');
+    revalidatePath('/pricing');
+    revalidatePath('/suites');
 
     return NextResponse.json({
       success: true,
