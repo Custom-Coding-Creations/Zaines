@@ -18,10 +18,6 @@ import { rateLimitedResponse } from "@/lib/security/api";
 type BookingPrisma = {
   suite: {
     count: (args: { where: { isActive: boolean } }) => Promise<number>;
-    aggregate?: (args: {
-      where: { isActive: boolean };
-      _sum: { capacity: true };
-    }) => Promise<{ _sum: { capacity: number | null } }>;
   };
   booking: {
     count: (args: {
@@ -34,20 +30,6 @@ type BookingPrisma = {
 };
 
 const bookingPrisma = prisma as unknown as BookingPrisma;
-
-async function getActiveSuiteCapacity(): Promise<number> {
-  const aggregate = bookingPrisma.suite.aggregate;
-  if (typeof aggregate === "function") {
-    const result = await aggregate({
-      where: { isActive: true },
-      _sum: { capacity: true },
-    });
-    return Math.max(0, result._sum.capacity ?? 0);
-  }
-
-  // Test and partial-mock fallback.
-  return bookingPrisma.suite.count({ where: { isActive: true } });
-}
 
 async function getConfiguredCapacity(): Promise<number> {
   const settings = await getAdminSettings();
@@ -114,20 +96,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const seededSuites = await ensureDefaultSuites();
-    const [suiteCapacity, configuredCapacity] = await Promise.all([
-      getActiveSuiteCapacity(),
-      getConfiguredCapacity(),
-    ]);
-
-    let activeCapacity = Math.max(suiteCapacity, configuredCapacity);
+    const activeCapacity = await getConfiguredCapacity();
 
     // During first-run bootstrap in tests or partial mocks, capacity can read as zero
     // immediately after seeding; fall back to seeded suite count.
-    if (activeCapacity === 0 && seededSuites > 0) {
-      activeCapacity = seededSuites;
-    }
+    const effectiveCapacity = activeCapacity > 0 ? activeCapacity : seededSuites;
 
-    if (activeCapacity === 0) {
+    if (effectiveCapacity === 0) {
       return NextResponse.json(
         createPublicErrorEnvelope({
           errorCode: "AVAILABILITY_UNAVAILABLE",
@@ -148,7 +123,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const availableCapacity = Math.max(0, activeCapacity - overlappingBookings);
+    const availableCapacity = Math.max(0, effectiveCapacity - overlappingBookings);
     const isAvailable = availableCapacity >= parsed.data.partySize;
 
     if (process.env.NODE_ENV === "development") {
@@ -156,9 +131,7 @@ export async function POST(request: NextRequest) {
         checkIn: parsed.data.checkIn,
         checkOut: parsed.data.checkOut,
         partySize: parsed.data.partySize,
-        suiteCapacity,
-        configuredCapacity,
-        activeCapacity,
+        configuredCapacity: effectiveCapacity,
         overlappingBookings,
         availableCapacity,
         isAvailable,

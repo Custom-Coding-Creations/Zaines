@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getAdminSettings } from "@/lib/api/admin-settings";
 
 type SuiteSeed = {
   id: string;
@@ -16,8 +17,12 @@ type SuiteBootstrapPrisma = {
     count: (args: { where: { isActive: boolean } }) => Promise<number>;
     upsert: (args: {
       where: { id: string };
-      update: SuiteSeed;
+      update: Partial<SuiteSeed>;
       create: SuiteSeed;
+    }) => Promise<unknown>;
+    updateMany: (args: {
+      where: { id: { notIn: string[] }; isActive: boolean };
+      data: { isActive: boolean };
     }) => Promise<unknown>;
   };
 };
@@ -35,6 +40,11 @@ export const DEFAULT_SUITES: SuiteSeed[] = [
   },
 ];
 
+/**
+ * Syncs the Suite table with the current Settings configuration.
+ * Creates/updates Suite rows to match active service tiers from Settings,
+ * and deactivates any Suite rows that no longer correspond to a configured tier.
+ */
 export async function ensureDefaultSuites(
   prismaClient: SuiteBootstrapPrisma = prisma as unknown as SuiteBootstrapPrisma,
 ): Promise<number> {
@@ -49,23 +59,53 @@ export async function ensureDefaultSuites(
     return 0;
   }
 
-  const activeSuiteCount = await suiteDelegate.count({
-    where: { isActive: true },
-  });
-
-  if (activeSuiteCount > 0) {
-    return activeSuiteCount;
+  // Try to read Settings for the authoritative tier configuration
+  let suitesToSync: SuiteSeed[] = DEFAULT_SUITES;
+  try {
+    const settings = await getAdminSettings();
+    const activeTiers = settings.serviceSettings.serviceTiers.filter((t) => t.isActive);
+    if (activeTiers.length > 0) {
+      suitesToSync = activeTiers.map((tier) => ({
+        id: `suite-${tier.id.replace('-suite', '')}-1`,
+        name: tier.name,
+        tier: tier.id.replace('-suite', ''),
+        size: tier.id.includes('luxury') ? 'large' : tier.id.includes('deluxe') ? 'large' : 'medium',
+        capacity: tier.capacity || 1,
+        pricePerNight: tier.baseNightlyRate,
+        amenities: ["raised_bed"],
+        isActive: true,
+      }));
+    }
+  } catch {
+    // If Settings can't be read (e.g., during initial bootstrap), use hardcoded defaults
   }
 
+  // Upsert all configured suites
   await Promise.all(
-    DEFAULT_SUITES.map((suite) =>
+    suitesToSync.map((suite) =>
       suiteDelegate.upsert({
         where: { id: suite.id },
-        update: suite,
+        update: {
+          name: suite.name,
+          tier: suite.tier,
+          size: suite.size,
+          capacity: suite.capacity,
+          pricePerNight: suite.pricePerNight,
+          isActive: suite.isActive,
+        },
         create: suite,
       }),
     ),
   );
 
-  return DEFAULT_SUITES.length;
+  // Deactivate any suites that are no longer in Settings
+  const activeSuiteIds = suitesToSync.map((s) => s.id);
+  if (typeof suiteDelegate.updateMany === 'function') {
+    await suiteDelegate.updateMany({
+      where: { id: { notIn: activeSuiteIds }, isActive: true },
+      data: { isActive: false },
+    });
+  }
+
+  return suitesToSync.length;
 }

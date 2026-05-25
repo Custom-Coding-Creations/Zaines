@@ -27,19 +27,23 @@ export default async function CreateBookingPage() {
   }
 
   // Fetch customers, pets, and suites for form dropdowns
-  const [customers, suites, settings] = await Promise.all([
+  const [customers, settings] = await Promise.all([
     prisma.user.findMany({
       where: { role: 'customer' },
       select: { id: true, name: true, email: true },
       orderBy: { name: 'asc' },
     }),
-    prisma.suite.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true, pricePerNight: true },
-      orderBy: { name: 'asc' },
-    }),
     getAdminSettings(),
   ]);
+
+  // Build suites from Settings (source of truth) instead of Suite table
+  const suites = settings.serviceSettings.serviceTiers
+    .filter((t) => t.isActive)
+    .map((tier) => ({
+      id: `suite-${tier.id.replace('-suite', '')}-1`,
+      name: tier.name,
+      pricePerNight: tier.baseNightlyRate,
+    }));
 
   const pets = await prisma.pet.findMany({
     select: { id: true, userId: true, name: true, breed: true },

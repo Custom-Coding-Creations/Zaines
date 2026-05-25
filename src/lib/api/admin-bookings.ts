@@ -9,7 +9,7 @@ import { Prisma } from '@prisma/client';
 import { getAdminSettings } from '@/lib/api/admin-settings';
 
 /**
- * Calculate booking total based on suite price and nights
+ * Calculate booking total based on Settings pricing and nights
  */
 export async function calculateBookingPrice(
   suiteId: string,
@@ -17,12 +17,6 @@ export async function calculateBookingPrice(
   checkOutDate: Date,
 ): Promise<{ subtotal: number; tax: number; total: number } | null> {
   if (!isDatabaseConfigured()) return null;
-
-  const suite = await prisma.suite.findUnique({
-    where: { id: suiteId },
-  });
-
-  if (!suite) return null;
 
   const nights = Math.ceil(
     (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24),
@@ -33,7 +27,14 @@ export async function calculateBookingPrice(
   const settings = await getAdminSettings();
   const taxRate = settings.pricingSettings.taxRatePercent / 100;
 
-  const subtotal = suite.pricePerNight * nights;
+  // Derive tier from suiteId (e.g., "suite-standard-1" → "standard")
+  const tierName = suiteId.replace(/^suite-/, '').replace(/-\d+$/, '');
+  const tier = settings.serviceSettings.serviceTiers.find(
+    (t) => t.id.replace('-suite', '') === tierName || t.id === tierName,
+  );
+  const nightlyRate = tier?.baseNightlyRate || settings.pricingSettings.standardNightlyRate;
+
+  const subtotal = nightlyRate * nights;
   const tax = Math.round(subtotal * taxRate * 100) / 100;
   const total = subtotal + tax;
 
@@ -70,13 +71,15 @@ export async function createAdminBooking(
       throw new Error('One or more pets not found or do not belong to customer');
     }
 
-    // Validate suite exists and get pricing
-    const suite = await prisma.suite.findUnique({
-      where: { id: data.suiteId },
-    });
+    // Validate suite exists and get pricing from Settings
+    const settings = await getAdminSettings();
+    const tierName = data.suiteId.replace(/^suite-/, '').replace(/-\d+$/, '');
+    const tier = settings.serviceSettings.serviceTiers.find(
+      (t) => t.id.replace('-suite', '') === tierName || t.id === tierName,
+    );
 
-    if (!suite) {
-      throw new Error('Suite not found');
+    if (!tier) {
+      throw new Error('Suite tier not found in Settings');
     }
 
     // Calculate pricing
@@ -90,10 +93,10 @@ export async function createAdminBooking(
       throw new Error('Check-out date must be after check-in date');
     }
 
-    const settings = await getAdminSettings();
     const taxRate = settings.pricingSettings.taxRatePercent / 100;
+    const nightlyRate = tier.baseNightlyRate;
 
-    const subtotal = suite.pricePerNight * nights;
+    const subtotal = nightlyRate * nights;
     const tax = Math.round(subtotal * taxRate * 100) / 100;
     const total = subtotal + tax;
 
