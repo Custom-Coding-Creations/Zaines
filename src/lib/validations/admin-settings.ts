@@ -329,10 +329,17 @@ export const fullSettingsBaseSchema = z.object({
   
   // Blackout Dates
   blackoutDates: blackoutDatesSettingsSchema.shape.blackoutDates,
+
+  // Services
+  serviceSettings: servicesSettingsSchema.shape.serviceSettings,
+  addOnsSettings: servicesSettingsSchema.shape.addOnsSettings,
   
   // Website
   websiteProfileSettings: websiteSettingsSchema.shape.websiteProfileSettings,
   trustCopySettings: websiteSettingsSchema.shape.trustCopySettings,
+
+  // Testimonials
+  testimonialsSettings: testimonialsSettingsSchema.shape.testimonialsSettings,
 });
 
 export const fullSettingsSchema = fullSettingsBaseSchema.refine(
