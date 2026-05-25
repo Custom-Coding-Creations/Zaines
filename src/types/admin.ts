@@ -352,6 +352,7 @@ export interface AdminQueueItem {
   id:
     | 'check_ins_today'
     | 'check_outs_today'
+    | 'current_occupancy'
     | 'pending_confirmations'
     | 'unresolved_messages'
     | 'failed_payments'
