@@ -397,6 +397,7 @@ export default function AdminPackagesPage() {
               {pkg.description ? <p className="text-sm text-muted-foreground">{pkg.description}</p> : null}
 
               {pkg.customerPackages.length > 0 ? (
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -442,7 +443,7 @@ export default function AdminPackagesPage() {
                               {customerPackage.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="w-[420px]">
+                          <TableCell className="min-w-[420px]">
                             <div className="grid gap-2 md:grid-cols-[100px_120px_1fr_auto] md:items-end">
                               <div className="space-y-1">
                                 <Label htmlFor={`extension-${customerPackage.id}`}>Extend days</Label>
@@ -500,6 +501,7 @@ export default function AdminPackagesPage() {
                     })}
                   </TableBody>
                 </Table>
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">No customer packages purchased for this product yet.</p>
               )}

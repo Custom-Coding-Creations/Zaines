@@ -91,13 +91,13 @@ export default function AdminStaffPage() {
             ? filtered.map((row) => (
                 <div
                   key={row.id}
-                  className="flex items-center justify-between rounded-md border px-3 py-2"
+                  className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-md border px-3 py-3"
                 >
                   <div>
                     <p className="font-medium">{row.user.name ?? 'Unnamed staff member'}</p>
                     <p className="text-xs text-muted-foreground">{row.user.email ?? 'No email'} · {row.phone ?? 'No phone'}</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline">{row.role}</Badge>
                     <Badge variant={row.isActive ? 'default' : 'secondary'}>
                       {row.isActive ? 'Active' : 'Inactive'}

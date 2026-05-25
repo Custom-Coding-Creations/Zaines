@@ -150,8 +150,8 @@ export function AdminSubNav() {
   };
 
   return (
-    <nav className="border-b bg-muted/30 px-6 py-2">
-      <ul className="flex flex-wrap gap-2">
+    <nav className="border-b bg-muted/30 px-4 sm:px-6 py-2 overflow-x-auto">
+      <ul className="flex flex-wrap gap-1.5 sm:gap-2">
         {adminSubNavItems.map((item) => {
           const active = item.match(pathname);
 
@@ -163,7 +163,7 @@ export function AdminSubNav() {
                 onMouseEnter={() => handlePrefetch(item.href)}
                 onFocus={() => handlePrefetch(item.href)}
                 onTouchStart={() => handlePrefetch(item.href)}
-                className={`inline-flex rounded-md px-3 py-1.5 text-sm transition-colors ${
+                className={`inline-flex rounded-md px-2.5 sm:px-3 py-2 text-xs sm:text-sm transition-colors ${
                   active
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"

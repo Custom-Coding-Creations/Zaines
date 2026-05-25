@@ -366,7 +366,7 @@ export default function AdminDashboardClient({
   return (
     <div className="space-y-6">
       {/* Dashboard Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Staff Dashboard</h1>
           {lastUpdated && (

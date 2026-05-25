@@ -120,7 +120,7 @@ export default function BookingsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Bookings</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -167,7 +167,7 @@ export default function BookingsPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Booking #</TableHead>
@@ -215,7 +215,7 @@ export default function BookingsPage() {
                         ${booking.total.toFixed(2)}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
                           {booking.status === 'confirmed' && (
                             <Button asChild size="sm" variant="default">
                               <Link href={`/admin/check-in/${booking.id}`}>

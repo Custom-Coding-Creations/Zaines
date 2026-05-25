@@ -112,6 +112,7 @@ export function EmergencyContactsTable() {
             action={{ label: 'View Checked-In Bookings', href: '/admin/bookings?status=checked_in' }}
           />
         ) : (
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -150,6 +151,7 @@ export function EmergencyContactsTable() {
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
       </CardContent>
     </Card>
