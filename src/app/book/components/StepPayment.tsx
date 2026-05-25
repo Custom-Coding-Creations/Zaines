@@ -461,6 +461,7 @@ export function StepPayment({
   } | null>(null);
   const hasAutoInitAttempted = useRef(Boolean(data.bookingId));
   const hasAutoRecoveryAttempted = useRef(false);
+  const hasAutoSetupWithoutSecretAttempted = useRef(false);
   const shouldSyncSeededPaymentState = useRef(Boolean(data.bookingId));
   const hasSyncedSeededPaymentState = useRef(false);
   const subtotal = Math.round((pricingQuote?.subtotal || 0) * 100) / 100;
@@ -965,6 +966,23 @@ export function StepPayment({
   ]);
 
   useEffect(() => {
+    if (!bookingId || clientSecret || isRecoveringPayment) {
+      if (clientSecret) {
+        hasAutoSetupWithoutSecretAttempted.current = false;
+      }
+      return;
+    }
+
+    if (hasAutoSetupWithoutSecretAttempted.current) {
+      return;
+    }
+
+    hasAutoSetupWithoutSecretAttempted.current = true;
+    setBookingError("Preparing secure payment session...");
+    void setupPaymentForExistingBooking();
+  }, [bookingId, clientSecret, isRecoveringPayment, setupPaymentForExistingBooking]);
+
+  useEffect(() => {
     if (
       bookingId ||
       isLoading ||
@@ -1211,11 +1229,11 @@ export function StepPayment({
 
         {oneClickRebookingEnabled && !isLoadingDefaultSavedMethod && !defaultSavedMethod ? (
           <div className="rounded-lg border border-dashed bg-muted/20 p-4">
-            <p className="text-sm font-medium">One-click rebooking unavailable</p>
+            <p className="text-sm font-medium">Secure checkout is ready below</p>
             <p className="mt-1 text-xs text-muted-foreground">
               {testModeOneClickFallbackEnabled
-                ? "No default saved card found. In test mode, you can still complete checkout with one-click fallback."
-                : "Add a default saved card in Wallet to unlock instant one-click payments."}
+                ? "No default saved card found. Continue with checkout below, or use one-click fallback in test mode."
+                : "No default saved card found. Continue with checkout below. You can add a default card later in Wallet for faster rebooking."}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {testModeOneClickFallbackEnabled ? (
@@ -1239,7 +1257,7 @@ export function StepPayment({
                       Processing Fallback...
                     </>
                   ) : (
-                    "Pay With One-Click Fallback"
+                    "Try One-Click Fallback"
                   )}
                 </Button>
               ) : null}
@@ -1254,18 +1272,7 @@ export function StepPayment({
                   }
                 }}
               >
-                Open Wallet
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="focus-ring"
-                size="sm"
-                onClick={() => {
-                  void loadDefaultSavedMethod();
-                }}
-              >
-                Check Again
+                Manage Saved Cards
               </Button>
             </div>
           </div>
