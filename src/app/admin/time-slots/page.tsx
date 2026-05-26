@@ -670,14 +670,14 @@ export default function AdminTimeSlotsPage() {
           {!loading && !error
             ? groupedRows.map(([dayOfWeek, dayRows]) => (
                 <section key={dayOfWeek} className="space-y-2 rounded-lg border p-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-sm font-semibold">
                       {dayLabel(dayOfWeek)}{' '}
                       <span className="font-normal text-muted-foreground">
                         ({dayRows.length} slot{dayRows.length !== 1 ? 's' : ''})
                       </span>
                     </h2>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                       <Button
                         variant="outline"
                         size="sm"

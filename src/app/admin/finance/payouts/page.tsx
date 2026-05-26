@@ -103,7 +103,7 @@ export default function FinancePayoutsPage() {
             View all Stripe payouts and their reconciliation status.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Button variant="outline" size="sm" asChild>
             <a
               href={getStripeReconciliationReportUrl('payout')}
@@ -181,97 +181,154 @@ export default function FinancePayoutsPage() {
               {data.payouts.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No payouts found.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-10"></TableHead>
-                        <TableHead>Payout ID</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Arrived At</TableHead>
-                        <TableHead>Transactions</TableHead>
-                        <TableHead>Reconciled</TableHead>
-                        <TableHead>Stripe Link</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.payouts.map((payout) => (
-                        <TableRow key={payout.id}>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={() => setExpandedPayoutId(expandedPayoutId === payout.id ? null : payout.id)}
-                            >
-                              {expandedPayoutId === payout.id ? (
-                                <ChevronDown className="h-4 w-4" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </TableCell>
-                          <TableCell>
-                            <p className="font-medium font-mono text-sm">{payout.stripePayoutId}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Created {formatDate(payout.createdAt)}
-                            </p>
-                          </TableCell>
-                          <TableCell>
+                <>
+                  <div className="space-y-3 md:hidden">
+                    {data.payouts.map((payout) => (
+                      <Card key={payout.id} className="rounded-2xl border-border/70 shadow-none">
+                        <CardContent className="space-y-3 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-mono text-xs text-muted-foreground truncate">{payout.stripePayoutId}</p>
+                              <p className="text-xs text-muted-foreground mt-1">Created {formatDate(payout.createdAt)}</p>
+                            </div>
+                            <Badge variant={getStatusBadgeVariant(payout.status)}>{payout.status}</Badge>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-sm">
                             <div>
-                              <p className="font-semibold">{formatCurrency(payout.amount)}</p>
-                              {payout.totalCharged > 0 && (
-                                <div className="text-xs text-muted-foreground space-y-0.5 mt-1">
-                                  <div>Charged: {formatCurrency(payout.totalCharged)}</div>
-                                  <div>Fees: {formatCurrency(payout.totalFees)}</div>
-                                  <div>Net: {formatCurrency(payout.totalNet)}</div>
-                                </div>
-                              )}
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Amount</p>
+                              <p className="mt-1 font-semibold">{formatCurrency(payout.amount)}</p>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={getStatusBadgeVariant(payout.status)}>
-                              {payout.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{formatDate(payout.arrivedAt)}</TableCell>
-                          <TableCell>
-                            <div className="text-center">
-                              <div className="font-semibold">{payout.transactionCount}</div>
-                              <div className="text-xs text-muted-foreground">payments</div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Arrived</p>
+                              <p className="mt-1">{formatDate(payout.arrivedAt)}</p>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            {payout.reconciledAt ? (
-                              <div>
-                                <Badge variant="default">Reconciled</Badge>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {formatDate(payout.reconciledAt)}
-                                </p>
-                              </div>
-                            ) : (
-                              <Badge variant="outline">Pending</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="sm" asChild>
-                              <a
-                                href={getStripePayoutUrl(payout.stripePayoutId)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                View
-                              </a>
-                            </Button>
-                          </TableCell>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Transactions</p>
+                              <p className="mt-1">{payout.transactionCount}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Reconciled</p>
+                              <p className="mt-1">{payout.reconciledAt ? 'Yes' : 'Pending'}</p>
+                            </div>
+                          </div>
+
+                          {payout.totalCharged > 0 ? (
+                            <div className="rounded-md border bg-muted/20 p-3 text-sm">
+                              <p>Charged: {formatCurrency(payout.totalCharged)}</p>
+                              <p>Fees: {formatCurrency(payout.totalFees)}</p>
+                              <p className="font-medium">Net: {formatCurrency(payout.totalNet)}</p>
+                            </div>
+                          ) : null}
+
+                          <Button variant="ghost" size="sm" asChild>
+                            <a
+                              href={getStripePayoutUrl(payout.stripePayoutId)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              View in Stripe
+                            </a>
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="hidden md:block">
+                    <Table className="min-w-[900px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10"></TableHead>
+                          <TableHead>Payout ID</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Arrived At</TableHead>
+                          <TableHead>Transactions</TableHead>
+                          <TableHead>Reconciled</TableHead>
+                          <TableHead>Stripe Link</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {data.payouts.map((payout) => (
+                          <TableRow key={payout.id}>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => setExpandedPayoutId(expandedPayoutId === payout.id ? null : payout.id)}
+                              >
+                                {expandedPayoutId === payout.id ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TableCell>
+                            <TableCell>
+                              <p className="font-medium font-mono text-sm">{payout.stripePayoutId}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Created {formatDate(payout.createdAt)}
+                              </p>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-semibold">{formatCurrency(payout.amount)}</p>
+                                {payout.totalCharged > 0 && (
+                                  <div className="text-xs text-muted-foreground space-y-0.5 mt-1">
+                                    <div>Charged: {formatCurrency(payout.totalCharged)}</div>
+                                    <div>Fees: {formatCurrency(payout.totalFees)}</div>
+                                    <div>Net: {formatCurrency(payout.totalNet)}</div>
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={getStatusBadgeVariant(payout.status)}>
+                                {payout.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{formatDate(payout.arrivedAt)}</TableCell>
+                            <TableCell>
+                              <div className="text-center">
+                                <div className="font-semibold">{payout.transactionCount}</div>
+                                <div className="text-xs text-muted-foreground">payments</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {payout.reconciledAt ? (
+                                <div>
+                                  <Badge variant="default">Reconciled</Badge>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {formatDate(payout.reconciledAt)}
+                                  </p>
+                                </div>
+                              ) : (
+                                <Badge variant="outline">Pending</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Button variant="ghost" size="sm" asChild>
+                                <a
+                                  href={getStripePayoutUrl(payout.stripePayoutId)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                  View
+                                </a>
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

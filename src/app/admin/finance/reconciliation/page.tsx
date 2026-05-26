@@ -140,7 +140,7 @@ export default function FinanceReconciliationPage() {
             Reconcile daily payout buckets and record immutable audit events.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Button variant="outline" size="sm" asChild>
             <a
               href={getStripeReconciliationReportUrl('payout')}
@@ -217,7 +217,126 @@ export default function FinanceReconciliationPage() {
               {data.buckets.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No buckets found for this range.</p>
               ) : (
-                <div className="overflow-x-auto">
+                <>
+                <div className="space-y-3 md:hidden">
+                  {data.buckets.map((bucket) => {
+                    const isExpanded = expandedDate === bucket.date;
+                    const dateDetail = datePayments[bucket.date];
+                    const isLoadingDetail = loadingDate === bucket.date;
+
+                    return (
+                      <Card key={bucket.date} className="rounded-2xl border-border/70 shadow-none">
+                        <CardContent className="space-y-3 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-semibold">{bucket.date}</p>
+                              <p className="text-xs text-muted-foreground">{bucket.transactionCount} transactions</p>
+                            </div>
+                            <Badge variant={bucket.status === 'reconciled' ? 'default' : 'secondary'}>
+                              {bucket.status}
+                            </Badge>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Succeeded</p>
+                              <p className="mt-1">{formatCurrency(bucket.succeededAmount)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Refunded</p>
+                              <p className="mt-1">{formatCurrency(bucket.refundedAmount)}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Net</p>
+                              <p className="mt-1 font-semibold">{formatCurrency(bucket.netAmount)}</p>
+                            </div>
+                          </div>
+
+                          <Input
+                            value={noteByDate[bucket.date] ?? ''}
+                            onChange={(e) =>
+                              setNoteByDate((current) => ({ ...current, [bucket.date]: e.target.value }))
+                            }
+                            placeholder="Optional note"
+                          />
+
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              size="sm"
+                              variant={bucket.status === 'reconciled' ? 'outline' : 'default'}
+                              disabled={savingDate === bucket.date || bucket.status === 'reconciled'}
+                              onClick={() => void markReconciled(bucket.date)}
+                            >
+                              {bucket.status === 'reconciled' ? 'Reconciled' : 'Mark Reconciled'}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void toggleBucketExpansion(bucket.date)}
+                              disabled={isLoadingDetail}
+                            >
+                              {isLoadingDetail
+                                ? 'Loading details...'
+                                : isExpanded
+                                  ? 'Hide Payments'
+                                  : 'Show Payments'}
+                            </Button>
+                          </div>
+
+                          {isExpanded && dateDetail ? (
+                            <div className="space-y-2 rounded-md border bg-muted/20 p-3">
+                              <p className="text-xs text-muted-foreground">
+                                Total {formatCurrency(dateDetail.totals.totalAmount)} · Fees {formatCurrency(dateDetail.totals.totalFees)}
+                              </p>
+                              {dateDetail.payments.map((payment: any) => (
+                                <div key={payment.id} className="rounded border bg-background p-3 text-sm">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div>
+                                      <p className="font-medium">{payment.bookingNumber}</p>
+                                      <p className="text-xs text-muted-foreground">{payment.customerName}</p>
+                                    </div>
+                                    <p className="font-semibold">{formatCurrency(payment.amount)}</p>
+                                  </div>
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {payment.cardBrand && payment.cardLastFour
+                                      ? `${payment.cardBrand} •••• ${payment.cardLastFour}`
+                                      : 'Payment method unavailable'}
+                                  </p>
+                                  <div className="mt-2 flex gap-2">
+                                    {payment.stripeChargeId ? (
+                                      <Button variant="outline" size="sm" asChild>
+                                        <a
+                                          href={getStripeChargeUrl(payment.stripeChargeId)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          Charge
+                                        </a>
+                                      </Button>
+                                    ) : null}
+                                    {payment.payout ? (
+                                      <Button variant="outline" size="sm" asChild>
+                                        <a
+                                          href={getStripePayoutUrl(payment.payout.stripePayoutId)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                        >
+                                          Payout
+                                        </a>
+                                      </Button>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                <div className="hidden md:block overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -419,6 +538,7 @@ export default function FinanceReconciliationPage() {
                     </TableBody>
                   </Table>
                 </div>
+                </>
               )}
             </CardContent>
           </Card>

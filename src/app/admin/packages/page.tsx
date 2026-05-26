@@ -397,18 +397,8 @@ export default function AdminPackagesPage() {
               {pkg.description ? <p className="text-sm text-muted-foreground">{pkg.description}</p> : null}
 
               {pkg.customerPackages.length > 0 ? (
-                <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Owner</TableHead>
-                      <TableHead>Usage</TableHead>
-                      <TableHead>Expires</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Admin Controls</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <>
+                  <div className="space-y-3 md:hidden">
                     {pkg.customerPackages.map((customerPackage) => {
                       const draft = drafts[customerPackage.id] ?? {
                         extensionDays: '',
@@ -417,91 +407,200 @@ export default function AdminPackagesPage() {
                       };
 
                       return (
-                        <TableRow key={customerPackage.id}>
-                          <TableCell>
+                        <Card key={customerPackage.id} className="rounded-2xl border-border/70 shadow-none">
+                          <CardContent className="space-y-3 p-4">
                             <div>
                               <p className="font-medium">{customerPackage.user.name || 'Unknown owner'}</p>
                               <p className="text-xs text-muted-foreground">{customerPackage.user.email}</p>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              <p>Used {customerPackage.sessionsUsed}</p>
-                              <p className="text-muted-foreground">Remaining {customerPackage.sessionsRemaining}</p>
+
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Used</p>
+                                <p className="mt-1">{customerPackage.sessionsUsed}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Remaining</p>
+                                <p className="mt-1">{customerPackage.sessionsRemaining}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Expires</p>
+                                <p className="mt-1">{formatDateUtc(customerPackage.expiresAt)}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase tracking-wide text-muted-foreground">Purchased</p>
+                                <p className="mt-1">{formatDateUtc(customerPackage.purchaseDate)}</p>
+                              </div>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              <p>{formatDateUtc(customerPackage.expiresAt)}</p>
-                              <p className="text-xs text-muted-foreground">
-                                Purchased {formatDateUtc(customerPackage.purchaseDate)}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
+
                             <Badge variant={customerPackage.status === 'active' ? 'default' : 'secondary'}>
                               {customerPackage.status}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="min-w-[420px]">
-                            <div className="grid gap-2 md:grid-cols-[100px_120px_1fr_auto] md:items-end">
-                              <div className="space-y-1">
-                                <Label htmlFor={`extension-${customerPackage.id}`}>Extend days</Label>
-                                <Input
-                                  id={`extension-${customerPackage.id}`}
-                                  type="number"
-                                  min={0}
-                                  value={draft.extensionDays}
-                                  onChange={(event) =>
-                                    updateDraft(customerPackage, { extensionDays: event.target.value })
-                                  }
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label htmlFor={`adjust-${customerPackage.id}`}>Adjust sessions</Label>
-                                <Input
-                                  id={`adjust-${customerPackage.id}`}
-                                  type="number"
-                                  value={draft.sessionAdjustment}
-                                  onChange={(event) =>
-                                    updateDraft(customerPackage, { sessionAdjustment: event.target.value })
-                                  }
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label htmlFor={`status-${customerPackage.id}`}>Status</Label>
-                                <select
-                                  id={`status-${customerPackage.id}`}
-                                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                                  value={draft.status}
-                                  onChange={(event) =>
-                                    updateDraft(customerPackage, {
-                                      status: event.target.value as CustomerPackageItem['status'],
-                                    })
-                                  }
-                                >
-                                  <option value="active">Active</option>
-                                  <option value="expired">Expired</option>
-                                  <option value="fully_used">Fully Used</option>
-                                  <option value="cancelled">Cancelled</option>
-                                </select>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                disabled={updatingId === customerPackage.id}
-                                onClick={() => void applyCustomerPackageUpdate(customerPackage)}
-                              >
-                                {updatingId === customerPackage.id ? 'Applying...' : 'Apply'}
-                              </Button>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`mobile-extension-${customerPackage.id}`}>Extend days</Label>
+                              <Input
+                                id={`mobile-extension-${customerPackage.id}`}
+                                type="number"
+                                min={0}
+                                value={draft.extensionDays}
+                                onChange={(event) =>
+                                  updateDraft(customerPackage, { extensionDays: event.target.value })
+                                }
+                              />
                             </div>
-                          </TableCell>
-                        </TableRow>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`mobile-adjust-${customerPackage.id}`}>Adjust sessions</Label>
+                              <Input
+                                id={`mobile-adjust-${customerPackage.id}`}
+                                type="number"
+                                value={draft.sessionAdjustment}
+                                onChange={(event) =>
+                                  updateDraft(customerPackage, { sessionAdjustment: event.target.value })
+                                }
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor={`mobile-status-${customerPackage.id}`}>Status</Label>
+                              <select
+                                id={`mobile-status-${customerPackage.id}`}
+                                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                                value={draft.status}
+                                onChange={(event) =>
+                                  updateDraft(customerPackage, {
+                                    status: event.target.value as CustomerPackageItem['status'],
+                                  })
+                                }
+                              >
+                                <option value="active">Active</option>
+                                <option value="expired">Expired</option>
+                                <option value="fully_used">Fully Used</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                            </div>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              disabled={updatingId === customerPackage.id}
+                              onClick={() => void applyCustomerPackageUpdate(customerPackage)}
+                            >
+                              {updatingId === customerPackage.id ? 'Applying...' : 'Apply'}
+                            </Button>
+                          </CardContent>
+                        </Card>
                       );
                     })}
-                  </TableBody>
-                </Table>
-                </div>
+                  </div>
+
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Owner</TableHead>
+                          <TableHead>Usage</TableHead>
+                          <TableHead>Expires</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Admin Controls</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pkg.customerPackages.map((customerPackage) => {
+                          const draft = drafts[customerPackage.id] ?? {
+                            extensionDays: '',
+                            sessionAdjustment: '',
+                            status: customerPackage.status,
+                          };
+
+                          return (
+                            <TableRow key={customerPackage.id}>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{customerPackage.user.name || 'Unknown owner'}</p>
+                                  <p className="text-xs text-muted-foreground">{customerPackage.user.email}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  <p>Used {customerPackage.sessionsUsed}</p>
+                                  <p className="text-muted-foreground">Remaining {customerPackage.sessionsRemaining}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  <p>{formatDateUtc(customerPackage.expiresAt)}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Purchased {formatDateUtc(customerPackage.purchaseDate)}
+                                  </p>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={customerPackage.status === 'active' ? 'default' : 'secondary'}>
+                                  {customerPackage.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="min-w-[420px]">
+                                <div className="grid gap-2 md:grid-cols-[100px_120px_1fr_auto] md:items-end">
+                                  <div className="space-y-1">
+                                    <Label htmlFor={`extension-${customerPackage.id}`}>Extend days</Label>
+                                    <Input
+                                      id={`extension-${customerPackage.id}`}
+                                      type="number"
+                                      min={0}
+                                      value={draft.extensionDays}
+                                      onChange={(event) =>
+                                        updateDraft(customerPackage, { extensionDays: event.target.value })
+                                      }
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label htmlFor={`adjust-${customerPackage.id}`}>Adjust sessions</Label>
+                                    <Input
+                                      id={`adjust-${customerPackage.id}`}
+                                      type="number"
+                                      value={draft.sessionAdjustment}
+                                      onChange={(event) =>
+                                        updateDraft(customerPackage, { sessionAdjustment: event.target.value })
+                                      }
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label htmlFor={`status-${customerPackage.id}`}>Status</Label>
+                                    <select
+                                      id={`status-${customerPackage.id}`}
+                                      className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                                      value={draft.status}
+                                      onChange={(event) =>
+                                        updateDraft(customerPackage, {
+                                          status: event.target.value as CustomerPackageItem['status'],
+                                        })
+                                      }
+                                    >
+                                      <option value="active">Active</option>
+                                      <option value="expired">Expired</option>
+                                      <option value="fully_used">Fully Used</option>
+                                      <option value="cancelled">Cancelled</option>
+                                    </select>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={updatingId === customerPackage.id}
+                                    onClick={() => void applyCustomerPackageUpdate(customerPackage)}
+                                  >
+                                    {updatingId === customerPackage.id ? 'Applying...' : 'Apply'}
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               ) : (
                 <p className="text-sm text-muted-foreground">No customer packages purchased for this product yet.</p>
               )}

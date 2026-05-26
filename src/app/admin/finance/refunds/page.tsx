@@ -427,33 +427,16 @@ export default function FinanceRefundsPage() {
               {rows.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No refundable transactions found.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-10"></TableHead>
-                        <TableHead>Booking</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Payment Method</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Stripe Fee</TableHead>
-                        <TableHead>Stripe Link</TableHead>
-                        <TableHead>Refund Amount</TableHead>
-                        <TableHead>Reason</TableHead>
-                        <TableHead>Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rows.map((row) => (
-                        <TableRow 
-                          key={row.id}
-                          className="hover:bg-gray-50"
-                        >
-                          <TableCell onClick={(e) => e.stopPropagation()}>
+                <>
+                  <div className="space-y-3 md:hidden">
+                    {rows.map((row) => (
+                      <Card key={row.id} className="rounded-2xl border-border/70 shadow-none">
+                        <CardContent className="space-y-3 p-4">
+                          <div className="flex items-start justify-between gap-3">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 w-6 p-0"
+                              className="h-7 w-7 p-0"
                               onClick={() => toggleSelection(row.id)}
                             >
                               {selectedIds.has(row.id) ? (
@@ -462,53 +445,36 @@ export default function FinanceRefundsPage() {
                                 <Square className="h-4 w-4" />
                               )}
                             </Button>
-                          </TableCell>
-                          <TableCell 
-                            className="cursor-pointer"
-                            onClick={() => setSelectedPaymentId(row.id)}
-                          >
-                            <p className="font-medium">{row.bookingNumber}</p>
-                            <p className="text-xs text-muted-foreground">{row.customerName}</p>
-                          </TableCell>
-                          <TableCell onClick={() => setSelectedPaymentId(row.id)} className="cursor-pointer">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium">{row.bookingNumber}</p>
+                              <p className="text-xs text-muted-foreground">{row.customerName}</p>
+                            </div>
                             <Badge variant={row.status === 'succeeded' ? 'default' : 'outline'}>{row.status}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            {row.cardBrand && row.cardLastFour ? (
-                              <div className="text-sm">
-                                <span className="capitalize">{row.cardBrand}</span> •••• {row.cardLastFour}
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell>{formatCurrency(row.amount)}</TableCell>
-                          <TableCell>
-                            {row.stripeFee ? formatCurrency(row.stripeFee) : <span className="text-muted-foreground">—</span>}
-                          </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            {row.stripeChargeId ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                asChild
-                              >
-                                <a
-                                  href={getStripeChargeUrl(row.stripeChargeId)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-1"
-                                >
-                                  <ExternalLink className="h-3 w-3" />
-                                  View
-                                </a>
-                              </Button>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">—</span>
-                            )}
-                          </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Amount</p>
+                              <p className="mt-1">{formatCurrency(row.amount)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Stripe Fee</p>
+                              <p className="mt-1">{row.stripeFee ? formatCurrency(row.stripeFee) : '—'}</p>
+                            </div>
+                            <div className="col-span-2">
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Payment Method</p>
+                              <p className="mt-1">
+                                {row.cardBrand && row.cardLastFour
+                                  ? `${row.cardBrand} •••• ${row.cardLastFour}`
+                                  : '—'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`mobile-amount-${row.id}`} className="text-xs">Refund Amount</Label>
                             <Input
+                              id={`mobile-amount-${row.id}`}
                               type="number"
                               min="0"
                               step="0.01"
@@ -517,26 +483,35 @@ export default function FinanceRefundsPage() {
                                 setAmountById((current) => ({ ...current, [row.id]: e.target.value }))
                               }
                               placeholder="0.00"
-                              className="w-28"
                             />
-                          </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <div className="space-y-1">
-                              <Label htmlFor={`reason-${row.id}`} className="sr-only">
-                                Refund reason
-                              </Label>
-                              <Input
-                                id={`reason-${row.id}`}
-                                value={reasonById[row.id] ?? ''}
-                                onChange={(e) =>
-                                  setReasonById((current) => ({ ...current, [row.id]: e.target.value }))
-                                }
-                                placeholder="Reason"
-                                className="min-w-56"
-                              />
-                            </div>
-                          </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor={`mobile-reason-${row.id}`} className="text-xs">Reason</Label>
+                            <Input
+                              id={`mobile-reason-${row.id}`}
+                              value={reasonById[row.id] ?? ''}
+                              onChange={(e) =>
+                                setReasonById((current) => ({ ...current, [row.id]: e.target.value }))
+                              }
+                              placeholder="Reason"
+                            />
+                          </div>
+
+                          <div className="flex flex-col gap-2">
+                            {row.stripeChargeId ? (
+                              <Button variant="outline" size="sm" asChild>
+                                <a
+                                  href={getStripeChargeUrl(row.stripeChargeId)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                  View in Stripe
+                                </a>
+                              </Button>
+                            ) : null}
                             <Button
                               size="sm"
                               disabled={savingId === row.id}
@@ -544,12 +519,136 @@ export default function FinanceRefundsPage() {
                             >
                               {savingId === row.id ? 'Applying...' : 'Apply Refund'}
                             </Button>
-                          </TableCell>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="hidden md:block">
+                    <Table className="min-w-[1120px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10"></TableHead>
+                          <TableHead>Booking</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Payment Method</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Stripe Fee</TableHead>
+                          <TableHead>Stripe Link</TableHead>
+                          <TableHead>Refund Amount</TableHead>
+                          <TableHead>Reason</TableHead>
+                          <TableHead>Action</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {rows.map((row) => (
+                          <TableRow 
+                            key={row.id}
+                            className="hover:bg-gray-50"
+                          >
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => toggleSelection(row.id)}
+                              >
+                                {selectedIds.has(row.id) ? (
+                                  <CheckSquare className="h-4 w-4 text-blue-600" />
+                                ) : (
+                                  <Square className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TableCell>
+                            <TableCell 
+                              className="cursor-pointer"
+                              onClick={() => setSelectedPaymentId(row.id)}
+                            >
+                              <p className="font-medium">{row.bookingNumber}</p>
+                              <p className="text-xs text-muted-foreground">{row.customerName}</p>
+                            </TableCell>
+                            <TableCell onClick={() => setSelectedPaymentId(row.id)} className="cursor-pointer">
+                              <Badge variant={row.status === 'succeeded' ? 'default' : 'outline'}>{row.status}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              {row.cardBrand && row.cardLastFour ? (
+                                <div className="text-sm">
+                                  <span className="capitalize">{row.cardBrand}</span> •••• {row.cardLastFour}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell>{formatCurrency(row.amount)}</TableCell>
+                            <TableCell>
+                              {row.stripeFee ? formatCurrency(row.stripeFee) : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              {row.stripeChargeId ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  asChild
+                                >
+                                  <a
+                                    href={getStripeChargeUrl(row.stripeChargeId)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1"
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                    View
+                                  </a>
+                                </Button>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={amountById[row.id] ?? ''}
+                                onChange={(e) =>
+                                  setAmountById((current) => ({ ...current, [row.id]: e.target.value }))
+                                }
+                                placeholder="0.00"
+                                className="w-28"
+                              />
+                            </TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <div className="space-y-1">
+                                <Label htmlFor={`reason-${row.id}`} className="sr-only">
+                                  Refund reason
+                                </Label>
+                                <Input
+                                  id={`reason-${row.id}`}
+                                  value={reasonById[row.id] ?? ''}
+                                  onChange={(e) =>
+                                    setReasonById((current) => ({ ...current, [row.id]: e.target.value }))
+                                  }
+                                  placeholder="Reason"
+                                  className="min-w-56"
+                                />
+                              </div>
+                            </TableCell>
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                size="sm"
+                                disabled={savingId === row.id}
+                                onClick={() => void handleRefund(row.id, row.amount)}
+                              >
+                                {savingId === row.id ? 'Applying...' : 'Apply Refund'}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

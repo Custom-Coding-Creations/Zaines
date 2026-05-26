@@ -762,7 +762,7 @@ export default function AdminFinancePage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm font-medium">Actionable Alerts</p>
                   <p className="text-xs text-muted-foreground">{alerts.alerts.length} active</p>
                 </div>
@@ -838,7 +838,7 @@ export default function AdminFinancePage() {
               </p>
 
               <div>
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm font-medium">Recent Autopay Profiles</p>
                   <p className="text-xs text-muted-foreground">
                     Showing up to 5 most recent updates
@@ -849,93 +849,144 @@ export default function AdminFinancePage() {
                     No autopay consent profiles recorded yet.
                   </p>
                 ) : (
-                  <div className="overflow-x-auto rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Customer</TableHead>
-                          <TableHead>Autopay</TableHead>
-                          <TableHead>Incidentals</TableHead>
-                          <TableHead>Updated</TableHead>
-                          <TableHead>Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {autopayConsents.rows.slice(0, 5).map((row) => (
-                          <TableRow key={`${row.userId}:${row.updatedAt}`}>
-                            <TableCell>
-                              <p className="font-medium">
-                                {row.customerName || "Unknown customer"}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {row.customerEmail || row.userId}
-                              </p>
-                            </TableCell>
-                            <TableCell>
+                  <>
+                    <div className="space-y-3 md:hidden">
+                      {autopayConsents.rows.slice(0, 5).map((row) => (
+                        <Card key={`${row.userId}:${row.updatedAt}`} className="rounded-2xl border-border/70 shadow-none">
+                          <CardContent className="space-y-3 p-4">
+                            <div>
+                              <p className="font-medium">{row.customerName || 'Unknown customer'}</p>
+                              <p className="text-xs text-muted-foreground">{row.customerEmail || row.userId}</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
                               <Badge variant={row.enabled ? 'default' : 'secondary'}>
-                                {row.enabled ? 'enabled' : 'disabled'}
+                                {row.enabled ? 'autopay enabled' : 'autopay disabled'}
                               </Badge>
-                            </TableCell>
-                            <TableCell>
                               <Badge variant={row.allowIncidentals ? 'default' : 'outline'}>
-                                {row.allowIncidentals ? 'authorized' : 'not authorized'}
+                                {row.allowIncidentals ? 'incidentals authorized' : 'incidentals blocked'}
                               </Badge>
-                            </TableCell>
-                            <TableCell>{formatDate(row.updatedAt)}</TableCell>
-                            <TableCell>
-                              <Button size="sm" variant="ghost" asChild>
-                                <Link href={row.bookingsSearchHref}>Open Bookings</Link>
-                              </Button>
-                            </TableCell>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Updated {formatDate(row.updatedAt)}</p>
+                            <Button size="sm" variant="outline" asChild>
+                              <Link href={row.bookingsSearchHref}>Open Bookings</Link>
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+
+                    <div className="hidden md:block overflow-x-auto rounded-md border">
+                      <Table className="min-w-[760px]">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Autopay</TableHead>
+                            <TableHead>Incidentals</TableHead>
+                            <TableHead>Updated</TableHead>
+                            <TableHead>Action</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          {autopayConsents.rows.slice(0, 5).map((row) => (
+                            <TableRow key={`${row.userId}:${row.updatedAt}`}>
+                              <TableCell>
+                                <p className="font-medium">
+                                  {row.customerName || "Unknown customer"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {row.customerEmail || row.userId}
+                                </p>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={row.enabled ? 'default' : 'secondary'}>
+                                  {row.enabled ? 'enabled' : 'disabled'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={row.allowIncidentals ? 'default' : 'outline'}>
+                                  {row.allowIncidentals ? 'authorized' : 'not authorized'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{formatDate(row.updatedAt)}</TableCell>
+                              <TableCell>
+                                <Button size="sm" variant="ghost" asChild>
+                                  <Link href={row.bookingsSearchHref}>Open Bookings</Link>
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
                 )}
               </div>
 
               <div>
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm font-medium">Exception Queue</p>
                   <p className="text-xs text-muted-foreground">{exceptions.totalExceptions} total</p>
                 </div>
                 {exceptions.items.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No exceptions in the queue.</p>
                 ) : (
-                  <div className="overflow-x-auto rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Booking</TableHead>
-                          <TableHead>Customer</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Age</TableHead>
-                          <TableHead>Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {exceptions.items.slice(0, 8).map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="capitalize">{item.type.replaceAll('_', ' ')}</TableCell>
-                            <TableCell>{item.bookingNumber}</TableCell>
-                            <TableCell>
-                              <p>{item.customerName}</p>
+                  <>
+                    <div className="space-y-3 md:hidden">
+                      {exceptions.items.slice(0, 8).map((item) => (
+                        <Card key={item.id} className="rounded-2xl border-border/70 shadow-none">
+                          <CardContent className="space-y-3 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="font-medium capitalize">{item.type.replaceAll('_', ' ')}</p>
+                              <Badge variant="outline">{item.ageDays}d</Badge>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">{item.bookingNumber}</p>
+                              <p className="text-xs text-muted-foreground">{item.customerName}</p>
                               <p className="text-xs text-muted-foreground">{item.customerEmail}</p>
-                            </TableCell>
-                            <TableCell>{formatCurrency(item.amount)}</TableCell>
-                            <TableCell>{item.ageDays}d</TableCell>
-                            <TableCell>
-                              <Button size="sm" variant="ghost" asChild>
-                                <Link href={item.actionHref}>Open</Link>
-                              </Button>
-                            </TableCell>
+                            </div>
+                            <p className="text-sm font-semibold">{formatCurrency(item.amount)}</p>
+                            <Button size="sm" variant="outline" asChild>
+                              <Link href={item.actionHref}>Open</Link>
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+
+                    <div className="hidden md:block overflow-x-auto rounded-md border">
+                      <Table className="min-w-[760px]">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Booking</TableHead>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Age</TableHead>
+                            <TableHead>Action</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          {exceptions.items.slice(0, 8).map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="capitalize">{item.type.replaceAll('_', ' ')}</TableCell>
+                              <TableCell>{item.bookingNumber}</TableCell>
+                              <TableCell>
+                                <p>{item.customerName}</p>
+                                <p className="text-xs text-muted-foreground">{item.customerEmail}</p>
+                              </TableCell>
+                              <TableCell>{formatCurrency(item.amount)}</TableCell>
+                              <TableCell>{item.ageDays}d</TableCell>
+                              <TableCell>
+                                <Button size="sm" variant="ghost" asChild>
+                                  <Link href={item.actionHref}>Open</Link>
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -1107,57 +1158,100 @@ export default function AdminFinancePage() {
               {transactions.rows.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No transactions found for this filter set.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Booking</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Refund</TableHead>
-                        <TableHead>Method</TableHead>
-                        <TableHead>Flow</TableHead>
-                        <TableHead>Created</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {transactions.rows.map((row) => (
-                        <TableRow 
-                          key={row.id}
-                          className="cursor-pointer hover:bg-gray-50"
+                <>
+                  <div className="space-y-3 md:hidden">
+                    {transactions.rows.map((row) => (
+                      <Card key={row.id} className="rounded-2xl border-border/70 shadow-none">
+                        <CardContent
+                          className="space-y-3 p-4"
                           onClick={() => setSelectedPaymentId(row.id)}
                         >
-                          <TableCell>
-                            <p className="font-medium">{row.bookingNumber}</p>
-                            <p className="text-xs text-muted-foreground">{row.stripePaymentId ?? 'no processor id'}</p>
-                          </TableCell>
-                          <TableCell>
-                            <p>{row.customerName}</p>
-                            <p className="text-xs text-muted-foreground">{row.customerEmail}</p>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={statusBadgeVariant(row.status)}>{row.status}</Badge>
-                          </TableCell>
-                          <TableCell>{formatCurrency(row.amount)}</TableCell>
-                          <TableCell>{formatCurrency(row.refundAmount)}</TableCell>
-                          <TableCell className="capitalize">{row.paymentMethod.replace('_', ' ')}</TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <Badge variant="outline" className="capitalize">
-                                {row.paymentMode.replace('_', ' ')}
-                              </Badge>
-                              <p className="text-xs text-muted-foreground">
-                                {row.stripeSourceType.replace('_', ' ')}
-                              </p>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-medium">{row.bookingNumber}</p>
+                              <p className="text-xs text-muted-foreground truncate">{row.stripePaymentId ?? 'no processor id'}</p>
                             </div>
-                          </TableCell>
-                          <TableCell>{formatDate(row.createdAt)}</TableCell>
+                            <Badge variant={statusBadgeVariant(row.status)}>{row.status}</Badge>
+                          </div>
+                          <div>
+                            <p className="text-sm">{row.customerName}</p>
+                            <p className="text-xs text-muted-foreground">{row.customerEmail}</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Amount</p>
+                              <p className="mt-1">{formatCurrency(row.amount)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Refund</p>
+                              <p className="mt-1">{formatCurrency(row.refundAmount)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Method</p>
+                              <p className="mt-1 capitalize">{row.paymentMethod.replace('_', ' ')}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Created</p>
+                              <p className="mt-1">{formatDate(row.createdAt)}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table className="min-w-[980px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Booking</TableHead>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Refund</TableHead>
+                          <TableHead>Method</TableHead>
+                          <TableHead>Flow</TableHead>
+                          <TableHead>Created</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {transactions.rows.map((row) => (
+                          <TableRow 
+                            key={row.id}
+                            className="cursor-pointer hover:bg-gray-50"
+                            onClick={() => setSelectedPaymentId(row.id)}
+                          >
+                            <TableCell>
+                              <p className="font-medium">{row.bookingNumber}</p>
+                              <p className="text-xs text-muted-foreground">{row.stripePaymentId ?? 'no processor id'}</p>
+                            </TableCell>
+                            <TableCell>
+                              <p>{row.customerName}</p>
+                              <p className="text-xs text-muted-foreground">{row.customerEmail}</p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={statusBadgeVariant(row.status)}>{row.status}</Badge>
+                            </TableCell>
+                            <TableCell>{formatCurrency(row.amount)}</TableCell>
+                            <TableCell>{formatCurrency(row.refundAmount)}</TableCell>
+                            <TableCell className="capitalize">{row.paymentMethod.replace('_', ' ')}</TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <Badge variant="outline" className="capitalize">
+                                  {row.paymentMode.replace('_', ' ')}
+                                </Badge>
+                                <p className="text-xs text-muted-foreground">
+                                  {row.stripeSourceType.replace('_', ' ')}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell>{formatDate(row.createdAt)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

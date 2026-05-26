@@ -80,7 +80,7 @@ export default function FinanceTaxesPage() {
             Review tax collected, refunded tax, and net liability by period.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Button variant="outline" asChild>
             <Link href="/admin/finance">Back to Finance</Link>
           </Button>
@@ -97,10 +97,10 @@ export default function FinanceTaxesPage() {
         <CardHeader>
           <CardTitle className="text-base">Range</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row">
+        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-          <Button onClick={() => void loadData()} disabled={loading}>Apply</Button>
+          <Button onClick={() => void loadData()} disabled={loading} className="sm:w-auto">Apply</Button>
         </CardContent>
       </Card>
 
@@ -149,30 +149,60 @@ export default function FinanceTaxesPage() {
               {data.rows.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No tax rows found for this range.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Period</TableHead>
-                        <TableHead>Taxable Revenue</TableHead>
-                        <TableHead>Tax Collected</TableHead>
-                        <TableHead>Refunded Tax</TableHead>
-                        <TableHead>Net Tax Liability</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.rows.map((row) => (
-                        <TableRow key={row.period}>
-                          <TableCell>{row.period}</TableCell>
-                          <TableCell>{formatCurrency(row.taxableRevenue)}</TableCell>
-                          <TableCell>{formatCurrency(row.taxCollected)}</TableCell>
-                          <TableCell>{formatCurrency(row.refundedTax)}</TableCell>
-                          <TableCell>{formatCurrency(row.netTaxLiability)}</TableCell>
+                <>
+                  <div className="space-y-3 md:hidden">
+                    {data.rows.map((row) => (
+                      <Card key={row.period} className="rounded-2xl border-border/70 shadow-none">
+                        <CardContent className="space-y-3 p-4">
+                          <p className="font-semibold">{row.period}</p>
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Taxable Revenue</p>
+                              <p className="mt-1">{formatCurrency(row.taxableRevenue)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Tax Collected</p>
+                              <p className="mt-1">{formatCurrency(row.taxCollected)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Refunded Tax</p>
+                              <p className="mt-1">{formatCurrency(row.refundedTax)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-muted-foreground">Net Liability</p>
+                              <p className="mt-1 font-semibold">{formatCurrency(row.netTaxLiability)}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="hidden md:block">
+                    <Table className="min-w-[760px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Period</TableHead>
+                          <TableHead>Taxable Revenue</TableHead>
+                          <TableHead>Tax Collected</TableHead>
+                          <TableHead>Refunded Tax</TableHead>
+                          <TableHead>Net Tax Liability</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {data.rows.map((row) => (
+                          <TableRow key={row.period}>
+                            <TableCell>{row.period}</TableCell>
+                            <TableCell>{formatCurrency(row.taxableRevenue)}</TableCell>
+                            <TableCell>{formatCurrency(row.taxCollected)}</TableCell>
+                            <TableCell>{formatCurrency(row.refundedTax)}</TableCell>
+                            <TableCell>{formatCurrency(row.netTaxLiability)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
