@@ -53,12 +53,13 @@ export function ServicesSection() {
       title: addOn.name,
       description: addOn.description,
       price: addOn.price,
+      isIncluded: Boolean(addOn.isIncluded),
       href: "/pricing#add-ons",
       icon: Bone,
       accent: cardAccents[(index + activeTiers.length) % cardAccents.length],
     }));
 
-  const allAddOnsIncluded = activeAddOns.length > 0 && activeAddOns.every((addOn) => addOn.price <= 0);
+  const allAddOnsIncluded = activeAddOns.length > 0 && activeAddOns.every((addOn) => addOn.isIncluded || addOn.price <= 0);
 
   return (
     <section className="section-padding bg-muted/30">
@@ -164,7 +165,7 @@ export function ServicesSection() {
                         </span>
                       </div>
                       <span className="shrink-0 text-sm font-semibold text-foreground">
-                        {addOn.price > 0 ? formatter.format(addOn.price) : "Included"}
+                        {addOn.isIncluded || addOn.price <= 0 ? "Included" : formatter.format(addOn.price)}
                       </span>
                     </Link>
                   </li>

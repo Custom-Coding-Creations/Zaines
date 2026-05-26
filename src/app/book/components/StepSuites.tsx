@@ -105,7 +105,8 @@ export function StepSuites({
         id: addOn.id,
         name: addOn.name,
         description: addOn.description,
-        price: addOn.price,
+        price: addOn.isIncluded ? 0 : addOn.price,
+        isIncluded: Boolean(addOn.isIncluded),
       })),
     [addOnsSettings.addOns],
   );
@@ -296,7 +297,7 @@ export function StepSuites({
                     >
                       <span>{addOn.name}</span>
                       <span className="font-semibold text-primary">
-                        {addOn.price > 0 ? formatter.format(addOn.price) : "Included"}
+                        {addOn.isIncluded || addOn.price <= 0 ? "Included" : formatter.format(addOn.price)}
                       </span>
                     </Label>
                     <p className="text-sm text-muted-foreground">
@@ -335,7 +336,7 @@ export function StepSuites({
                           <Lightbulb className="h-4 w-4 text-primary" />
                           <span className="font-semibold text-sm">{rec.name}</span>
                           <Badge variant="secondary" className="text-xs">
-                            {rec.price > 0 ? formatter.format(rec.price) : "Included"}
+                            {rec.price <= 0 ? "Included" : formatter.format(rec.price)}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">{rec.reason}</p>

@@ -94,7 +94,7 @@ export function LiveAvailabilityTeaser() {
                 </p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-wrap justify-center gap-3">
                 <Button asChild size="lg" className="font-semibold">
                   <Link href="/book">Reserve now</Link>
                 </Button>
@@ -104,7 +104,7 @@ export function LiveAvailabilityTeaser() {
               </div>
             </div>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <div className="mt-6 grid justify-center gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),11rem))]">
               {loading ? (
                 <div className="col-span-full flex items-center gap-2 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

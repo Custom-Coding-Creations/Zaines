@@ -28,7 +28,7 @@ export default function PricingPage() {
   const activeAddOns = addOnsSettings.addOns
     .filter((addOn) => addOn.isActive);
 
-  const allAddOnsIncluded = activeAddOns.length > 0 && activeAddOns.every((addOn) => addOn.price <= 0);
+  const allAddOnsIncluded = activeAddOns.length > 0 && activeAddOns.every((addOn) => addOn.isIncluded || addOn.price <= 0);
 
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -229,7 +229,7 @@ export default function PricingPage() {
                       </span>
                     </div>
                     <span className="text-xl font-bold text-primary">
-                      {addOn.price > 0 ? formatter.format(addOn.price) : "Included"}
+                      {addOn.isIncluded || addOn.price <= 0 ? "Included" : formatter.format(addOn.price)}
                     </span>
                   </div>
                 </ScaleIn>

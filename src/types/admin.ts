@@ -99,6 +99,7 @@ export interface AddOn {
   name: string; // e.g., "Premium Treats", "Extra Playtime", "Training Session"
   description: string;
   price: number; // Price per occurrence or per booking
+  isIncluded?: boolean; // When true, displayed as included and not charged separately
   applicableTiers: string[]; // Array of service tier IDs this add-on applies to
   isActive: boolean;
 }

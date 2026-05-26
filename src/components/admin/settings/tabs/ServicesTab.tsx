@@ -95,6 +95,7 @@ export function ServicesTab({ onDirtyChange }: ServicesTabProps) {
       name: '',
       description: '',
       price: 0,
+      isIncluded: false,
       applicableTiers: [],
       isActive: true,
     });
@@ -272,6 +273,9 @@ export function ServicesTab({ onDirtyChange }: ServicesTabProps) {
                 {/* Add-Ons Tab */}
                 <TabsContent value="addons" className="space-y-4 mt-4">
                   {addOnFields.map((field, index) => (
+                    (() => {
+                      const isIncluded = Boolean(form.watch(`addOnsSettings.addOns.${index}.isIncluded` as any));
+                      return (
                     <div key={field.id} className="rounded-lg border p-4 space-y-4">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium">Add-On {index + 1}</p>
@@ -312,6 +316,7 @@ export function ServicesTab({ onDirtyChange }: ServicesTabProps) {
                                   type="number"
                                   step="0.01"
                                   placeholder="15.00"
+                                  disabled={isIncluded}
                                   {...field}
                                   onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                                 />
@@ -321,6 +326,33 @@ export function ServicesTab({ onDirtyChange }: ServicesTabProps) {
                           )}
                         />
                       </div>
+
+                      <FormField
+                        control={form.control as any}
+                        name={`addOnsSettings.addOns.${index}.isIncluded`}
+                        render={({ field }) => (
+                          <FormItem className="flex items-center gap-2 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={Boolean(field.value)}
+                                onCheckedChange={(checked) => {
+                                  const nextValue = Boolean(checked);
+                                  field.onChange(nextValue);
+
+                                  if (nextValue) {
+                                    form.setValue(`addOnsSettings.addOns.${index}.price` as any, 0, {
+                                      shouldDirty: true,
+                                      shouldTouch: true,
+                                      shouldValidate: true,
+                                    });
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="!mt-0">Included Add-On (no separate charge)</FormLabel>
+                          </FormItem>
+                        )}
+                      />
 
                       <FormField
                         control={form.control as any}
@@ -385,6 +417,8 @@ export function ServicesTab({ onDirtyChange }: ServicesTabProps) {
                         )}
                       />
                     </div>
+                      );
+                    })()
                   ))}
 
                   <Button type="button" variant="outline" onClick={addAddOn}>

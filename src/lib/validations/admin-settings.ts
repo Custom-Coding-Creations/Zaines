@@ -203,6 +203,7 @@ const addOnSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   description: z.string().min(1, 'Description is required').max(500),
   price: z.number().min(0, 'Price must be positive'),
+  isIncluded: z.boolean().optional().default(false),
   applicableTiers: z.array(z.string()).min(1, 'Select at least one service tier'),
   isActive: z.boolean(),
 });
