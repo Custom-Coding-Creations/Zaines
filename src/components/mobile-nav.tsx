@@ -31,6 +31,9 @@ export function MobileNav() {
   const role = (session?.user as { role?: string } | undefined)?.role;
   const showAdminCamera = status === "authenticated" && role === "admin";
   const signInHref = buildSignInHref(pathname);
+  const createAccountHref = pathname
+    ? `/auth/signin?mode=create_account&callbackUrl=${encodeURIComponent(pathname)}`
+    : "/auth/signin?mode=create_account";
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -90,7 +93,7 @@ export function MobileNav() {
                 </Link>
               </Button>
               <Button asChild className="w-full">
-                <Link href="/auth/signup" onClick={() => setOpen(false)}>
+                <Link href={createAccountHref} onClick={() => setOpen(false)}>
                   Create Account
                 </Link>
               </Button>

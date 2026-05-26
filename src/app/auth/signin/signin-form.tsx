@@ -61,8 +61,14 @@ function providerGlyph(providerId: string) {
   return null;
 }
 
-export function SignInForm({ callbackUrl }: { callbackUrl: string }) {
-  const [mode, setMode] = useState<UiMode>("sign_in");
+export function SignInForm({
+  callbackUrl,
+  initialMode = "sign_in",
+}: {
+  callbackUrl: string;
+  initialMode?: UiMode;
+}) {
+  const [mode, setMode] = useState<UiMode>(initialMode);
   const [capabilities, setCapabilities] = useState<AuthCapability[]>([]);
   const [providerIds, setProviderIds] = useState<Set<string>>(new Set());
   const [loadingCapabilities, setLoadingCapabilities] = useState(true);
