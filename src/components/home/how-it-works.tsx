@@ -8,25 +8,25 @@ const steps = [
     number: 1,
     icon: ClipboardList,
     title: "Book Online",
-    description: "Easy online booking with instant availability and transparent pricing.",
+    description: "Submit your boarding request and choose your dates.",
   },
   {
     number: 2,
     icon: Heart,
-    title: "Meet & Greet",
-    description: "Quick temperament assessment to ensure the best match for your pup.",
+    title: "Booking Review & Approval",
+    description: "We review your dog's information and confirm availability.",
   },
   {
     number: 3,
     icon: Calendar,
-    title: "First Day",
-    description: "Supervised play with real-time photo updates sent directly to you.",
+    title: "Secure Your Spot",
+    description: "Pay your deposit to officially confirm your booking.",
   },
   {
     number: 4,
     icon: Sparkles,
     title: "Stay Connected",
-    description: "Track your pup's happiness through our app with updates and activity summaries.",
+    description: "Receive updates, photos, and communication during your dog's stay.",
   },
 ];
 

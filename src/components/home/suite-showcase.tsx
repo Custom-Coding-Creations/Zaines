@@ -138,7 +138,7 @@ export function SuiteShowcase() {
             <Link href="/pricing#multi-dog-discounts" className="font-medium text-primary hover:underline">
               View our multi-dog discounts
             </Link>{" "}
-            — {pricingSettings.twoPetDiscountPercent}% off the second dog, {pricingSettings.threePlusPetsDiscountPercent}% off the third.
+            — Additional dogs from the same household receive $10 off nightly boarding.
           </p>
         </FadeUp>
       </div>

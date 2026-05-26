@@ -379,14 +379,6 @@ export default async function SuitesPage() {
               >
                 <Link href="/book">Check Availability</Link>
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10"
-                asChild
-              >
-                <Link href="/contact">Schedule a Tour</Link>
-              </Button>
             </div>
           </div>
         </section>

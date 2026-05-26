@@ -7,12 +7,13 @@ import Link from "next/link";
 import Image from "next/image";
 
 const promises = [
-  "Grouped by size and temperament",
-  "Trained and caring staff",
-  "Pet care team always on-site",
-  "Cleaned and sanitized throughout the day",
-  "Vaccination required",
-  "Lots of love!",
+  "Dogs are separated by household for safety and comfort",
+  "Calm, structured home environment",
+  "Supervised indoor and outdoor time throughout the day",
+  "Secure fenced yard for potty breaks and enrichment",
+  "Vaccination requirements help protect all dogs in our care",
+  "Small-scale boarding focused on quality, not volume",
+  "Plenty of love, attention, and personalized care",
 ];
 
 export function SafetyPromiseSection() {
@@ -63,7 +64,7 @@ export function SafetyPromiseSection() {
             {/* Right: Image */}
             <div className="relative aspect-[4/3] lg:aspect-auto lg:h-full">
               <Image
-                src="https://images.unsplash.com/photo-1558788353-f76d92427f16?w=600&h=600&fit=crop"
+                src="/images/zainesimage.png"
                 alt="Happy dog enjoying safe care at Zaine's Stay & Play"
                 fill
                 className="object-cover"

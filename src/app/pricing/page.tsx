@@ -28,6 +28,8 @@ export default function PricingPage() {
   const activeAddOns = addOnsSettings.addOns
     .filter((addOn) => addOn.isActive);
 
+  const allAddOnsIncluded = activeAddOns.length > 0 && activeAddOns.every((addOn) => addOn.price <= 0);
+
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: pricingSettings.currency || "USD",
@@ -200,10 +202,12 @@ export default function PricingPage() {
                 Optional Extras
               </p>
               <h2 className="font-display mb-4 text-3xl font-bold text-foreground md:text-4xl">
-                Optional Add-Ons
+                {allAddOnsIncluded ? "Included Add-Ons" : "Optional Add-Ons"}
               </h2>
               <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                Add only the care items you want. The same add-ons shown here are available in the booking flow.
+                {allAddOnsIncluded
+                  ? "These care items are currently included at no additional charge. They remain configurable in admin settings if pricing changes."
+                  : "Add only the care items you want. The same add-ons shown here are available in the booking flow."}
               </p>
             </div>
           </FadeUp>
@@ -225,7 +229,7 @@ export default function PricingPage() {
                       </span>
                     </div>
                     <span className="text-xl font-bold text-primary">
-                      {formatter.format(addOn.price)}
+                      {addOn.price > 0 ? formatter.format(addOn.price) : "Included"}
                     </span>
                   </div>
                 </ScaleIn>
@@ -333,14 +337,6 @@ export default function PricingPage() {
                   </span>
                   Check Availability
                 </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="font-semibold text-base border-2 border-white bg-white/10 text-white backdrop-blur-sm hover:bg-white hover:text-primary"
-              >
-                <Link href="/contact">Contact Us</Link>
               </Button>
             </div>
           </FadeUp>

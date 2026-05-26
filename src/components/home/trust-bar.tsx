@@ -6,7 +6,7 @@ import { getReviewsData } from "@/lib/google-reviews";
 const trustSignals = [
   {
     icon: Award,
-    label: "Licensed & Insured",
+    label: "Fully Insured",
     detail: "Fully covered for your peace of mind",
   },
   {
@@ -16,7 +16,7 @@ const trustSignals = [
   },
   {
     icon: Eye,
-    label: "Owner Always On-Site",
+    label: "Staff Always On-Site",
     detail: "Never left with staff alone",
   },
   {

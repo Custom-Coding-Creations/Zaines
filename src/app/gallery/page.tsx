@@ -229,9 +229,6 @@ export default function GalleryPage() {
                     Check Availability
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="outline">
-                  <Link href="/contact">Schedule a Tour</Link>
-                </Button>
               </div>
             </div>
           </FadeUp>

@@ -272,14 +272,6 @@ export default function AboutPageContent() {
                   Check Availability
                 </Link>
               </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="font-semibold text-base border-2 border-white bg-white/10 text-white backdrop-blur-sm hover:bg-white hover:text-primary"
-              >
-                <Link href="/contact">Schedule a Tour</Link>
-              </Button>
             </div>
           </FadeUp>
         </div>

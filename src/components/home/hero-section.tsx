@@ -32,9 +32,9 @@ export function HeroSection() {
           <div className="text-white">
             <FadeUp>
               <h1 className="font-display text-4xl font-bold leading-tight tracking-tight text-balance md:text-5xl lg:text-6xl mb-6">
-                A Better Day for Your{" "}
+                A Home Away From Home for Your{" "}
                 <span className="relative inline-block">
-                  Best Friend.
+                  Best Friend
                   {/* Decorative doodle */}
                   <svg
                     className="absolute -right-8 -top-6 h-12 w-12 text-yellow-300 opacity-80"

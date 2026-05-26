@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Star, Quote, Calendar } from "lucide-react";
+import { Star, Quote } from "lucide-react";
 import { FadeUp, ScaleIn } from "@/components/motion";
 import { useSiteSettings } from "@/hooks/use-site-settings";
 import { PRICING_TRUST_DISCLOSURE } from "@/config/trust-copy";
@@ -252,17 +252,6 @@ export default function ReviewsPage() {
                     🐾
                   </span>
                   Check Availability
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="font-semibold text-base border-2 border-white bg-white/10 text-white backdrop-blur-sm hover:bg-white hover:text-primary"
-              >
-                <Link href="/contact">
-                  <Calendar className="mr-2 h-5 w-5" aria-hidden="true" />
-                  Schedule a Tour
                 </Link>
               </Button>
             </div>

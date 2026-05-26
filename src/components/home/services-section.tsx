@@ -58,6 +58,8 @@ export function ServicesSection() {
       accent: cardAccents[(index + activeTiers.length) % cardAccents.length],
     }));
 
+  const allAddOnsIncluded = activeAddOns.length > 0 && activeAddOns.every((addOn) => addOn.price <= 0);
+
   return (
     <section className="section-padding bg-muted/30">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -131,10 +133,12 @@ export function ServicesSection() {
           <FadeUp delay={0.25}>
             <div className="mx-auto mb-10 w-full max-w-4xl rounded-3xl border border-border/70 bg-background/70 p-6 md:p-8">
               <h3 className="heading-playful mb-2 text-2xl font-bold text-foreground text-center">
-                Optional Add-Ons
+                {allAddOnsIncluded ? "Included Add-Ons" : "Optional Add-Ons"}
               </h3>
               <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-muted-foreground">
-                Add-ons are configured separately from suites and can be updated in admin at any time.
+                {allAddOnsIncluded
+                  ? "These care extras are currently included at no additional charge. Pricing can still be adjusted in admin settings anytime."
+                  : "Add-ons are configured separately from suites and can be updated in admin at any time."}
               </p>
               <ul className="divide-y divide-border/60">
                 {activeAddOns.map((addOn) => (
@@ -160,7 +164,7 @@ export function ServicesSection() {
                         </span>
                       </div>
                       <span className="shrink-0 text-sm font-semibold text-foreground">
-                        ${addOn.price}
+                        {addOn.price > 0 ? formatter.format(addOn.price) : "Included"}
                       </span>
                     </Link>
                   </li>
@@ -176,7 +180,7 @@ export function ServicesSection() {
             <Link href="/pricing#multi-dog-discounts" className="font-medium text-primary hover:underline">
               View our multi-dog discounts
             </Link>{" "}
-            — {pricingSettings.twoPetDiscountPercent}% off the second dog, {pricingSettings.threePlusPetsDiscountPercent}% off the third.
+            — Additional dogs from the same household receive $10 off nightly boarding.
           </p>
         </FadeUp>
 

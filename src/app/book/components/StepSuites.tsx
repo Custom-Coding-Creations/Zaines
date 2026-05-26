@@ -270,8 +270,8 @@ export function StepSuites({
         <div className="space-y-3">
           <Label>Optional Care Selections</Label>
           <p className="text-sm text-muted-foreground">
-            Select only what you want added to your quote. No surprise add-ons
-            are applied automatically.
+            Select care items you want included in your stay. Included items show
+            no extra charge, and pricing stays configurable in admin settings.
           </p>
           <div className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-4">
             {addOns.length > 0 ? addOns.map((addOn) => {
@@ -296,7 +296,7 @@ export function StepSuites({
                     >
                       <span>{addOn.name}</span>
                       <span className="font-semibold text-primary">
-                        {formatter.format(addOn.price)}
+                        {addOn.price > 0 ? formatter.format(addOn.price) : "Included"}
                       </span>
                     </Label>
                     <p className="text-sm text-muted-foreground">
@@ -335,7 +335,7 @@ export function StepSuites({
                           <Lightbulb className="h-4 w-4 text-primary" />
                           <span className="font-semibold text-sm">{rec.name}</span>
                           <Badge variant="secondary" className="text-xs">
-                            ${rec.price}
+                            {rec.price > 0 ? formatter.format(rec.price) : "Included"}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">{rec.reason}</p>

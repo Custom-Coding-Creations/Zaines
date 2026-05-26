@@ -158,7 +158,7 @@ export default async function GroomingPage() {
                         {addOn.description}
                       </p>
                       <p className="font-display text-2xl font-bold text-primary">
-                        {formatter.format(addOn.price)}
+                        {addOn.price > 0 ? formatter.format(addOn.price) : "Included"}
                       </p>
                     </div>
                   </ScaleIn>

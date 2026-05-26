@@ -113,7 +113,7 @@ export function BookingConfirmation({
         {addOns && addOns.map((addOn, index) => (
           <Row key={index} style={pricingRow}>
             <Column style={pricingLabel}>{addOn.name}</Column>
-            <Column style={pricingValue}>{formatCurrency(addOn.price)}</Column>
+            <Column style={pricingValue}>{addOn.price > 0 ? formatCurrency(addOn.price) : "Included"}</Column>
           </Row>
         ))}
         
