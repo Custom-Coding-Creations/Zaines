@@ -43,7 +43,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "db:drift:check": "prisma migrate diff --from-url \"$DATABASE_URL\" --to-schema-datamodel prisma/schema.prisma --exit-code",
     "prisma:studio": "prisma studio",
-    "db:backfill-waivers": "tsx scripts/backfill-account-waivers.ts"
+    "db:backfill-waivers": "tsx scripts/backfill-account-waivers.ts",
+    "db:backfill-crm-interactions": "tsx scripts/crm-backfill-contact-submissions.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

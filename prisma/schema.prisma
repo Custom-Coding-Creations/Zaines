@@ -54,6 +54,20 @@ model User {
   recurringBookings RecurringBooking[]
   automatedReminders AutomatedReminder[]
   loyaltyTransactions LoyaltyTransaction[]
+  crmNotes              CrmNote[]           @relation("CrmCustomerNotes")
+  crmAuthoredNotes      CrmNote[]           @relation("CrmNoteAuthor")
+  crmTasks              CrmTask[]           @relation("CrmCustomerTasks")
+  crmAuthoredTasks      CrmTask[]           @relation("CrmTaskCreator")
+  crmAssignedTasks      CrmTask[]           @relation("CrmTaskAssignee")
+  crmInteractions       CrmInteraction[]    @relation("CrmCustomerInteractions")
+  crmAuthoredInteractions CrmInteraction[]
+  crmTagAssignments     CrmTagAssignment[]
+  crmSegments           CrmSegment[]        @relation("CrmSegmentOwner")
+  crmOpportunities      CrmOpportunity[]    @relation("CrmCustomerOpportunities")
+  crmOwnedOpportunities CrmOpportunity[]    @relation("CrmOpportunityOwner")
+  crmCampaigns          CrmCampaign[]       @relation("CrmCampaignCreator")
+  crmCampaignRecipients CrmCampaignRecipient[]
+  crmCampaignRecipientAttempts CrmCampaignRecipientAttempt[]
 
   @@map("users")
 }
@@ -1046,6 +1060,211 @@ model BlogPost {
   @@index([isPublished])
   @@index([publishedAt])
   @@map("blog_posts")
+}
+
+// ============================================================================
+// CRM
+// ============================================================================
+
+model CrmTag {
+  id          String   @id @default(cuid())
+  name        String
+  color       String   @default("slate")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assignments CrmTagAssignment[]
+
+  @@unique([name])
+  @@map("crm_tags")
+}
+
+model CrmTagAssignment {
+  id        String   @id @default(cuid())
+  userId    String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  user User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tag  CrmTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tagId])
+  @@index([userId])
+  @@index([tagId])
+  @@map("crm_tag_assignments")
+}
+
+model CrmNote {
+  id              String   @id @default(cuid())
+  userId          String
+  createdByUserId String
+  content         String
+  isPinned        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user          User @relation("CrmCustomerNotes", fields: [userId], references: [id], onDelete: Cascade)
+  createdByUser User @relation("CrmNoteAuthor", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([createdByUserId])
+  @@map("crm_notes")
+}
+
+model CrmTask {
+  id               String   @id @default(cuid())
+  userId           String
+  createdByUserId  String
+  assignedToUserId String?
+  title            String
+  description      String?
+  dueAt            DateTime?
+  status           String   @default("open") // open | completed | blocked
+  priority         String   @default("normal") // low | normal | high | urgent
+  completedAt      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user           User  @relation("CrmCustomerTasks", fields: [userId], references: [id], onDelete: Cascade)
+  createdByUser  User  @relation("CrmTaskCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  assignedToUser User? @relation("CrmTaskAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([assignedToUserId])
+  @@index([dueAt])
+  @@map("crm_tasks")
+}
+
+model CrmInteraction {
+  id               String   @id @default(cuid())
+  userId           String
+  createdByUserId  String?
+  channel          String // email | sms | call | in_app | in_person | contact_form
+  direction        String // inbound | outbound
+  subject          String?
+  content          String
+  sourceSystem     String? // contact_submission | admin_message | manual
+  sourceReference  String?
+  occurredAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user          User  @relation("CrmCustomerInteractions", fields: [userId], references: [id], onDelete: Cascade)
+  createdByUser User? @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, occurredAt])
+  @@index([channel])
+  @@index([sourceSystem, sourceReference])
+  @@map("crm_interactions")
+}
+
+model CrmOpportunity {
+  id               String   @id @default(cuid())
+  userId           String
+  ownerUserId      String?
+  title            String
+  description      String?
+  stage            String   @default("new") // new | qualified | proposal | won | lost
+  source           String? // web | referral | walk_in | call
+  estimatedValue   Float?
+  expectedCloseAt  DateTime?
+  wonAt            DateTime?
+  lostAt           DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user      User  @relation("CrmCustomerOpportunities", fields: [userId], references: [id], onDelete: Cascade)
+  ownerUser User? @relation("CrmOpportunityOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, stage])
+  @@index([ownerUserId])
+  @@index([expectedCloseAt])
+  @@map("crm_opportunities")
+}
+
+model CrmSegment {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  criteriaJson    Json
+  createdByUserId String
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  createdByUser User @relation("CrmSegmentOwner", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([isActive])
+  @@index([createdByUserId])
+  @@map("crm_segments")
+}
+
+model CrmCampaign {
+  id              String   @id @default(cuid())
+  name            String
+  channel         String // email | sms
+  status          String   @default("draft") // draft | scheduled | sent | cancelled
+  subject         String?
+  body            String
+  segmentId       String?
+  scheduledFor    DateTime?
+  sentAt          DateTime?
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  createdByUser User                  @relation("CrmCampaignCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  recipients    CrmCampaignRecipient[]
+  recipientAttempts CrmCampaignRecipientAttempt[]
+
+  @@index([status])
+  @@index([channel])
+  @@index([scheduledFor])
+  @@index([createdByUserId])
+  @@map("crm_campaigns")
+}
+
+model CrmCampaignRecipient {
+  id         String   @id @default(cuid())
+  campaignId String
+  userId     String
+  status     String   @default("pending") // pending | sent | failed | skipped
+  sentAt     DateTime?
+  error      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  campaign CrmCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempts CrmCampaignRecipientAttempt[]
+
+  @@unique([campaignId, userId])
+  @@index([userId])
+  @@index([status])
+  @@map("crm_campaign_recipients")
+}
+
+model CrmCampaignRecipientAttempt {
+  id          String   @id @default(cuid())
+  recipientId String
+  campaignId  String
+  userId      String
+  channel     String // email | sms
+  status      String // sent | failed | retry_queued
+  errorCode   String?
+  errorDetail String?
+  attemptedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  recipient CrmCampaignRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  campaign  CrmCampaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, attemptedAt])
+  @@index([campaignId, attemptedAt])
+  @@index([status])
+  @@map("crm_campaign_recipient_attempts")
 }
 
 // ============================================================================

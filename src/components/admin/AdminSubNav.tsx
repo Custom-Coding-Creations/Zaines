@@ -92,6 +92,21 @@ const adminSubNavItems: AdminSubNavItem[] = [
     match: (pathname) => pathname.startsWith("/admin/contacts"),
   },
   {
+    href: "/admin/crm/pipeline",
+    label: "Pipeline",
+    match: (pathname) => pathname.startsWith("/admin/crm/pipeline"),
+  },
+  {
+    href: "/admin/crm/campaigns",
+    label: "Campaigns",
+    match: (pathname) => pathname.startsWith("/admin/crm/campaigns"),
+  },
+  {
+    href: "/admin/crm",
+    label: "CRM",
+    match: (pathname) => pathname.startsWith("/admin/crm"),
+  },
+  {
     href: "/admin/messages",
     label: "Customer Messages",
     match: (pathname) => pathname.startsWith("/admin/messages"),
