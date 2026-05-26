@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Plus, Search } from 'lucide-react';
+import { Check, Loader2, Plus, Search } from 'lucide-react';
 import type { AdminBookingResponse } from '@/types/admin';
 import { formatDateUtc } from '@/lib/datetime-format';
 
@@ -48,9 +48,35 @@ function formatStatusLabel(status: string) {
   return status.replace('_', ' ');
 }
 
-function getActionButtons(booking: AdminBookingResponse) {
+function getActionButtons(
+  booking: AdminBookingResponse,
+  options: {
+    isConfirming: boolean;
+    onConfirm: (bookingId: string) => Promise<void>;
+  },
+) {
   return (
     <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
+      {booking.status === 'pending' && (
+        <Button
+          size="sm"
+          variant="default"
+          disabled={options.isConfirming}
+          onClick={() => options.onConfirm(booking.id)}
+        >
+          {options.isConfirming ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Confirming...
+            </>
+          ) : (
+            <>
+              <Check className="mr-2 h-4 w-4" />
+              Confirm
+            </>
+          )}
+        </Button>
+      )}
       {booking.status === 'confirmed' && (
         <Button asChild size="sm" variant="default">
           <Link href={`/admin/check-in/${booking.id}`}>
@@ -107,6 +133,7 @@ export default function BookingsPage() {
   const [sortBy, setSortBy] = useState<BookingSortOption>(
     ((searchParams?.get('sort') as BookingSortOption | null) ?? 'newest'),
   );
+  const [confirmingBookingId, setConfirmingBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     const nextSearch = searchParams?.get('search') ?? '';
@@ -172,6 +199,35 @@ export default function BookingsPage() {
       setBookings([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleConfirmBooking = async (bookingId: string) => {
+    const shouldConfirm = window.confirm('Mark this booking as confirmed?');
+    if (!shouldConfirm) {
+      return;
+    }
+
+    setConfirmingBookingId(bookingId);
+    try {
+      const response = await fetch(`/api/admin/bookings/${bookingId}/confirm`, {
+        method: 'POST',
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? 'Failed to confirm booking');
+      }
+
+      await fetchBookings();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to confirm booking';
+      window.alert(message);
+    } finally {
+      setConfirmingBookingId(null);
     }
   };
 
@@ -363,7 +419,10 @@ export default function BookingsPage() {
                         </p>
                       </div>
 
-                      {getActionButtons(booking)}
+                      {getActionButtons(booking, {
+                        isConfirming: confirmingBookingId === booking.id,
+                        onConfirm: handleConfirmBooking,
+                      })}
                     </CardContent>
                   </Card>
                 ))}
@@ -417,7 +476,12 @@ export default function BookingsPage() {
                         <TableCell className="font-semibold">
                           ${booking.total.toFixed(2)}
                         </TableCell>
-                        <TableCell>{getActionButtons(booking)}</TableCell>
+                        <TableCell>
+                          {getActionButtons(booking, {
+                            isConfirming: confirmingBookingId === booking.id,
+                            onConfirm: handleConfirmBooking,
+                          })}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
