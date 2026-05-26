@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
   SheetContent,
@@ -85,7 +84,7 @@ export function AdminMobileDrawer({
         <SheetHeader className="border-b px-4 py-3">
           <SheetTitle className="text-sm">🐾 Staff Dashboard</SheetTitle>
         </SheetHeader>
-        <ScrollArea className="flex-1 h-[calc(100vh-3.5rem)]">
+        <div className="flex-1 overflow-y-auto min-h-0">
           <nav className="flex flex-col gap-1 p-3">
             {urgentActions.length > 0 ? (
               <section className="mb-3 rounded-lg border border-destructive/20 bg-destructive/5 p-2.5">
@@ -160,7 +159,7 @@ export function AdminMobileDrawer({
               );
             })}
           </nav>
-        </ScrollArea>
+        </div>
       </SheetContent>
     </Sheet>
   );

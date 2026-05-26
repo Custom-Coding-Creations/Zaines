@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
@@ -80,7 +79,7 @@ export function AdminSidebar({ collapsed = false, navCounts = {} }: AdminSidebar
         collapsed ? "w-16" : "w-60",
       )}
     >
-      <ScrollArea className="flex-1 py-2">
+      <div className="flex-1 overflow-y-auto min-h-0 py-2">
         <nav className="flex flex-col gap-1 px-2">
           {adminNavGroups.map((group) => {
             const Icon = group.icon;
@@ -189,7 +188,7 @@ export function AdminSidebar({ collapsed = false, navCounts = {} }: AdminSidebar
             );
           })}
         </nav>
-      </ScrollArea>
+      </div>
     </aside>
   );
 }
