@@ -418,6 +418,12 @@ export interface AdminBookingResponse {
       breed: string;
     };
   }>;
+  payments?: Array<{
+    status: string;
+    createdAt: Date;
+    paidAt: Date | null;
+    stripePaymentId: string | null;
+  }>;
 }
 
 export interface BookingListFilters {

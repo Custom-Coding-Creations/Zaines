@@ -238,6 +238,16 @@ export async function getAdminBookings(filters?: BookingListFilters): Promise<Ad
       include: {
         user: { select: { id: true, name: true, email: true } },
         suite: { select: { id: true, name: true } },
+        payments: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            status: true,
+            createdAt: true,
+            paidAt: true,
+            stripePaymentId: true,
+          },
+        },
         bookingPets: {
           include: {
             pet: {
@@ -296,6 +306,16 @@ export async function getAdminBooking(bookingId: string): Promise<AdminBookingRe
       include: {
         user: { select: { id: true, name: true, email: true } },
         suite: { select: { id: true, name: true } },
+        payments: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            status: true,
+            createdAt: true,
+            paidAt: true,
+            stripePaymentId: true,
+          },
+        },
         bookingPets: {
           include: {
             pet: {

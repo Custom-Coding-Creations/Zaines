@@ -48,6 +48,68 @@ function formatStatusLabel(status: string) {
   return status.replace('_', ' ');
 }
 
+function getPendingResolution(booking: AdminBookingResponse) {
+  const latestPayment = booking.payments?.[0];
+
+  if (!latestPayment) {
+    return {
+      reason: 'No payment record captured yet.',
+      details: 'This booking is still pending because no successful payment exists on file.',
+      nextAction: 'Use Recover Payment to collect payment, or Confirm only after verifying payment externally.',
+    };
+  }
+
+  switch (latestPayment.status) {
+    case 'failed':
+    case 'cancelled':
+      return {
+        reason: `Latest payment ${latestPayment.status}.`,
+        details: 'The most recent payment attempt did not complete successfully.',
+        nextAction: 'Use Recover Payment to retry payment, then Confirm after payment succeeds.',
+      };
+    case 'pending':
+      return {
+        reason: 'Payment is still pending.',
+        details: 'A payment attempt exists but has not reached a successful completion state yet.',
+        nextAction: 'Open Recover Payment to complete payment, or Confirm manually when payment is verified.',
+      };
+    case 'succeeded':
+      return {
+        reason: 'Payment succeeded but booking remains pending.',
+        details: 'Payment appears captured, but this booking has not been moved to confirmed status.',
+        nextAction: 'Use Confirm to move it to confirmed now.',
+      };
+    case 'refunded':
+      return {
+        reason: 'Latest payment was refunded.',
+        details: 'The most recent payment record indicates funds were refunded.',
+        nextAction: 'Review the booking in View and use Recover Payment only if a new charge is needed.',
+      };
+    default:
+      return {
+        reason: `Payment status: ${latestPayment.status}.`,
+        details: 'This booking is still pending and requires review before check-in.',
+        nextAction: 'Use View for details, then Recover Payment or Confirm based on payment state.',
+      };
+  }
+}
+
+function PendingResolutionHint({ booking }: { booking: AdminBookingResponse }) {
+  if (booking.status !== 'pending') {
+    return null;
+  }
+
+  const resolution = getPendingResolution(booking);
+
+  return (
+    <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs leading-relaxed text-amber-900">
+      <p className="font-semibold">Pending reason: {resolution.reason}</p>
+      <p className="mt-1">{resolution.details}</p>
+      <p className="mt-1 text-amber-800">Next step: {resolution.nextAction}</p>
+    </div>
+  );
+}
+
 function getActionButtons(
   booking: AdminBookingResponse,
   options: {
@@ -419,6 +481,8 @@ export default function BookingsPage() {
                         </p>
                       </div>
 
+                      <PendingResolutionHint booking={booking} />
+
                       {getActionButtons(booking, {
                         isConfirming: confirmingBookingId === booking.id,
                         onConfirm: handleConfirmBooking,
@@ -469,9 +533,12 @@ export default function BookingsPage() {
                           {formatDateUtc(booking.checkOutDate)}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={statusBadgeVariant(booking.status)}>
-                            {formatStatusLabel(booking.status)}
-                          </Badge>
+                          <div className="space-y-2">
+                            <Badge variant={statusBadgeVariant(booking.status)}>
+                              {formatStatusLabel(booking.status)}
+                            </Badge>
+                            <PendingResolutionHint booking={booking} />
+                          </div>
                         </TableCell>
                         <TableCell className="font-semibold">
                           ${booking.total.toFixed(2)}
