@@ -133,7 +133,7 @@ export default function PricingPage() {
             </div>
           </FadeUp>
 
-          <div className={`mx-auto grid max-w-6xl gap-6 ${activeTiers.length === 4 ? 'md:grid-cols-2 lg:grid-cols-4' : activeTiers.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+          <div className={`mx-auto flex flex-wrap justify-center gap-6 max-w-6xl ${activeTiers.length >= 4 ? '[&>*]:md:w-[calc(50%-0.75rem)] [&>*]:lg:w-[calc(25%-1.125rem)]' : activeTiers.length === 3 ? '[&>*]:md:w-[calc(33.333%-1rem)]' : '[&>*]:md:w-[calc(50%-0.75rem)]'} [&>*]:w-full`}>
             {activeTiers.map((tier, index) => {
               const isPopular = index === 1;
               return (
