@@ -190,28 +190,6 @@ export default function ContactPageContent() {
                   </div>
                 </ScaleIn>
 
-                <ScaleIn delay={0.25}>
-                  <div className="paw-card p-6" id="hours-of-operation">
-                    <div className="flex items-start gap-4">
-                      <div className="badge-icon bg-coral/20">
-                        <Clock className="h-6 w-6 text-coral" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-display mb-2 font-bold text-foreground">
-                          Hours of Operation
-                        </h3>
-                        <div className="text-sm text-muted-foreground">
-                          <p>Monday - Friday: {businessHours.monday.openTime} - {businessHours.monday.closeTime}</p>
-                          <p>Saturday - Sunday: {businessHours.saturday.openTime} - {businessHours.saturday.closeTime}</p>
-                          <p className="mt-3 font-bold text-primary">
-                            ✓ 24/7 Supervision Always
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </ScaleIn>
-
                 <ScaleIn delay={0.3}>
                   <div>
                     <h3 className="font-display mb-4 font-bold text-foreground">
