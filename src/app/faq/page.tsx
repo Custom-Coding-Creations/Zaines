@@ -119,7 +119,7 @@ export default function FAQPage() {
       },
       {
         q: "Are there multi-pet discounts?",
-        a: `Yes. Two pets receive ${pricingSettings.twoPetDiscountPercent}% off and three or more pets receive ${pricingSettings.threePlusPetsDiscountPercent}% off when eligible.`,
+        a: `Yes. Two pets receive ${pricingSettings.multiPetDiscountType === 'flat' ? `$${pricingSettings.twoPetDiscountPercent} off` : `${pricingSettings.twoPetDiscountPercent}%`} and three or more pets receive ${pricingSettings.multiPetDiscountType === 'flat' ? `$${pricingSettings.threePlusPetsDiscountPercent} off` : `${pricingSettings.threePlusPetsDiscountPercent}%`} per additional pet per night when eligible.`,
       },
       {
         q: "How do I know there are no hidden fees?",

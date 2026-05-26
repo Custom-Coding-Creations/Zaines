@@ -46,8 +46,9 @@ export interface PricingSettings {
   deluxeNightlyRate: number;
   luxuryNightlyRate: number;
   taxRatePercent: number; // e.g. 10 for 10%
-  twoPetDiscountPercent: number; // e.g. 15 for 15%
-  threePlusPetsDiscountPercent: number; // e.g. 20 for 20%
+  multiPetDiscountType: 'percent' | 'flat'; // 'percent' = % off rate, 'flat' = $ off per additional pet per night
+  twoPetDiscountPercent: number; // value meaning depends on multiPetDiscountType
+  threePlusPetsDiscountPercent: number; // value meaning depends on multiPetDiscountType
 }
 
 export interface CancellationPolicySettings {

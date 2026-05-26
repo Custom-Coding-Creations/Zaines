@@ -11,6 +11,7 @@ export const DEFAULT_PRICING_SETTINGS: PricingSettings = {
   deluxeNightlyRate: 85,
   luxuryNightlyRate: 120,
   taxRatePercent: 10,
+  multiPetDiscountType: 'percent',
   twoPetDiscountPercent: 15,
   threePlusPetsDiscountPercent: 20,
 };
@@ -74,11 +75,16 @@ export function calculateBookingPrice(
 
   if (petCount > 1) {
     const additionalPets = petCount - 1;
-    const discount =
+    const discountValue =
       petCount === 2
-        ? pricingSettings.twoPetDiscountPercent / 100
-        : pricingSettings.threePlusPetsDiscountPercent / 100;
-    subtotal += nightlyRate * nights * additionalPets * (1 - discount);
+        ? pricingSettings.twoPetDiscountPercent
+        : pricingSettings.threePlusPetsDiscountPercent;
+    const discountType = pricingSettings.multiPetDiscountType ?? 'percent';
+    const additionalRate =
+      discountType === 'flat'
+        ? Math.max(0, nightlyRate - discountValue)
+        : nightlyRate * (1 - discountValue / 100);
+    subtotal += additionalRate * nights * additionalPets;
   }
 
   const appliedHolidaySurcharges = holidaySurcharges

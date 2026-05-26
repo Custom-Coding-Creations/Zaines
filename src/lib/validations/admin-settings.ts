@@ -142,8 +142,9 @@ export const pricingSettingsSchema = z.object({
     deluxeNightlyRate: z.number().min(0, 'Rate cannot be negative'),
     luxuryNightlyRate: z.number().min(0, 'Rate cannot be negative'),
     taxRatePercent: z.number().min(0, 'Tax cannot be negative').max(100, 'Tax cannot exceed 100%'),
-    twoPetDiscountPercent: z.number().min(0, 'Discount cannot be negative').max(100, 'Discount cannot exceed 100%'),
-    threePlusPetsDiscountPercent: z.number().min(0, 'Discount cannot be negative').max(100, 'Discount cannot exceed 100%'),
+    multiPetDiscountType: z.enum(['percent', 'flat']).default('percent'),
+    twoPetDiscountPercent: z.number().min(0, 'Discount cannot be negative'),
+    threePlusPetsDiscountPercent: z.number().min(0, 'Discount cannot be negative'),
   }),
   seasonalPricingRules: z.array(
     z.object({

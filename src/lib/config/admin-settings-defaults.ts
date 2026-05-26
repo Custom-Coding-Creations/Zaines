@@ -108,6 +108,7 @@ export const pricingSettingsDefaults: PricingSettingsFormValues = {
     deluxeNightlyRate: 85,
     luxuryNightlyRate: 120,
     taxRatePercent: 10,
+    multiPetDiscountType: 'percent' as const,
     twoPetDiscountPercent: 15,
     threePlusPetsDiscountPercent: 20,
   },

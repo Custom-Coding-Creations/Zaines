@@ -54,7 +54,7 @@ export default function PricingPage() {
     {
       question: "Are multi-pet discounts available?",
       answer:
-        `Yes. Two pets receive ${pricingSettings.twoPetDiscountPercent}% off and three or more pets receive ${pricingSettings.threePlusPetsDiscountPercent}% off when those discounts apply to your quote.`,
+        `Yes. Two pets receive ${pricingSettings.multiPetDiscountType === 'flat' ? `$${pricingSettings.twoPetDiscountPercent} off` : `${pricingSettings.twoPetDiscountPercent}%`} and three or more pets receive ${pricingSettings.multiPetDiscountType === 'flat' ? `$${pricingSettings.threePlusPetsDiscountPercent} off` : `${pricingSettings.threePlusPetsDiscountPercent}%`} per additional pet per night when those discounts apply to your quote.`,
     },
     {
       question: "What's your cancellation policy?",
