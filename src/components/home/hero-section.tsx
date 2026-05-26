@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { FadeUp, ScaleIn } from "@/components/motion";
-import { Calendar, Shield, Camera, Home } from "lucide-react";
+import { Shield, Camera, Home } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -72,17 +72,6 @@ export function HeroSection() {
                   <Link href="/book">
                     <span className="mr-2 text-xl" aria-hidden="true">🐾</span>
                     Check Availability
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  size="lg"
-                  variant="outline"
-                  className="font-semibold text-base bg-white/10 border-2 border-white text-white hover:bg-white hover:text-primary backdrop-blur-sm"
-                >
-                  <Link href="/contact">
-                    <Calendar className="mr-2 h-5 w-5" aria-hidden="true" />
-                    Schedule a Tour
                   </Link>
                 </Button>
               </div>
