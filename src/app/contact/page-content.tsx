@@ -69,9 +69,9 @@ export default function ContactPageContent() {
                   variant="outline"
                   className="font-semibold text-base border-2 border-white bg-white/10 text-white backdrop-blur-sm hover:bg-white hover:text-primary"
                 >
-                  <a href={`tel:${contactInfo.phone}`}>
+                  <a href="tel:3157657297">
                     <Phone className="mr-2 h-5 w-5" aria-hidden="true" />
-                    Call {contactInfo.phone}
+                    315-765-PAWS
                   </a>
                 </Button>
               </div>
@@ -147,12 +147,13 @@ export default function ContactPageContent() {
                         </h3>
                         <p className="text-base font-semibold text-foreground">
                           <a
-                            href={`tel:${contactInfo.phone}`}
+                            href="tel:3157657297"
                             className="hover:text-primary"
                           >
-                            {contactInfo.phone}
+                            315-765-PAWS
                           </a>
                         </p>
+                        <p className="text-sm text-muted-foreground">(315) 765-7297</p>
                         <p className="mt-2 text-sm text-muted-foreground">
                           Mon-Fri: 6am - 8pm
                           <br />

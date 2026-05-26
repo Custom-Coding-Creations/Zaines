@@ -11,7 +11,7 @@ export const siteConfig = {
     twitter: "https://twitter.com/zainesstayandplay",
   },
   contact: {
-    phone: "(315) 657-1332",
+    phone: "(315) 765-7297",
     email: "jgibbs@zainesstayandplay.com",
     address: "6353 Court Street Road",
     city: "East Syracuse",

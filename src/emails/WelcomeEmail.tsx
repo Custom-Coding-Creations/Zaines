@@ -101,7 +101,7 @@ export function WelcomeEmail({
       </Text>
       <ul style={contactList}>
         <li style={listItem}>
-          📞 Call us: <a href="tel:3156571332" style={link}>(315) 657-1332</a>
+          📞 Call us: <a href="tel:3157657297" style={link}>(315) 765-7297</a>
         </li>
         <li style={listItem}>
           📧 Email: <a href="mailto:jgibbs@zainesstayandplay.com" style={link}>jgibbs@zainesstayandplay.com</a>

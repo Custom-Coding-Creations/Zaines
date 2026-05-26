@@ -153,7 +153,7 @@ export function PaymentReceipt({
       <Text style={paragraph}>
         Questions about this charge? Contact us at{' '}
         <a href="tel:3156571332" style={link}>
-          (315) 657-1332
+          (315) 765-7297
         </a>{' '}
         or reply to this email.
       </Text>

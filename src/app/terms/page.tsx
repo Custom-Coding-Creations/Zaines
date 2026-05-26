@@ -496,7 +496,7 @@ export default async function TermsPage() {
                 </p>
                 <p className="mb-2">Syracuse, NY</p>
                 <p className="mb-2">Email: legal@zainesstayandplay.com</p>
-                <p>Phone: (315) 657-1332</p>
+                <p>Phone: (315) 765-7297</p>
               </div>
             </div>
 

@@ -86,7 +86,7 @@ export function useSiteSettings(): SiteSettingsHookReturn {
 
   return {
     contactInfo: {
-      phone: sanitizedSettings?.contactPhone || '(315) 657-1332',
+      phone: sanitizedSettings?.contactPhone || '(315) 765-7297',
       email: sanitizedSettings?.contactEmail || 'jgibbs@zainesstayandplay.com',
       address: sanitizedSettings?.address || '6353 Court Street Road',
       city: sanitizedSettings?.city || 'East Syracuse',

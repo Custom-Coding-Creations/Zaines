@@ -173,7 +173,7 @@ export function BookingConfirmation({
         <Text style={paragraph}>
           Have questions? We're here to help! Call us at{' '}
           <a href="tel:3156571332" style={link}>
-            (315) 657-1332
+            (315) 765-7297
           </a>{' '}
           or reply to this email.
         </Text>

@@ -160,7 +160,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       petNames: booking.bookingPets.map((entry) => entry.pet.name),
       customerName: booking.user.name || "Guest",
       customerEmail: booking.user.email || "",
-      supportPhone: "(315) 657-1332",
+      supportPhone: "(315) 765-7297",
       supportEmail: "jgibbs@zainesstayandplay.com",
       generatedAt: (latestPayment?.paidAt || latestPayment?.updatedAt || booking.updatedAt).toISOString(),
     };

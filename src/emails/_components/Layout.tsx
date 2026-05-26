@@ -63,7 +63,7 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
               <br />
               East Syracuse, NY 13057
               <br />
-              (315) 657-1332
+              (315) 765-7297
             </Text>
             <Text style={footerText}>
               <Link href={`${baseUrl}/contact`} style={footerLink}>

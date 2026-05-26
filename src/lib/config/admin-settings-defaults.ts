@@ -22,7 +22,7 @@ export const generalSettingsDefaults: GeneralSettingsFormValues = {
     saturday: { openTime: '08:00', closeTime: '18:00', isClosed: false },
     sunday: { openTime: '08:00', closeTime: '18:00', isClosed: false },
   },
-  contactPhone: '(315) 657-1332',
+  contactPhone: '(315) 765-7297',
   contactEmail: 'jgibbs@zainesstayandplay.com',
   address: '6353 Court Street Road',
   city: 'East Syracuse',

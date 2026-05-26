@@ -896,7 +896,7 @@ export async function sendPasswordResetNotification(payload: {
         </a>
       </p>
       <p style="color: #4e5a67;">This link expires in 30 minutes. If you did not request this, you can safely ignore this email.</p>
-      <p style="font-size: 13px; color: #4e5a67;">Need help? Contact our concierge team at (315) 657-1332.</p>
+      <p style="font-size: 13px; color: #4e5a67;">Need help? Contact our concierge team at (315) 765-7297.</p>
     </div>
   `;
 

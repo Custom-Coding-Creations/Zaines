@@ -318,7 +318,7 @@ export default async function PrivacyPage() {
               </ul>
               <p className="mt-4 text-muted-foreground">
                 To exercise these rights, please contact us at
-                privacy@zainesstayandplay.com or call (315) 657-1332.
+                privacy@zainesstayandplay.com or call (315) 765-7297.
               </p>
             </div>
 
@@ -398,7 +398,7 @@ export default async function PrivacyPage() {
                 </p>
                 <p className="mb-2">Syracuse, NY</p>
                 <p className="mb-2">Email: privacy@zainesstayandplay.com</p>
-                <p>Phone: (315) 657-1332</p>
+                <p>Phone: (315) 765-7297</p>
               </div>
             </div>
           </div>
