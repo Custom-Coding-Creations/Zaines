@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   getScoreBadgeVariant,
   scorePlayGroupCompatibility,
@@ -185,7 +187,24 @@ const staffingIssueLabels: Record<StaffingExceptionItem['issues'][number], strin
   staff_overlap_conflict: 'Overlapping assignment',
 };
 
+const PLAY_GROUP_TABS = [
+  { value: 'daily', label: 'Daily Groups' },
+  { value: 'staffing', label: 'Staffing' },
+  { value: 'create', label: 'Create Group' },
+] as const;
+
+type PlayGroupTabValue = (typeof PLAY_GROUP_TABS)[number]['value'];
+
+function parsePlayGroupTab(value: string | null): PlayGroupTabValue {
+  if (value === 'staffing' || value === 'create') {
+    return value;
+  }
+  return 'daily';
+}
+
 export default function AdminPlayGroupsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [groups, setGroups] = useState<PlayGroup[]>([]);
   const [staff, setStaff] = useState<StaffOption[]>([]);
   const [eligiblePets, setEligiblePets] = useState<EligiblePet[]>([]);
@@ -781,8 +800,17 @@ export default function AdminPlayGroupsPage() {
     !groups.some((group) => group.assignments.some((assignment) => assignment.pet.id === entry.pet.id)),
   );
 
+  const activeTab = parsePlayGroupTab(searchParams.get('tab'));
+
+  const setActiveTab = (value: string) => {
+    const nextTab = parsePlayGroupTab(value);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', nextTab);
+    router.replace(`/admin/play-groups?${params.toString()}`, { scroll: false });
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 md:pb-0">
       <div>
         <h1 className="text-2xl font-semibold">Play Groups</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -839,6 +867,17 @@ export default function AdminPlayGroupsPage() {
         ) : null}
       </div>
 
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid h-auto w-full grid-cols-3 gap-1">
+          {PLAY_GROUP_TABS.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value} className="text-xs sm:text-sm">
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      {activeTab === 'create' && (
       <Card>
         <CardHeader>
           <CardTitle>Create Play Group</CardTitle>
@@ -912,7 +951,9 @@ export default function AdminPlayGroupsPage() {
           </form>
         </CardContent>
       </Card>
+      )}
 
+      {activeTab === 'staffing' && (
       <Card>
         <CardHeader>
           <CardTitle>Staffing Exceptions</CardTitle>
@@ -969,7 +1010,9 @@ export default function AdminPlayGroupsPage() {
           )}
         </CardContent>
       </Card>
+      )}
 
+      {activeTab === 'daily' && (
       <Card>
         <CardHeader>
           <CardTitle>Daily Groups</CardTitle>
@@ -1154,7 +1197,9 @@ export default function AdminPlayGroupsPage() {
           ))}
         </CardContent>
       </Card>
+      )}
 
+      {activeTab === 'staffing' && (
       <Card>
         <CardHeader>
           <CardTitle>Staffing Audit Trail</CardTitle>
@@ -1184,6 +1229,27 @@ export default function AdminPlayGroupsPage() {
           )}
         </CardContent>
       </Card>
+      )}
+
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 px-3 py-2 backdrop-blur md:hidden">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <Button type="button" size="sm" variant="outline" disabled={saving} onClick={() => void autoAssignAllUnassigned()}>
+            {saving ? 'Running...' : 'Auto-Assign'}
+          </Button>
+          <Button type="button" size="sm" variant="outline" disabled={saving} onClick={() => void repairStaffingConflicts()}>
+            {saving ? 'Running...' : 'Repair'}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={saving || staffingExceptions.every((item) => !item.canAutoFix)}
+            onClick={() => void previewActionableExceptions()}
+          >
+            {saving ? 'Running...' : 'Preview'}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

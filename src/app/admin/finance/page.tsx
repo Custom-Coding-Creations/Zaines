@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Download, RefreshCw, TrendingUp, TrendingDown, DollarSign, CreditCard, AlertTriangle, ExternalLink, FileText, BarChart3 } from 'lucide-react';
 import { AdminErrorState, AdminLoadingState } from '@/components/admin/AdminAsyncState';
@@ -79,6 +81,23 @@ const STATUS_OPTIONS: Array<{ label: string; value: 'all' | FinanceTransactionSt
   { label: 'Refunded', value: 'refunded' },
   { label: 'Cancelled', value: 'cancelled' },
 ];
+
+const FINANCE_TABS = [
+  { value: 'overview', label: 'Overview' },
+  { value: 'transactions', label: 'Transactions' },
+  { value: 'operations', label: 'Operations' },
+  { value: 'cashflow', label: 'Cash Flow' },
+  { value: 'autopay', label: 'Autopay' },
+] as const;
+
+type FinanceTabValue = (typeof FINANCE_TABS)[number]['value'];
+
+function parseFinanceTab(value: string | null): FinanceTabValue {
+  if (value === 'transactions' || value === 'operations' || value === 'cashflow' || value === 'autopay') {
+    return value;
+  }
+  return 'overview';
+}
 
 function statusBadgeVariant(status: FinanceTransactionStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (status) {
@@ -180,6 +199,8 @@ function normalizeDateForApi(value: string): string {
 }
 
 export default function AdminFinancePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const defaults = useMemo(() => defaultDateRange(), []);
   const [startDate, setStartDate] = useState(defaults.startDate);
   const [endDate, setEndDate] = useState(defaults.endDate);
@@ -425,6 +446,15 @@ export default function AdminFinancePage() {
     stripeCapabilityFlags.identityEnabled ||
     stripeCapabilityFlags.terminalEnabled;
 
+  const activeTab = parseFinanceTab(searchParams.get('tab'));
+
+  const setActiveTab = (value: string) => {
+    const nextTab = parseFinanceTab(value);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', nextTab);
+    router.replace(`/admin/finance?${params.toString()}`, { scroll: false });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -448,6 +478,17 @@ export default function AdminFinancePage() {
         </div>
       </div>
 
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-5">
+          {FINANCE_TABS.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value} className="text-xs sm:text-sm">
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      {activeTab === 'operations' && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Quick Actions</CardTitle>
@@ -503,7 +544,9 @@ export default function AdminFinancePage() {
           )}
         </CardContent>
       </Card>
+      )}
 
+      {activeTab === 'operations' && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Billing & Customer Portal</CardTitle>
@@ -542,7 +585,9 @@ export default function AdminFinancePage() {
           )}
         </CardContent>
       </Card>
+      )}
 
+      {activeTab === 'operations' && (
       <Card className={dataIsStale ? 'border-amber-200 bg-amber-50' : ''}>
         <CardHeader>
           <CardTitle className="text-base">Data Freshness</CardTitle>
@@ -568,8 +613,9 @@ export default function AdminFinancePage() {
           </Button>
         </CardContent>
       </Card>
+      )}
 
-      {webhookHealth && (
+      {activeTab === 'operations' && webhookHealth && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Webhook Operations Health</CardTitle>
@@ -646,6 +692,7 @@ export default function AdminFinancePage() {
         </Card>
       )}
 
+      {activeTab === 'operations' && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
@@ -687,7 +734,9 @@ export default function AdminFinancePage() {
           )}
         </CardContent>
       </Card>
+      )}
 
+      {activeTab === 'transactions' && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Filters</CardTitle>
@@ -734,6 +783,7 @@ export default function AdminFinancePage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {state.loading && (
         <div className="py-10">
@@ -756,6 +806,7 @@ export default function AdminFinancePage() {
 
       {!state.loading && !state.error && overview && revenueRecognition && transactions && alerts && exceptions && forecast && autopayConsents && (
         <>
+          {(activeTab === 'cashflow' || activeTab === 'autopay') && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Owner Command Center</CardTitle>
@@ -1004,7 +1055,9 @@ export default function AdminFinancePage() {
               </div>
             </CardContent>
           </Card>
+          )}
 
+          {activeTab === 'overview' && (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardHeader className="pb-2">
@@ -1067,7 +1120,9 @@ export default function AdminFinancePage() {
               </CardContent>
             </Card>
           </div>
+          )}
 
+          {activeTab === 'overview' && (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardHeader className="pb-2">
@@ -1115,7 +1170,9 @@ export default function AdminFinancePage() {
               </CardContent>
             </Card>
           </div>
+          )}
 
+          {activeTab === 'overview' && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Revenue Recognition Status Mix</CardTitle>
@@ -1132,7 +1189,9 @@ export default function AdminFinancePage() {
               ))}
             </CardContent>
           </Card>
+          )}
 
+          {activeTab === 'overview' && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Transaction Status Mix</CardTitle>
@@ -1147,7 +1206,9 @@ export default function AdminFinancePage() {
               ))}
             </CardContent>
           </Card>
+          )}
 
+          {activeTab === 'transactions' && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
@@ -1255,6 +1316,7 @@ export default function AdminFinancePage() {
               )}
             </CardContent>
           </Card>
+          )}
         </>
       )}
 

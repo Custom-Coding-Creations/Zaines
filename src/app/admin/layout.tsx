@@ -1,8 +1,7 @@
 import { auth } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { AdminNav } from '@/components/admin/AdminNav';
-import { AdminSubNav } from '@/components/admin/AdminSubNav';
+import { AdminShell } from '@/components/admin/AdminShell';
 
 export default async function AdminLayout({
   children,
@@ -14,13 +13,7 @@ export default async function AdminLayout({
     process.env.PLAYWRIGHT_TEST === '1' && cookieStore.get('e2e-staff')?.value === '1';
 
   if (e2eBypassEnabled) {
-    return (
-      <div className="min-h-screen bg-background">
-        <AdminNav />
-        <AdminSubNav />
-        <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">{children}</main>
-      </div>
-    );
+    return <AdminShell>{children}</AdminShell>;
   }
 
   const session = await auth();
@@ -33,11 +26,5 @@ export default async function AdminLayout({
     redirect('/dashboard');
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <AdminNav />
-      <AdminSubNav />
-      <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">{children}</main>
-    </div>
-  );
+  return <AdminShell>{children}</AdminShell>;
 }

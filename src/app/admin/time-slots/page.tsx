@@ -2,9 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
   Dialog,
   DialogContent,
@@ -232,6 +238,18 @@ export default function AdminTimeSlotsPage() {
 
   // Custom generator state
   const [showGenerator, setShowGenerator] = useState(false);
+  const [sectionOpen, setSectionOpen] = useState({
+    quickFill: true,
+    addSlot: true,
+    configured: true,
+  });
+
+  const setSectionState = (
+    key: 'quickFill' | 'addSlot' | 'configured',
+    isOpen: boolean,
+  ) => {
+    setSectionOpen((current) => ({ ...current, [key]: isOpen }));
+  };
   const [genConfig, setGenConfig] = useState<GeneratorConfig>({
     startTime: '07:00',
     endTime: '10:00',
@@ -457,14 +475,24 @@ export default function AdminTimeSlotsPage() {
       </div>
 
       {/* ── Quick Fill Templates ── */}
+      <Collapsible open={sectionOpen.quickFill} onOpenChange={(isOpen) => setSectionState('quickFill', isOpen)}>
       <Card>
         <CardHeader>
-          <CardTitle>Quick Fill</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle>Quick Fill</CardTitle>
+            <CollapsibleTrigger asChild>
+              <Button type="button" variant="ghost" size="sm" className="gap-1">
+                {sectionOpen.quickFill ? 'Collapse' : 'Expand'}
+                <ChevronDown className={`h-4 w-4 transition-transform ${sectionOpen.quickFill ? '' : '-rotate-90'}`} />
+              </Button>
+            </CollapsibleTrigger>
+          </div>
           <CardDescription>
             Apply a preset template to generate multiple time slots at once.
             Duplicates are automatically skipped.
           </CardDescription>
         </CardHeader>
+        <CollapsibleContent>
         <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {PRESET_TEMPLATES.map((template) => (
@@ -578,14 +606,26 @@ export default function AdminTimeSlotsPage() {
             </div>
           )}
         </CardContent>
+        </CollapsibleContent>
       </Card>
+      </Collapsible>
 
       {/* ── Add Time Slot (multi-day) ── */}
+      <Collapsible open={sectionOpen.addSlot} onOpenChange={(isOpen) => setSectionState('addSlot', isOpen)}>
       <Card>
         <CardHeader>
-          <CardTitle>Add Time Slot</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle>Add Time Slot</CardTitle>
+            <CollapsibleTrigger asChild>
+              <Button type="button" variant="ghost" size="sm" className="gap-1">
+                {sectionOpen.addSlot ? 'Collapse' : 'Expand'}
+                <ChevronDown className={`h-4 w-4 transition-transform ${sectionOpen.addSlot ? '' : '-rotate-90'}`} />
+              </Button>
+            </CollapsibleTrigger>
+          </div>
           <CardDescription>Select one or more days and define the slot details.</CardDescription>
         </CardHeader>
+        <CollapsibleContent>
         <CardContent className="space-y-4">
           <DayCheckboxGroup
             selectedDays={selectedDays}
@@ -651,13 +691,25 @@ export default function AdminTimeSlotsPage() {
             </div>
           </div>
         </CardContent>
+        </CollapsibleContent>
       </Card>
+      </Collapsible>
 
       {/* ── Configured Slots ── */}
+      <Collapsible open={sectionOpen.configured} onOpenChange={(isOpen) => setSectionState('configured', isOpen)}>
       <Card>
         <CardHeader>
-          <CardTitle>Configured Slots</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle>Configured Slots</CardTitle>
+            <CollapsibleTrigger asChild>
+              <Button type="button" variant="ghost" size="sm" className="gap-1">
+                {sectionOpen.configured ? 'Collapse' : 'Expand'}
+                <ChevronDown className={`h-4 w-4 transition-transform ${sectionOpen.configured ? '' : '-rotate-90'}`} />
+              </Button>
+            </CollapsibleTrigger>
+          </div>
         </CardHeader>
+        <CollapsibleContent>
         <CardContent className="space-y-4">
           {loading ? <p>Loading time slots...</p> : null}
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -739,7 +791,9 @@ export default function AdminTimeSlotsPage() {
               ))
             : null}
         </CardContent>
+        </CollapsibleContent>
       </Card>
+      </Collapsible>
 
       {/* ── Copy Day Dialog ── */}
       <Dialog
