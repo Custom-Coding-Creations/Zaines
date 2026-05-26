@@ -188,7 +188,7 @@ export default async function SuitesPage() {
           </FadeUp>
 
           {suiteTiers.length > 0 ? (
-            <StaggerContainer className="grid gap-8 md:grid-cols-2 xl:grid-cols-3 md:items-stretch">
+            <StaggerContainer className="flex flex-wrap justify-center gap-8 items-stretch">
               {suiteTiers.map((tier, index) => {
                 const metadata = suiteMetadata[tier.name] || {
                   size: "Contact us for details",
@@ -201,7 +201,7 @@ export default async function SuitesPage() {
                 const imageUrl = tier.imageUrl || "/images/suites/standard-suite-default.webp";
                 
                 return (
-                  <StaggerItem key={tier.id} className="h-full">
+                  <StaggerItem key={tier.id} className="h-full w-full md:w-[calc(50%-1rem)] xl:w-[calc(33.333%-1.333rem)]">
                     <div className={`relative group h-full transition-all duration-300 ${
                       isPopular ? "md:scale-[1.02]" : ""
                     }`}>
