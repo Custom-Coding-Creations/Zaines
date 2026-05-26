@@ -181,10 +181,10 @@ export async function getAdminSettings(): Promise<AdminSettings> {
       businessHours,
       contactPhone: settingsMap.get(SETTINGS_KEYS.CONTACT_PHONE) || '(315) 657-1332',
       contactEmail: settingsMap.get(SETTINGS_KEYS.CONTACT_EMAIL) || 'jgibbs@zainesstayandplay.com',
-      address: settingsMap.get(SETTINGS_KEYS.ADDRESS) || '123 Pet Paradise Lane',
-      city: settingsMap.get(SETTINGS_KEYS.CITY) || 'Syracuse',
+      address: settingsMap.get(SETTINGS_KEYS.ADDRESS) || '6353 Court Street Road',
+      city: settingsMap.get(SETTINGS_KEYS.CITY) || 'East Syracuse',
       state: settingsMap.get(SETTINGS_KEYS.STATE) || 'NY',
-      zip: settingsMap.get(SETTINGS_KEYS.ZIP) || '13202',
+      zip: settingsMap.get(SETTINGS_KEYS.ZIP) || '13057',
       // Phase 3: Availability & Scheduling Rules
       availabilityRules: (() => {
         try {

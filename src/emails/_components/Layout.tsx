@@ -59,9 +59,9 @@ export function EmailLayout({ preview, children }: EmailLayoutProps) {
             <Text style={footerText}>
               <strong>Zaine's Stay & Play</strong>
               <br />
-              123 Pet Paradise Lane
+              6353 Court Street Road
               <br />
-              Syracuse, NY 13202
+              East Syracuse, NY 13057
               <br />
               (315) 657-1332
             </Text>

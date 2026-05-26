@@ -88,10 +88,10 @@ export function useSiteSettings(): SiteSettingsHookReturn {
     contactInfo: {
       phone: sanitizedSettings?.contactPhone || '(315) 657-1332',
       email: sanitizedSettings?.contactEmail || 'jgibbs@zainesstayandplay.com',
-      address: sanitizedSettings?.address || '123 Pet Paradise Lane',
-      city: sanitizedSettings?.city || 'Syracuse',
+      address: sanitizedSettings?.address || '6353 Court Street Road',
+      city: sanitizedSettings?.city || 'East Syracuse',
       state: sanitizedSettings?.state || 'NY',
-      zip: sanitizedSettings?.zip || '13202',
+      zip: sanitizedSettings?.zip || '13057',
     },
     businessHours: sanitizedSettings?.businessHours || {
       monday: { openTime: '06:00', closeTime: '20:00', isClosed: false },

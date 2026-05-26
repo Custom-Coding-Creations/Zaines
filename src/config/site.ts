@@ -13,10 +13,10 @@ export const siteConfig = {
   contact: {
     phone: "(315) 657-1332",
     email: "jgibbs@zainesstayandplay.com",
-    address: "123 Pet Paradise Lane",
-    city: "Syracuse",
+    address: "6353 Court Street Road",
+    city: "East Syracuse",
     state: "NY",
-    zip: "13202",
+    zip: "13057",
   },
   hours: {
     weekday: "6:00 AM - 8:00 PM",

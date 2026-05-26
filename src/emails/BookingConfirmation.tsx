@@ -154,7 +154,7 @@ export function BookingConfirmation({
           <li style={listItem}>Comfort items (favorite toy, blanket)</li>
         </ul>
         <Text style={paragraph}>
-          <strong>Address:</strong> 123 Pet Paradise Lane, Syracuse, NY 13202
+          <strong>Address:</strong> 6353 Court Street Road, East Syracuse, NY 13057
         </Text>
       </Section>
 
