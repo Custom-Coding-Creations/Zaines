@@ -12,7 +12,7 @@ export const siteConfig = {
   },
   contact: {
     phone: "(315) 765-7297",
-    email: "jgibbs@zainesstayandplay.com",
+    email: "info@zainesstayandplay.com",
     address: "6353 Court Street Road",
     city: "East Syracuse",
     state: "NY",

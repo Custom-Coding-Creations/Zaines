@@ -1,0 +1,15 @@
+{
+  "name": "zaines-email-sender",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "secret:put": "wrangler secret put API_SECRET"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250115.0",
+    "wrangler": "^3.100.0"
+  }
+}

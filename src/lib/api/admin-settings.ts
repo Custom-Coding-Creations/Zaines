@@ -180,7 +180,7 @@ export async function getAdminSettings(): Promise<AdminSettings> {
       // Phase 1: Business Hours & Contact Info
       businessHours,
       contactPhone: settingsMap.get(SETTINGS_KEYS.CONTACT_PHONE) || '(315) 765-7297',
-      contactEmail: settingsMap.get(SETTINGS_KEYS.CONTACT_EMAIL) || 'jgibbs@zainesstayandplay.com',
+      contactEmail: settingsMap.get(SETTINGS_KEYS.CONTACT_EMAIL) || 'info@zainesstayandplay.com',
       address: settingsMap.get(SETTINGS_KEYS.ADDRESS) || '6353 Court Street Road',
       city: settingsMap.get(SETTINGS_KEYS.CITY) || 'East Syracuse',
       state: settingsMap.get(SETTINGS_KEYS.STATE) || 'NY',

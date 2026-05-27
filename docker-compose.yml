@@ -12,7 +12,8 @@ services:
       dockerfile: Dockerfile.worker
     environment:
       - REDIS_URL=redis://redis:6379
-      - RESEND_API_KEY=${RESEND_API_KEY}
+      # Optional: Set RESEND_API_KEY for email sending (if not set, emails queued locally)
+      # - RESEND_API_KEY=${RESEND_API_KEY}
     depends_on:
       - redis
     restart: on-failure

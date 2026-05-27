@@ -472,7 +472,7 @@ export function StepPayment({
     Math.round((pricingQuote?.total || totalAmount) * 100) / 100;
   const disclosure = pricingQuote?.disclosure || BOOKING_PRICING_DISCLOSURE;
   const supportPhone = settings?.contactPhone || "(315) 765-7297";
-  const supportEmail = settings?.contactEmail || "jgibbs@zainesstayandplay.com";
+  const supportEmail = settings?.contactEmail || "info@zainesstayandplay.com";
   const activeTestimonials =
     settings?.testimonialsSettings?.testimonials
       ?.filter((testimonial) => testimonial.isActive)

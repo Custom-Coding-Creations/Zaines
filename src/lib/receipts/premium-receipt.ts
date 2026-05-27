@@ -224,7 +224,7 @@ export function renderPremiumReceiptHtml(data: PremiumReceiptData): string {
 
       <section class="section footer">
         <p>Payments are processed securely through Stripe. No raw card data is stored by Zaine's Stay & Play.</p>
-        <p>Support: ${escapeHtml(data.supportPhone || "(315) 765-7297")} | ${escapeHtml(data.supportEmail || "jgibbs@zainesstayandplay.com")}</p>
+        <p>Support: ${escapeHtml(data.supportPhone || "(315) 765-7297")} | ${escapeHtml(data.supportEmail || "info@zainesstayandplay.com")}</p>
       </section>
     </article>
   </body>

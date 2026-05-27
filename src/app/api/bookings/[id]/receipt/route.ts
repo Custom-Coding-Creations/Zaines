@@ -161,7 +161,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       customerName: booking.user.name || "Guest",
       customerEmail: booking.user.email || "",
       supportPhone: "(315) 765-7297",
-      supportEmail: "jgibbs@zainesstayandplay.com",
+      supportEmail: "info@zainesstayandplay.com",
       generatedAt: (latestPayment?.paidAt || latestPayment?.updatedAt || booking.updatedAt).toISOString(),
     };
 

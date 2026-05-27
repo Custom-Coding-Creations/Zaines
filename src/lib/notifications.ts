@@ -278,15 +278,15 @@ export async function sendReminderNotification(payload: {
     };
   }
 
-  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
-  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM || "info@zainesstayandplay.com";
+  const workerUrl = process.env.EMAIL_WORKER_URL;
   const to = payload.toEmail;
 
   if (!to) {
     return { sent: false, provider: "dev-queue", detail: "no-recipient" };
   }
 
-  if (!apiKey) {
+  if (!workerUrl || !process.env.EMAIL_WORKER_SECRET) {
     await appendToDevQueue({
       type: "automated_reminder",
       to,
@@ -300,7 +300,7 @@ export async function sendReminderNotification(payload: {
   }
 
   try {
-    const resp = await sendEmailViaResend({
+    const resp = await sendEmailViaWorker({
       from,
       to,
       subject: payload.subject,
@@ -338,23 +338,27 @@ export async function sendReminderNotification(payload: {
   }
 }
 
-async function sendEmailViaResend(payload: {
+async function sendEmailViaWorker(payload: {
   from: string;
   to: string;
   subject: string;
   html: string;
 }): Promise<{ ok: boolean; json?: unknown }> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) throw new Error("RESEND_API_KEY not set");
+  const workerUrl = process.env.EMAIL_WORKER_URL;
+  const apiSecret = process.env.EMAIL_WORKER_SECRET;
+  
+  if (!workerUrl || !apiSecret) {
+    throw new Error("EMAIL_WORKER_URL and EMAIL_WORKER_SECRET must be set");
+  }
 
   let lastError: unknown = null;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      const res = await fetch("https://api.resend.com/emails", {
+      const res = await fetch(workerUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiSecret}`,
         },
         body: JSON.stringify(payload),
       });
@@ -452,8 +456,8 @@ type EmailQueueEntry =
   | { type?: string };
 
 async function processQueuedEntries() {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return; // nothing to do in dev mode
+  const workerUrl = process.env.EMAIL_WORKER_URL;
+  if (!workerUrl || !process.env.EMAIL_WORKER_SECRET) return; // nothing to do in dev mode
 
   try {
     const data = await fs.promises.readFile(DEV_QUEUE_PATH, "utf8");
@@ -492,7 +496,7 @@ async function processQueuedEntries() {
           };
 
           try {
-            await sendEmailViaResend(payload);
+            await sendEmailViaWorker(payload);
             // success — do not re-add
             continue;
           } catch {
@@ -565,8 +569,8 @@ function formatCurrency(value?: number): string {
 export async function sendBookingConfirmation(
   booking: Booking,
 ): Promise<NotificationSendResult> {
-  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
-  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM || "info@zainesstayandplay.com";
+  const workerUrl = process.env.EMAIL_WORKER_URL;
   const to = booking?.user?.email;
   const appBaseUrl =
     process.env.NEXTAUTH_URL ||
@@ -625,7 +629,7 @@ export async function sendBookingConfirmation(
     return { sent: false, provider: "dev-queue", detail: "no-recipient", sms };
   }
 
-  if (!apiKey) {
+  if (!workerUrl || !process.env.EMAIL_WORKER_SECRET) {
     await appendToDevQueue({
       type: "booking_confirmation",
       to,
@@ -638,7 +642,7 @@ export async function sendBookingConfirmation(
   }
 
   try {
-    const resp = await sendEmailViaResend({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html });
     if (resp && resp.ok)
       return { sent: true, provider: "resend", detail: resp.json, sms };
     // non-ok response (validation etc.) — record to dev queue for manual inspection
@@ -672,7 +676,7 @@ export async function sendPaymentNotification(
   type: "success" | "failure",
   booking?: Booking,
 ): Promise<NotificationSendResult> {
-  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
+  const from = process.env.EMAIL_FROM || "info@zainesstayandplay.com";
   const apiKey = process.env.RESEND_API_KEY;
   const to = booking?.user?.email;
   const subject = `Booking ${booking?.bookingNumber || bookingId} payment ${type}`;
@@ -705,7 +709,7 @@ export async function sendPaymentNotification(
   }
 
   try {
-    const resp = await sendEmailViaResend({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html });
     if (resp && resp.ok)
       return { sent: true, provider: "resend", detail: resp.json, sms };
     await appendToDevQueue({
@@ -739,7 +743,7 @@ export async function sendPaymentRecoveryLinkNotification(
   recoveryUrl: string,
   booking?: Booking,
 ): Promise<SendResult> {
-  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
+  const from = process.env.EMAIL_FROM || "info@zainesstayandplay.com";
   const apiKey = process.env.RESEND_API_KEY;
   const to = booking?.user?.email;
   const safeBookingNumber = escapeHtml(booking?.bookingNumber || bookingId);
@@ -771,7 +775,7 @@ export async function sendPaymentRecoveryLinkNotification(
   }
 
   try {
-    const resp = await sendEmailViaResend({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html });
     if (resp && resp.ok)
       return { sent: true, provider: "resend", detail: resp.json };
 
@@ -808,7 +812,7 @@ export async function sendContactSubmissionNotification(payload: {
   phone?: string | null;
   message: string;
 }): Promise<SendResult> {
-  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
+  const from = process.env.EMAIL_FROM || "info@zainesstayandplay.com";
   const apiKey = process.env.RESEND_API_KEY;
   const to = process.env.CONTACT_INBOX_EMAIL;
 
@@ -847,7 +851,7 @@ export async function sendContactSubmissionNotification(payload: {
   }
 
   try {
-    const resp = await sendEmailViaResend({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html });
     if (resp && resp.ok)
       return { sent: true, provider: "resend", detail: resp.json };
     await appendToDevQueue({
@@ -879,7 +883,7 @@ export async function sendPasswordResetNotification(payload: {
   resetUrl: string;
   firstName?: string | null;
 }): Promise<SendResult> {
-  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
+  const from = process.env.EMAIL_FROM || "info@zainesstayandplay.com";
   const apiKey = process.env.RESEND_API_KEY;
   const to = payload.email;
   const subject = "Reset your Zaine's Stay & Play password";
@@ -912,7 +916,7 @@ export async function sendPasswordResetNotification(payload: {
   }
 
   try {
-    const resp = await sendEmailViaResend({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html });
     if (resp && resp.ok) {
       return { sent: true, provider: "resend", detail: resp.json };
     }
@@ -945,7 +949,7 @@ export async function sendBookingClaimNotification(payload: {
   bookingNumber: string;
   firstName?: string | null;
 }): Promise<SendResult> {
-  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
+  const from = process.env.EMAIL_FROM || "info@zainesstayandplay.com";
   const apiKey = process.env.RESEND_API_KEY;
   const to = payload.email;
   const subject = `Claim booking ${payload.bookingNumber} in your dashboard`;
@@ -978,7 +982,7 @@ export async function sendBookingClaimNotification(payload: {
   }
 
   try {
-    const resp = await sendEmailViaResend({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html });
     if (resp && resp.ok) {
       return { sent: true, provider: "resend", detail: resp.json };
     }
@@ -1012,7 +1016,7 @@ export async function sendWelcomeEmail(payload: {
   email: string;
   name?: string | null;
 }): Promise<SendResult> {
-  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
+  const from = process.env.EMAIL_FROM || "info@zainesstayandplay.com";
   const apiKey = process.env.RESEND_API_KEY;
   const to = payload.email;
   const subject = "Welcome to Zaine's Stay & Play! 🐾";
@@ -1035,7 +1039,7 @@ export async function sendWelcomeEmail(payload: {
   }
 
   try {
-    const resp = await sendEmailViaResend({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html });
     if (resp && resp.ok) {
       return { sent: true, provider: "resend", detail: resp.json };
     }
@@ -1076,7 +1080,7 @@ export async function sendPhotoDigest(payload: {
     timestamp: string;
   }>;
 }): Promise<SendResult> {
-  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
+  const from = process.env.EMAIL_FROM || "info@zainesstayandplay.com";
   const apiKey = process.env.RESEND_API_KEY;
   const to = payload.email;
   const subject = `📸 ${payload.petName}'s Daily Photos - ${payload.date}`;
@@ -1102,7 +1106,7 @@ export async function sendPhotoDigest(payload: {
   }
 
   try {
-    const resp = await sendEmailViaResend({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html });
     if (resp && resp.ok) {
       return { sent: true, provider: "resend", detail: resp.json };
     }
@@ -1136,7 +1140,7 @@ export async function sendReportCardNotification(payload: {
   petName: string;
   bookingNumber?: string | null;
 }) : Promise<NotificationSendResult> {
-  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
+  const from = process.env.EMAIL_FROM || "info@zainesstayandplay.com";
   const apiKey = process.env.RESEND_API_KEY;
   const to = payload.toEmail;
   const subject = `Report card ready for ${payload.petName}`;
@@ -1167,7 +1171,7 @@ export async function sendReportCardNotification(payload: {
   }
 
   try {
-    const resp = await sendEmailViaResend({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html });
     if (resp.ok) {
       return { sent: true, provider: "resend", detail: resp.json, sms };
     }
@@ -1203,7 +1207,7 @@ export async function sendIncidentNotification(payload: {
   petName: string;
   bookingNumber?: string | null;
 }) : Promise<NotificationSendResult> {
-  const from = process.env.EMAIL_FROM || "noreply@pawfectstays.com";
+  const from = process.env.EMAIL_FROM || "info@zainesstayandplay.com";
   const apiKey = process.env.RESEND_API_KEY;
   const to = payload.toEmail;
   const subject = `Important update about ${payload.petName}`;
@@ -1234,7 +1238,7 @@ export async function sendIncidentNotification(payload: {
   }
 
   try {
-    const resp = await sendEmailViaResend({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html });
     if (resp.ok) {
       return { sent: true, provider: "resend", detail: resp.json, sms };
     }

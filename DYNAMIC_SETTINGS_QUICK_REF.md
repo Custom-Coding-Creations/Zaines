@@ -76,7 +76,7 @@ const { contactInfo, businessHours, isLoading } = useSiteSettings();
 // contactInfo object:
 {
   phone: string;      // "(315) 657-1332"
-  email: string;      // "jgibbs@zainesstayandplay.com"
+  email: string;      // "info@zainesstayandplay.com"
   address: string;    // "123 Pet Paradise Lane"
   city: string;       // "Syracuse"
   state: string;      // "NY"

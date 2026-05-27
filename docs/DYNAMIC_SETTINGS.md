@@ -64,7 +64,7 @@ const { contactInfo, businessHours, isLoading } = useSiteSettings();
 // contactInfo contains:
 {
   phone: string;           // e.g., "(315) 657-1332"
-  email: string;           // e.g., "jgibbs@zainesstayandplay.com"
+  email: string;           // e.g., "info@zainesstayandplay.com"
   address: string;         // e.g., "123 Pet Paradise Lane"
   city: string;            // e.g., "Syracuse"
   state: string;           // e.g., "NY"
@@ -178,7 +178,7 @@ Fetches all current settings.
   "success": true,
   "data": {
     "contactPhone": "(315) 657-1332",
-    "contactEmail": "jgibbs@zainesstayandplay.com",
+    "contactEmail": "info@zainesstayandplay.com",
     "address": "123 Pet Paradise Lane",
     "city": "Syracuse",
     "state": "NY",

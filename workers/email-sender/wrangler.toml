@@ -1,0 +1,21 @@
+name = "zaines-email-sender"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Email Service binding
+# This connects your Worker to Cloudflare Email Service
+send_email = [
+  { type = "send_email", name = "SEND_EMAIL" }
+]
+
+# Environment variables (secrets)
+# Set these using: wrangler secret put API_SECRET
+# [vars]
+# API_SECRET = "your-secret-key-here"  # Do NOT commit this! Use wrangler secret instead
+
+# Routes - configure your custom domain
+# Uncomment and customize after deploying:
+# routes = [
+#   { pattern = "email.zainesstayandplay.com/*", zone_name = "zainesstayandplay.com" }
+# ]

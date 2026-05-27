@@ -104,7 +104,7 @@ export function WelcomeEmail({
           📞 Call us: <a href="tel:3157657297" style={link}>(315) 765-7297</a>
         </li>
         <li style={listItem}>
-          📧 Email: <a href="mailto:jgibbs@zainesstayandplay.com" style={link}>jgibbs@zainesstayandplay.com</a>
+          📧 Email: <a href="mailto:info@zainesstayandplay.com" style={link}>info@zainesstayandplay.com</a>
         </li>
         <li style={listItem}>
           🌐 Visit: <a href={`${process.env.NEXTAUTH_URL}/faq`} style={link}>FAQ & Resources</a>

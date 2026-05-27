@@ -214,12 +214,16 @@ STRIPE_WEBHOOK_SECRET="whsec_..."
    - Events: `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled`, `charge.refunded`
 4. Copy webhook secret
 
-#### Email (Optional - for email auth)
+#### Email Configuration
 
 ```env
-EMAIL_FROM="noreply@pawfectstays.com"
-RESEND_API_KEY="re_..."
+EMAIL_FROM="info@zainesstayandplay.com"
+RESEND_API_KEY=""  # Optional - leave empty to use dev queue
 ```
+
+**Email Forwarding:** `info@zainesstayandplay.com` forwards to `david@customcodingcreations.com` via Cloudflare Email Routing.
+
+**Transactional Emails:** If `RESEND_API_KEY` is not set, booking confirmations and receipts are logged to `tmp/email-queue.log` for development.
 
 #### Google OAuth (Optional)
 
@@ -268,8 +272,8 @@ npm run dev
 | `STRIPE_SECRET_KEY`                  | No\*     | -                          | Stripe secret key (use test key `sk_test_...`). \*Required for payments      |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | No\*     | -                          | Stripe publishable key (use test key `pk_test_...`). \*Required for payments |
 | `STRIPE_WEBHOOK_SECRET`              | No\*     | -                          | Stripe webhook signing secret. \*Required for webhook handling               |
-| `EMAIL_FROM`                         | No       | `noreply@pawfectstays.com` | Default sender email address                                                 |
-| `RESEND_API_KEY`                     | No       | -                          | Resend API key for sending emails                                            |
+| `EMAIL_FROM`                         | No       | `info@zainesstayandplay.com` | Default sender email address for transactional emails                      |
+| `RESEND_API_KEY`                     | No       | -                          | Optional: Resend API key for sending emails (uses dev queue if not set)      |
 | `AUTH_GOOGLE_CLIENT_ID`              | No       | -                          | Canonical Auth.js v5 Google OAuth client ID                                  |
 | `AUTH_GOOGLE_CLIENT_SECRET`          | No       | -                          | Canonical Auth.js v5 Google OAuth client secret                              |
 | `GOOGLE_CLIENT_ID`                   | No       | -                          | Google OAuth client ID                                                       |
@@ -958,7 +962,9 @@ This is a demonstration project. For production use, additional features needed:
 
 ## Email notifications / Dev queue
 
-The application can send transactional emails (booking confirmations and payment notifications) using Resend. To enable real sending, set `RESEND_API_KEY` in your environment (see `.env.example`). If `RESEND_API_KEY` is not configured, the app will write outgoing messages to a local dev queue file at `tmp/email-queue.log` for easy inspection during development.
+The application can send transactional emails (booking confirmations and payment notifications) using Resend or any SMTP provider. To enable real sending, set `RESEND_API_KEY` in your environment (see `.env.example`). If `RESEND_API_KEY` is not configured, the app will write outgoing messages to a local dev queue file at `tmp/email-queue.log` for easy inspection during development.
+
+**Email Forwarding:** The contact email `info@zainesstayandplay.com` is configured to forward incoming messages to `david@customcodingcreations.com` via Cloudflare Email Routing.
 
 Quick verification:
 
@@ -967,8 +973,8 @@ Quick verification:
 
 Environment variables:
 
-- `RESEND_API_KEY` - API key for Resend (optional for local development)
-- `EMAIL_FROM` - sender address (defaults to `noreply@pawfectstays.com`)
+- `RESEND_API_KEY` - API key for Resend (optional - uses dev queue if not set)
+- `EMAIL_FROM` - sender address (defaults to `info@zainesstayandplay.com`)
 
 ## Optional Redis worker (production)
 
