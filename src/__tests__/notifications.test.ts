@@ -4,6 +4,7 @@ import path from "path";
 
 import {
   sendBookingConfirmation,
+  sendOwnerBookingNotification,
   sendPaymentNotification,
 } from "@/lib/notifications";
 
@@ -48,6 +49,23 @@ describe("notifications helper (dev queue)", () => {
     const contents = await fs.readFile(QUEUE_PATH, "utf8");
     expect(contents).toContain("booking_confirmation");
     expect(contents).toContain("PB-TEST-0001");
+  });
+
+  it("writes owner booking notification to dev queue when RESEND_API_KEY is not set", async () => {
+    const booking: TestBooking = {
+      id: "b_test_owner",
+      bookingNumber: "PB-TEST-OWNER-0001",
+      status: "confirmed",
+      user: { email: "customer@example.com", name: "Customer Name" },
+    };
+
+    const res = await sendOwnerBookingNotification(booking);
+    expect(res.provider).toBe("dev-queue");
+
+    const contents = await fs.readFile(QUEUE_PATH, "utf8");
+    expect(contents).toContain("owner_booking_notification");
+    expect(contents).toContain("PB-TEST-OWNER-0001");
+    expect(contents).toContain("New Booking");
   });
 
   it("writes payment notification to dev queue when RESEND_API_KEY is not set", async () => {

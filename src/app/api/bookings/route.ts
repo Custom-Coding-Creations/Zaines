@@ -4,7 +4,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma, isDatabaseConfigured } from "@/lib/prisma";
 import * as stripeLib from "@/lib/stripe";
-import { sendBookingConfirmation } from "@/lib/notifications";
+import { sendBookingConfirmation, sendOwnerBookingNotification } from "@/lib/notifications";
 import {
   errorResponse,
   getCorrelationId,
@@ -1025,6 +1025,18 @@ export async function POST(request: NextRequest) {
       logServerFailure(
         "/api/bookings",
         "BOOKING_NOTIFICATION_FAILED",
+        correlationId,
+        err,
+      );
+    }
+
+    // Send owner notification
+    try {
+      await sendOwnerBookingNotification(booking);
+    } catch (err) {
+      logServerFailure(
+        "/api/bookings",
+        "OWNER_BOOKING_NOTIFICATION_FAILED",
         correlationId,
         err,
       );

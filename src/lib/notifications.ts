@@ -404,6 +404,17 @@ type EmailQueueBookingEntry = {
   error?: string;
 };
 
+type EmailQueueOwnerBookingEntry = {
+  type: "owner_booking_notification";
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  bookingId?: string;
+  response?: unknown;
+  error?: string;
+};
+
 type EmailQueuePaymentEntry = {
   type: "payment_notification";
   from: string;
@@ -449,6 +460,7 @@ type EmailQueueBookingClaimEntry = {
 
 type EmailQueueEntry =
   | EmailQueueBookingEntry
+  | EmailQueueOwnerBookingEntry
   | EmailQueuePaymentEntry
   | EmailQueueContactEntry
   | EmailQueuePasswordResetEntry
@@ -477,6 +489,7 @@ async function processQueuedEntries() {
 
         if (
           entry.type === "booking_confirmation" ||
+          entry.type === "owner_booking_notification" ||
           entry.type === "payment_notification" ||
           entry.type === "contact_submission_notification" ||
           entry.type === "password_reset_notification" ||
@@ -484,6 +497,7 @@ async function processQueuedEntries() {
         ) {
           const e = entry as
             | EmailQueueBookingEntry
+            | EmailQueueOwnerBookingEntry
             | EmailQueuePaymentEntry
             | EmailQueueContactEntry
             | EmailQueuePasswordResetEntry
@@ -541,6 +555,7 @@ export type Booking = {
   subtotal?: number;
   tax?: number;
   total?: number;
+  specialRequests?: string | null;
   suite?: { name?: string | null; tier?: string | null } | null;
   bookingPets?: Array<{ pet?: { name?: string | null } | null }>;
   user?: { email?: string | null; name?: string | null; phone?: string | null };
@@ -668,6 +683,176 @@ export async function sendBookingConfirmation(
       error: String(err),
     });
     return { sent: false, provider: "dev-queue", detail: String(err), sms };
+  }
+}
+
+/**
+ * Send booking notification to owner/admin
+ */
+export async function sendOwnerBookingNotification(
+  booking: Booking,
+): Promise<SendResult> {
+  const from = process.env.EMAIL_FROM || "info@zainesstayandplay.com";
+  const workerUrl = process.env.EMAIL_WORKER_URL;
+  const ownerEmail = process.env.OWNER_EMAIL || process.env.CONTACT_INBOX_EMAIL || "info@zainesstayandplay.com";
+  
+  const appBaseUrl =
+    process.env.NEXTAUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://zainesstayandplay.com";
+  const bookingDetailsUrl = booking?.id
+    ? `${appBaseUrl}/dashboard/bookings/${booking.id}`
+    : appBaseUrl;
+    
+  const safeCheckInDate = booking?.checkInDate || new Date();
+  const safeCheckOutDate = booking?.checkOutDate || new Date(safeCheckInDate);
+  if (!booking?.checkOutDate) {
+    safeCheckOutDate.setDate(safeCheckOutDate.getDate() + 1);
+  }
+  
+  const suiteLabel = booking?.suite?.name || booking?.suite?.tier || "Private Suite";
+  const petNamesArray =
+    booking?.bookingPets
+      ?.map((entry) => entry.pet?.name)
+      .filter((name): name is string => typeof name === "string" && name.length > 0) || ["Pet"];
+  const petNamesString = petNamesArray.join(", ");
+  const bookingNumber = booking?.bookingNumber || booking?.id || "Pending";
+  
+  const checkIn = booking?.checkInDate;
+  const checkOut = booking?.checkOutDate;
+  const nights = checkIn && checkOut 
+    ? Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+    : 1;
+  
+  const subject = `New Booking: ${bookingNumber} - ${petNamesString}`;
+  const safeCustomerName = escapeHtml(booking?.user?.name || "Guest");
+  const safeCustomerEmail = escapeHtml(booking?.user?.email || "Not provided");
+  const safeCustomerPhone = escapeHtml(booking?.user?.phone || "Not provided");
+  const safeBookingNumber = escapeHtml(bookingNumber);
+  const safeSuite = escapeHtml(suiteLabel);
+  const safePetNames = escapeHtml(petNamesString);
+  const safeCheckIn = escapeHtml(formatDate(safeCheckInDate));
+  const safeCheckOut = escapeHtml(formatDate(safeCheckOutDate));
+  const safeTotal = escapeHtml(formatCurrency(booking?.total || 0));
+  const safeDetailsUrl = escapeHtml(bookingDetailsUrl);
+  const safeSpecialRequests = booking?.specialRequests 
+    ? escapeHtml(booking.specialRequests).replace(/\n/g, "<br />")
+    : "None";
+  
+  const html = `
+    <div style="font-family: Georgia, serif; color: #18212a; line-height: 1.6; max-width: 620px; margin: 0 auto;">
+      <h1 style="margin-bottom: 8px; color: #059669;">🎉 New Booking Received!</h1>
+      <p style="margin-top: 0; color: #4e5a67; font-size: 16px;">
+        A new booking has been confirmed and paid.
+      </p>
+      
+      <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h2 style="margin: 0 0 16px; font-size: 18px;">Booking Details</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Booking Number:</td>
+            <td style="padding: 8px 0; text-align: right;">${safeBookingNumber}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Check-In:</td>
+            <td style="padding: 8px 0; text-align: right;">${safeCheckIn}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Check-Out:</td>
+            <td style="padding: 8px 0; text-align: right;">${safeCheckOut}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Nights:</td>
+            <td style="padding: 8px 0; text-align: right;">${nights}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Suite:</td>
+            <td style="padding: 8px 0; text-align: right;">${safeSuite}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Pet(s):</td>
+            <td style="padding: 8px 0; text-align: right;">${safePetNames}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; font-weight: 600; border-top: 1px solid #e2e8f0; padding-top: 12px;">Total:</td>
+            <td style="padding: 8px 0; text-align: right; font-weight: 700; font-size: 18px; border-top: 1px solid #e2e8f0; padding-top: 12px;">${safeTotal}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div style="background: #eff6ff; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h2 style="margin: 0 0 16px; font-size: 18px;">Customer Information</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Name:</td>
+            <td style="padding: 8px 0; text-align: right;">${safeCustomerName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Email:</td>
+            <td style="padding: 8px 0; text-align: right;"><a href="mailto:${safeCustomerEmail}" style="color: #3b82f6;">${safeCustomerEmail}</a></td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Phone:</td>
+            <td style="padding: 8px 0; text-align: right;">${safeCustomerPhone}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div style="background: #fef3c7; border-radius: 8px; padding: 20px; margin: 20px 0;">
+        <h2 style="margin: 0 0 12px; font-size: 18px;">Special Requests</h2>
+        <p style="margin: 0; color: #78350f;">${safeSpecialRequests}</p>
+      </div>
+      
+      <p style="text-align: center; margin: 24px 0;">
+        <a href="${safeDetailsUrl}" style="display: inline-block; background: #111827; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600;">
+          View Full Booking Details
+        </a>
+      </p>
+      
+      <p style="color: #64748b; font-size: 13px; text-align: center;">
+        Customer has been sent a booking confirmation email.
+      </p>
+    </div>
+  `;
+
+  if (!workerUrl || !process.env.EMAIL_WORKER_SECRET) {
+    await appendToDevQueue({
+      type: "owner_booking_notification",
+      to: ownerEmail,
+      from,
+      subject,
+      html,
+      bookingId: booking?.id,
+    });
+    return { sent: false, provider: "dev-queue" };
+  }
+
+  try {
+    const resp = await sendEmailViaWorker({ from, to: ownerEmail, subject, html });
+    if (resp && resp.ok) {
+      return { sent: true, provider: "resend", detail: resp.json };
+    }
+    await appendToDevQueue({
+      type: "owner_booking_notification",
+      to: ownerEmail,
+      from,
+      subject,
+      html,
+      bookingId: booking?.id,
+      response: resp.json,
+    });
+    return { sent: false, provider: "dev-queue", detail: resp.json };
+  } catch (err) {
+    await appendToDevQueue({
+      type: "owner_booking_notification",
+      to: ownerEmail,
+      from,
+      subject,
+      html,
+      bookingId: booking?.id,
+      error: String(err),
+    });
+    return { sent: false, provider: "dev-queue", detail: String(err) };
   }
 }
 
