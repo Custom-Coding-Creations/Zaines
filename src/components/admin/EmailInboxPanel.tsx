@@ -160,7 +160,7 @@ export function EmailInboxPanel() {
         <div>
           <h1 className="text-2xl font-semibold">Email Inbox</h1>
           <p className="text-sm text-muted-foreground">
-            All emails sent by the system and admin staff.
+            Inbox shows unread emails. Sent shows full history.
             {unreadCount > 0 && (
               <span className="ml-2 font-medium text-foreground">
                 {unreadCount} unread
@@ -239,15 +239,23 @@ export function EmailInboxPanel() {
       )}
       {!loading && !error && filtered.length === 0 && (
         <AdminEmptyState
-          title={`No emails in ${folderLabel.toLowerCase()}`}
+          title={
+            folder === "inbox" && typeFilter === "all"
+              ? "All caught up"
+              : `No emails in ${folderLabel.toLowerCase()}`
+          }
           message={
             typeFilter !== "all"
               ? "Try removing the type filter or switching folders."
+              : folder === "inbox"
+              ? "No unread emails — open the Sent folder to view full history."
               : "Emails will appear here once the system sends them."
           }
           action={
             typeFilter !== "all"
               ? { label: "Clear filter", onAction: () => setTypeFilter("all") }
+              : folder === "inbox"
+              ? { label: "View Sent", onAction: () => setFolder("sent") }
               : undefined
           }
         />

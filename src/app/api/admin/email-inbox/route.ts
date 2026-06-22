@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
     where.direction = "outbound";
     where.isArchived = false;
   } else {
-    // inbox: all non-archived
+    // inbox: unread emails that haven't been archived — the "needs review" queue
+    where.isRead = false;
     where.isArchived = false;
   }
 
