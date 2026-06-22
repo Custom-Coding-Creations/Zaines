@@ -5,7 +5,6 @@ import {
   Clock,
   DollarSign,
   Calendar,
-  Package,
   Globe,
   MessageSquare,
   Settings,
@@ -17,7 +16,6 @@ import type { ComponentType } from 'react';
 export type SettingsSection =
   | 'general'
   | 'booking'
-  | 'pricing'
   | 'blackout-dates'
   | 'services'
   | 'website'
@@ -46,12 +44,6 @@ const sidebarItems: SettingsSidebarItem[] = [
     description: 'Availability rules, auto-confirm, dashboard',
   },
   {
-    id: 'pricing',
-    label: 'Pricing',
-    icon: DollarSign,
-    description: 'Rates, seasonal pricing, cancellation policy',
-  },
-  {
     id: 'blackout-dates',
     label: 'Blackout Dates',
     icon: Calendar,
@@ -59,9 +51,9 @@ const sidebarItems: SettingsSidebarItem[] = [
   },
   {
     id: 'services',
-    label: 'Services',
-    icon: Package,
-    description: 'Service tiers and add-ons',
+    label: 'Pricing',
+    icon: DollarSign,
+    description: 'Services, rates, discounts, and policies',
   },
   {
     id: 'website',

@@ -4,6 +4,7 @@ import type {
   PricingSettingsFormValues,
   BlackoutDatesSettingsFormValues,
   ServicesSettingsFormValues,
+  PricingAndServicesFormValues,
   WebsiteSettingsFormValues,
   TestimonialsSettingsFormValues,
 } from '@/lib/validations/admin-settings';
@@ -191,6 +192,11 @@ export const servicesSettingsDefaults: ServicesSettingsFormValues = {
       },
     ],
   },
+};
+
+export const pricingAndServicesSettingsDefaults: PricingAndServicesFormValues = {
+  ...pricingSettingsDefaults,
+  ...servicesSettingsDefaults,
 };
 
 export const websiteSettingsDefaults: WebsiteSettingsFormValues = {

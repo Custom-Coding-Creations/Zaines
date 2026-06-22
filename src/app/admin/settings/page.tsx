@@ -10,7 +10,6 @@ import {
 import { SettingsPageSkeleton } from '@/components/admin/settings/SettingsPageSkeleton';
 import { GeneralTab } from '@/components/admin/settings/tabs/GeneralTab';
 import { BookingTab } from '@/components/admin/settings/tabs/BookingTab';
-import { PricingTab } from '@/components/admin/settings/tabs/PricingTab';
 import { BlackoutDatesTab } from '@/components/admin/settings/tabs/BlackoutDatesTab';
 import { ServicesTab } from '@/components/admin/settings/tabs/ServicesTab';
 import { WebsiteTab } from '@/components/admin/settings/tabs/WebsiteTab';
@@ -23,7 +22,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 const VALID_SECTIONS: SettingsSection[] = [
   'general',
   'booking',
-  'pricing',
   'blackout-dates',
   'services',
   'website',
@@ -39,7 +37,6 @@ type TabProps = {
 const SECTION_COMPONENTS: Record<SettingsSection, ComponentType<TabProps>> = {
   general: GeneralTab,
   booking: BookingTab,
-  pricing: PricingTab,
   'blackout-dates': BlackoutDatesTab,
   services: ServicesTab,
   website: WebsiteTab,

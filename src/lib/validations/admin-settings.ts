@@ -219,6 +219,25 @@ export const servicesSettingsSchema = z.object({
 });
 
 /**
+ * Combined Pricing + Services schema — the single "Pricing" section.
+ * pricingSettings.standardNightlyRate/deluxeNightlyRate/luxuryNightlyRate are
+ * retained in the schema for DB compat but have no UI (rates live on service tiers).
+ */
+export const pricingAndServicesSchema = z.object({
+  pricingSettings: pricingSettingsSchema.shape.pricingSettings,
+  seasonalPricingRules: pricingSettingsSchema.shape.seasonalPricingRules,
+  cancellationPolicySettings: pricingSettingsSchema.shape.cancellationPolicySettings,
+  serviceSettings: servicesSettingsSchema.shape.serviceSettings,
+  addOnsSettings: servicesSettingsSchema.shape.addOnsSettings,
+}).refine(
+  (data) => data.cancellationPolicySettings.fullRefundHours > data.cancellationPolicySettings.partialRefundHours,
+  {
+    path: ['cancellationPolicySettings', 'fullRefundHours'],
+    message: 'Full refund window must be greater than partial refund window',
+  },
+);
+
+/**
  * Website Settings - Website profile, trust copy, SEO
  */
 export const websiteSettingsSchema = z.object({
@@ -363,6 +382,7 @@ export type BookingSettingsFormValues = z.infer<typeof bookingSettingsSchema>;
 export type PricingSettingsFormValues = z.infer<typeof pricingSettingsSchema>;
 export type BlackoutDatesSettingsFormValues = z.infer<typeof blackoutDatesSettingsSchema>;
 export type ServicesSettingsFormValues = z.infer<typeof servicesSettingsSchema>;
+export type PricingAndServicesFormValues = z.infer<typeof pricingAndServicesSchema>;
 export type WebsiteSettingsFormValues = z.infer<typeof websiteSettingsSchema>;
 export type TestimonialsSettingsFormValues = z.infer<typeof testimonialsSettingsSchema>;
 export type FullSettingsFormValues = z.infer<typeof fullSettingsSchema>;
