@@ -81,7 +81,8 @@ export function useAdminQueueCounts() {
     () =>
       (counts.pending_confirmations ?? 0) +
       (counts.unresolved_messages ?? 0) +
-      (counts.actionable_staffing_exceptions ?? 0),
+      (counts.actionable_staffing_exceptions ?? 0) +
+      (counts.unread_inbox_emails ?? 0),
     [counts],
   );
 

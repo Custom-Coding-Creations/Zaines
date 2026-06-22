@@ -1,13 +1,13 @@
 /**
  * Cloudflare Email Worker
  * 
- * This Worker handles sending emails via Cloudflare Email Service.
+ * This Worker handles sending emails via Resend API.
  * It provides an API endpoint that your Next.js app can call to send emails.
  */
 
 export interface Env {
-  SEND_EMAIL: any; // Cloudflare Email Service binding
-  API_SECRET: string; // Secret key for authentication
+  RESEND_API_KEY: string; // Resend API key
+  EMAIL_WORKER_SECRET: string; // Secret key for authentication
 }
 
 interface EmailRequest {
@@ -37,7 +37,19 @@ export default {
       });
     }
 
-    // Only allow POST requests
+    // Health check endpoint
+    if (request.method === 'GET') {
+      return new Response(JSON.stringify({ 
+        status: 'ok', 
+        service: 'Zaines Email Worker',
+        version: '1.0.0' 
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Only allow POST requests for sending
     if (request.method !== 'POST') {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), {
         status: 405,
@@ -55,7 +67,7 @@ export default {
     }
 
     const token = authHeader.substring(7);
-    if (token !== env.API_SECRET) {
+    if (token !== env.EMAIL_WORKER_SECRET) {
       return new Response(JSON.stringify({ error: 'Invalid API key' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
@@ -76,21 +88,31 @@ export default {
         );
       }
 
-      // Prepare email message
-      const message = {
-        from: emailData.from,
-        to: emailData.to,
-        subject: emailData.subject,
-        html: emailData.html,
-        text: emailData.text,
-      };
+      // Send email using Resend API
+      const resendResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: emailData.from,
+          to: emailData.to,
+          subject: emailData.subject,
+          html: emailData.html,
+          text: emailData.text,
+        }),
+      });
 
-      // Send email using Cloudflare Email Service
-      await env.SEND_EMAIL.send(message);
+      const resendData = await resendResponse.json() as any;
+
+      if (!resendResponse.ok) {
+        throw new Error(resendData.message || 'Failed to send email via Resend');
+      }
 
       const response: EmailResponse = {
         success: true,
-        messageId: crypto.randomUUID(), // Generate a unique ID for tracking
+        messageId: resendData.id,
       };
 
       return new Response(JSON.stringify(response), {

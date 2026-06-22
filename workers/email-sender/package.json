@@ -6,7 +6,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "tail": "wrangler tail",
-    "secret:put": "wrangler secret put API_SECRET"
+    "secret:resend": "wrangler secret put RESEND_API_KEY",
+    "secret:worker": "wrangler secret put EMAIL_WORKER_SECRET"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250115.0",

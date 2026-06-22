@@ -154,6 +154,12 @@ export const adminNavGroups: AdminNavGroup[] = [
         match: (pathname) => pathname.startsWith("/admin/crm/campaigns"),
       },
       {
+        href: "/admin/inbox",
+        label: "Inbox",
+        match: (pathname) => pathname.startsWith("/admin/inbox"),
+        queueCountId: "unread_inbox_emails",
+      },
+      {
         href: "/admin/messages",
         label: "Messages",
         match: (pathname) => pathname.startsWith("/admin/messages"),

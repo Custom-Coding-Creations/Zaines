@@ -368,7 +368,8 @@ export interface AdminQueueItem {
     | 'staffed_groups_without_shift'
     | 'overlapping_staff_shifts'
     | 'reconciliation_exceptions'
-    | 'dispute_deadlines';
+    | 'dispute_deadlines'
+    | 'unread_inbox_emails';
   label: string;
   count: number;
   href: string;
@@ -380,6 +381,25 @@ export interface AdminQueueItem {
 export interface AdminOperationsQueueResponse {
   generatedAt: string;
   items: AdminQueueItem[];
+}
+
+export interface AdminEmailLog {
+  id: string;
+  direction: string;
+  type: string;
+  fromAddress: string;
+  toAddress: string;
+  subject: string;
+  resendId: string | null;
+  status: string;
+  bookingId: string | null;
+  userId: string | null;
+  isRead: boolean;
+  isStarred: boolean;
+  isArchived: boolean;
+  sentAt: string;
+  createdAt: string;
+  html?: string; // only present in detail fetch
 }
 
 // ============================================================================

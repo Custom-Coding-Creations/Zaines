@@ -103,6 +103,42 @@ async function appendToDevSmsLog(entry: unknown) {
   await fs.promises.appendFile(smsLogPath, line, "utf8");
 }
 
+async function logEmailToDb(entry: {
+  type: string;
+  fromAddress: string;
+  toAddress: string;
+  subject: string;
+  html: string;
+  resendId?: string | null;
+  status: "sent" | "failed" | "queued";
+  bookingId?: string | null;
+  userId?: string | null;
+}): Promise<void> {
+  try {
+    const { prisma, isDatabaseConfigured } = await import("@/lib/prisma");
+    if (!isDatabaseConfigured()) return;
+    await prisma.emailLog.create({
+      data: {
+        direction: "outbound",
+        type: entry.type,
+        fromAddress: entry.fromAddress,
+        toAddress: entry.toAddress,
+        subject: entry.subject,
+        html: entry.html,
+        resendId: entry.resendId ?? null,
+        status: entry.status,
+        bookingId: entry.bookingId ?? null,
+        userId: entry.userId ?? null,
+        isRead: false,
+        isStarred: false,
+        isArchived: false,
+      },
+    });
+  } catch {
+    // Non-fatal: email logging must never block delivery
+  }
+}
+
 async function sendSmsViaTwilio(payload: {
   to: string;
   from: string;
@@ -305,6 +341,7 @@ export async function sendReminderNotification(payload: {
       to,
       subject: payload.subject,
       html: payload.html,
+      _logType: "automated_reminder",
     });
 
     if (resp.ok) {
@@ -343,13 +380,28 @@ async function sendEmailViaWorker(payload: {
   to: string;
   subject: string;
   html: string;
+  // Logging metadata — stripped before sending to the worker
+  _logType?: string;
+  _bookingId?: string | null;
+  _userId?: string | null;
 }): Promise<{ ok: boolean; json?: unknown }> {
+  const { _logType, _bookingId, _userId, ...workerPayload } = payload;
   const workerUrl = process.env.EMAIL_WORKER_URL;
   const apiSecret = process.env.EMAIL_WORKER_SECRET;
-  
+
   if (!workerUrl || !apiSecret) {
     throw new Error("EMAIL_WORKER_URL and EMAIL_WORKER_SECRET must be set");
   }
+
+  const logBase = {
+    type: _logType ?? "unknown",
+    fromAddress: workerPayload.from,
+    toAddress: workerPayload.to,
+    subject: workerPayload.subject,
+    html: workerPayload.html,
+    bookingId: _bookingId ?? null,
+    userId: _userId ?? null,
+  };
 
   let lastError: unknown = null;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -360,16 +412,24 @@ async function sendEmailViaWorker(payload: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiSecret}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(workerPayload),
       });
 
       const json = await res.json().catch(() => null);
-      if (res.ok) return { ok: true, json };
+      if (res.ok) {
+        void logEmailToDb({
+          ...logBase,
+          resendId: (json as { messageId?: string })?.messageId ?? null,
+          status: "sent",
+        });
+        return { ok: true, json };
+      }
 
       // Treat 5xx as retryable
       if (res.status >= 500 && res.status < 600) {
         lastError = { status: res.status, json };
       } else {
+        void logEmailToDb({ ...logBase, status: "failed" });
         return { ok: false, json };
       }
     } catch (err) {
@@ -381,6 +441,7 @@ async function sendEmailViaWorker(payload: {
     await new Promise((res) => setTimeout(res, backoff));
   }
 
+  void logEmailToDb({ ...logBase, status: "failed" });
   throw lastError;
 }
 
@@ -657,7 +718,7 @@ export async function sendBookingConfirmation(
   }
 
   try {
-    const resp = await sendEmailViaWorker({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html, _logType: "booking_confirmation", _bookingId: booking?.id });
     if (resp && resp.ok)
       return { sent: true, provider: "resend", detail: resp.json, sms };
     // non-ok response (validation etc.) — record to dev queue for manual inspection
@@ -828,7 +889,7 @@ export async function sendOwnerBookingNotification(
   }
 
   try {
-    const resp = await sendEmailViaWorker({ from, to: ownerEmail, subject, html });
+    const resp = await sendEmailViaWorker({ from, to: ownerEmail, subject, html, _logType: "owner_booking_notification", _bookingId: booking?.id });
     if (resp && resp.ok) {
       return { sent: true, provider: "resend", detail: resp.json };
     }
@@ -894,7 +955,7 @@ export async function sendPaymentNotification(
   }
 
   try {
-    const resp = await sendEmailViaWorker({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html, _logType: "payment_notification", _bookingId: bookingId });
     if (resp && resp.ok)
       return { sent: true, provider: "resend", detail: resp.json, sms };
     await appendToDevQueue({
@@ -960,7 +1021,7 @@ export async function sendPaymentRecoveryLinkNotification(
   }
 
   try {
-    const resp = await sendEmailViaWorker({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html, _logType: "payment_notification", _bookingId: bookingId });
     if (resp && resp.ok)
       return { sent: true, provider: "resend", detail: resp.json };
 
@@ -1036,7 +1097,7 @@ export async function sendContactSubmissionNotification(payload: {
   }
 
   try {
-    const resp = await sendEmailViaWorker({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html, _logType: "contact_submission_notification" });
     if (resp && resp.ok)
       return { sent: true, provider: "resend", detail: resp.json };
     await appendToDevQueue({
@@ -1101,7 +1162,7 @@ export async function sendPasswordResetNotification(payload: {
   }
 
   try {
-    const resp = await sendEmailViaWorker({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html, _logType: "password_reset_notification" });
     if (resp && resp.ok) {
       return { sent: true, provider: "resend", detail: resp.json };
     }
@@ -1167,7 +1228,7 @@ export async function sendBookingClaimNotification(payload: {
   }
 
   try {
-    const resp = await sendEmailViaWorker({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html, _logType: "booking_claim_notification" });
     if (resp && resp.ok) {
       return { sent: true, provider: "resend", detail: resp.json };
     }
@@ -1224,7 +1285,7 @@ export async function sendWelcomeEmail(payload: {
   }
 
   try {
-    const resp = await sendEmailViaWorker({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html, _logType: "welcome_email" });
     if (resp && resp.ok) {
       return { sent: true, provider: "resend", detail: resp.json };
     }
@@ -1291,7 +1352,7 @@ export async function sendPhotoDigest(payload: {
   }
 
   try {
-    const resp = await sendEmailViaWorker({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html, _logType: "photo_digest" });
     if (resp && resp.ok) {
       return { sent: true, provider: "resend", detail: resp.json };
     }
@@ -1356,7 +1417,7 @@ export async function sendReportCardNotification(payload: {
   }
 
   try {
-    const resp = await sendEmailViaWorker({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html, _logType: "report_card_notification" });
     if (resp.ok) {
       return { sent: true, provider: "resend", detail: resp.json, sms };
     }
@@ -1423,7 +1484,7 @@ export async function sendIncidentNotification(payload: {
   }
 
   try {
-    const resp = await sendEmailViaWorker({ from, to, subject, html });
+    const resp = await sendEmailViaWorker({ from, to, subject, html, _logType: "incident_notification" });
     if (resp.ok) {
       return { sent: true, provider: "resend", detail: resp.json, sms };
     }

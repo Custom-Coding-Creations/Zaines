@@ -1159,6 +1159,39 @@ model CrmInteraction {
   @@map("crm_interactions")
 }
 
+// ============================================================================
+// EMAIL LOG — persists every outbound email sent via the Cloudflare worker
+// ============================================================================
+
+model EmailLog {
+  id          String   @id @default(cuid())
+  direction   String   // outbound | inbound (reserved for future inbound routing)
+  type        String   // booking_confirmation | owner_booking_notification | payment_notification
+                       // contact_submission_notification | password_reset_notification
+                       // booking_claim_notification | welcome_email | photo_digest
+                       // report_card_notification | incident_notification | automated_reminder | compose
+  fromAddress String
+  toAddress   String
+  subject     String
+  html        String   // full rendered HTML body; Prisma maps String → TEXT in Postgres
+  resendId    String?  // messageId returned by Resend; null when sent to dev-queue
+  status      String   @default("sent") // sent | failed | queued
+  bookingId   String?  // optional — not all emails link to a booking
+  userId      String?  // optional — not all emails link to a user
+  isRead      Boolean  @default(false)
+  isStarred   Boolean  @default(false)
+  isArchived  Boolean  @default(false)
+  sentAt      DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([direction, sentAt])
+  @@index([type])
+  @@index([isRead])
+  @@index([isArchived])
+  @@index([toAddress])
+  @@map("email_logs")
+}
+
 model CrmOpportunity {
   id               String   @id @default(cuid())
   userId           String

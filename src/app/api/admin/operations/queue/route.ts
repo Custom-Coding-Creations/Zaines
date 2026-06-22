@@ -117,6 +117,7 @@ export async function GET() {
       reconciliationExceptions,
       todayPlayGroupsForStaffingExceptions,
       todaysStaffSchedules,
+      unreadInboxEmails,
     ] = await Promise.all([
       prisma.booking.count({
         where: {
@@ -247,6 +248,9 @@ export async function GET() {
           shiftStart: true,
           shiftEnd: true,
         },
+      }),
+      prisma.emailLog.count({
+        where: { isRead: false, isArchived: false },
       }),
     ]);
 
@@ -442,6 +446,14 @@ export async function GET() {
             : 'Enable dispute workflow in settings to activate this queue.',
           severity: disputeDeadlines > 0 ? 'critical' : 'normal',
           capabilityBlocked: !settings.stripeCapabilityFlags.disputesEnabled,
+        },
+        {
+          id: 'unread_inbox_emails',
+          label: 'Unread inbox emails',
+          count: unreadInboxEmails,
+          href: '/admin/inbox',
+          description: 'Emails sent by the system not yet opened in the admin inbox.',
+          severity: unreadInboxEmails >= 20 ? 'critical' : unreadInboxEmails > 0 ? 'attention' : 'normal',
         },
       ],
     };
