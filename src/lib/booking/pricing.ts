@@ -26,8 +26,13 @@ export function getNightlyRate(
   pricingSettings: PricingSettings = DEFAULT_PRICING_SETTINGS,
 ): number {
   if (serviceTiers && serviceTiers.length > 0) {
+    const lower = suiteType.toLowerCase();
     const tier = serviceTiers.find(
-      (t) => t.id === suiteType || t.name.toLowerCase() === suiteType.toLowerCase()
+      (t) =>
+        t.id === suiteType ||
+        t.id.split('-')[0] === lower ||
+        t.name.toLowerCase() === lower ||
+        t.name.toLowerCase().startsWith(lower + ' '),
     );
     if (tier) {
       return tier.baseNightlyRate;
