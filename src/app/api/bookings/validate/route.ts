@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       suiteType,
       petCount,
       settings.pricingSettings,
-      undefined,
+      settings.serviceSettings?.serviceTiers,
       settings.holidaySurcharges,
     );
     const packageRedemption = await getEligiblePackageRedemption(

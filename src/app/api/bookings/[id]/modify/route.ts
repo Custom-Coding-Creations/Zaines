@@ -160,6 +160,7 @@ export async function PATCH(
           suiteType,
           petCount,
           settings.pricingSettings,
+          settings.serviceSettings?.serviceTiers,
         )
       : null;
 

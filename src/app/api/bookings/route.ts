@@ -651,7 +651,7 @@ export async function POST(request: NextRequest) {
       data.suiteType,
       data.petCount,
       adminSettings.pricingSettings,
-      undefined,
+      adminSettings.serviceSettings?.serviceTiers,
       adminSettings.holidaySurcharges,
     );
     const packageRedemption = await getEligiblePackageRedemption(
