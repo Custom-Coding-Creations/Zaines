@@ -136,7 +136,7 @@ export function StepAccount({
         </CardTitle>
         <CardDescription>
           {isAuthenticated
-            ? "You&apos;re signed in and ready to book"
+            ? "You're signed in and ready to book"
             : "Sign in or continue as a guest"}
         </CardDescription>
       </CardHeader>

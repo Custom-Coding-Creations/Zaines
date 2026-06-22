@@ -56,9 +56,15 @@ export function StepSuites({
 }: StepSuitesProps) {
   const [, startTransition] = useTransition();
   const { addOnsSettings, pricingSettings, serviceSettings } = useSiteSettings();
-  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(
-    data.addOns?.map((a) => a.id) || [],
-  );
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(() => {
+    if (data.addOns !== undefined) {
+      return data.addOns.map((a) => a.id);
+    }
+    // First visit: auto-select included add-ons
+    return addOnsSettings.addOns
+      .filter((a) => a.isActive && a.isIncluded)
+      .map((a) => a.id);
+  });
 
   const formatter = useMemo(
     () =>
@@ -167,10 +173,10 @@ export function StepSuites({
   };
 
   const handleNext = () => {
-    // Validate with Zod
+    const addOnsToSubmit = selectedAddOns.map((id) => ({ id, quantity: 1 as const }));
     const validation = stepSuitesSchema.safeParse({
       suiteType: data.suiteType,
-      addOns: data.addOns || [],
+      addOns: addOnsToSubmit,
     });
 
     if (!validation.success) {
@@ -179,6 +185,7 @@ export function StepSuites({
       return;
     }
 
+    onUpdate({ addOns: addOnsToSubmit });
     onNext();
   };
 
