@@ -6,6 +6,7 @@ import {
   AlignLeft,
   AlignRight,
   Bold,
+  ChevronDown,
   Italic,
   Link2,
   List,
@@ -33,6 +34,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -55,6 +57,21 @@ type Props = {
 
 const DRAFT_KEY = "email_draft_compose";
 
+// Extract unique {{variable}} names from a string
+function extractVarKeys(text: string): string[] {
+  return [...new Set([...text.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]))];
+}
+
+// Replace {{variable}} with current values; leave unfilled ones as-is
+function substituteVars(text: string, vars: Record<string, string>): string {
+  return text.replace(/\{\{(\w+)\}\}/g, (match, key) => vars[key] || match);
+}
+
+// "customerName" → "Customer Name"
+function toLabel(key: string): string {
+  return key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
+}
+
 export function EmailComposeModal({
   open,
   onClose,
@@ -73,6 +90,12 @@ export function EmailComposeModal({
   const [templates, setTemplates] = useState<AdminEmailTemplate[]>([]);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const [draftRestored, setDraftRestored] = useState(false);
+
+  // Template variable state
+  const [templateVarKeys, setTemplateVarKeys] = useState<string[]>([]);
+  const [templateVars, setTemplateVars] = useState<Record<string, string>>({});
+  const [varsExpanded, setVarsExpanded] = useState(true);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -92,22 +115,15 @@ export function EmailComposeModal({
     },
   });
 
-  // Restore defaultHtml when prop changes (e.g. forwarding)
   useEffect(() => {
     if (editor && defaultHtml !== undefined) {
       editor.commands.setContent(defaultHtml);
     }
   }, [editor, defaultHtml]);
 
-  // Sync defaultTo / defaultSubject
-  useEffect(() => {
-    setTo(defaultTo);
-  }, [defaultTo]);
-  useEffect(() => {
-    setSubject(defaultSubject);
-  }, [defaultSubject]);
+  useEffect(() => { setTo(defaultTo); }, [defaultTo]);
+  useEffect(() => { setSubject(defaultSubject); }, [defaultSubject]);
 
-  // Load templates
   useEffect(() => {
     fetch("/api/admin/email-inbox/templates")
       .then((r) => r.json())
@@ -115,7 +131,7 @@ export function EmailComposeModal({
       .catch(() => null);
   }, []);
 
-  // Draft restore on open
+  // Draft restore
   useEffect(() => {
     if (!open || draftRestored || defaultHtml) return;
     try {
@@ -147,10 +163,7 @@ export function EmailComposeModal({
     if (!editor) return;
     const html = editor.getHTML();
     if (!to && !subject && html === "<p></p>") return;
-    localStorage.setItem(
-      DRAFT_KEY,
-      JSON.stringify({ to, cc, subject, html, attachments }),
-    );
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ to, cc, subject, html, attachments }));
   }, [to, cc, subject, attachments, editor]);
 
   useEffect(() => {
@@ -158,9 +171,7 @@ export function EmailComposeModal({
     return () => clearTimeout(timer);
   }, [saveDraft]);
 
-  function clearDraft() {
-    localStorage.removeItem(DRAFT_KEY);
-  }
+  function clearDraft() { localStorage.removeItem(DRAFT_KEY); }
 
   function reset() {
     setTo(defaultTo);
@@ -171,19 +182,25 @@ export function EmailComposeModal({
     setAttachments([]);
     setActiveTab("edit");
     setDraftRestored(false);
+    setTemplateVarKeys([]);
+    setTemplateVars({});
+    setVarsExpanded(true);
     clearDraft();
   }
 
-  function handleClose() {
-    reset();
-    onClose();
-  }
+  function handleClose() { reset(); onClose(); }
 
   function applyTemplate(templateId: string) {
     const t = templates.find((x) => x.id === templateId);
     if (!t || !editor) return;
     editor.commands.setContent(t.html);
     if (!subject) setSubject(t.subject);
+
+    // Extract {{variable}} keys from both the HTML body and subject line
+    const keys = extractVarKeys(t.html + " " + t.subject);
+    setTemplateVarKeys(keys);
+    setTemplateVars(Object.fromEntries(keys.map((k) => [k, ""])));
+    setVarsExpanded(true);
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -209,8 +226,12 @@ export function EmailComposeModal({
   async function handleSend() {
     if (!editor) return;
     setSending(true);
-    const html = editor.getHTML();
+
+    // Apply variable substitution to body and subject before sending
+    const html = substituteVars(editor.getHTML(), templateVars);
+    const finalSubject = substituteVars(subject, templateVars);
     const ccList = cc.split(",").map((s) => s.trim()).filter(Boolean);
+
     try {
       const resp = await fetch("/api/admin/email-inbox/compose", {
         method: "POST",
@@ -218,7 +239,7 @@ export function EmailComposeModal({
         body: JSON.stringify({
           to,
           cc: ccList.length ? ccList : undefined,
-          subject,
+          subject: finalSubject,
           html,
           attachments: attachments.length ? attachments : undefined,
         }),
@@ -239,7 +260,9 @@ export function EmailComposeModal({
     }
   }
 
+  const filledCount = Object.values(templateVars).filter(Boolean).length;
   const canSend = to.trim() !== "" && subject.trim() !== "" && !sending && !uploadingFile;
+  const previewHtml = substituteVars(editor?.getHTML() ?? "", templateVars);
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
@@ -249,10 +272,10 @@ export function EmailComposeModal({
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto">
-          {/* Fields */}
+          {/* Header fields */}
           <div className="px-6 py-4 space-y-3 border-b">
             <div className="flex items-center gap-2">
-              <Label className="w-12 text-right shrink-0 text-sm">To</Label>
+              <Label className="w-14 text-right shrink-0 text-sm text-muted-foreground">To</Label>
               <Input
                 type="email"
                 value={to}
@@ -271,7 +294,7 @@ export function EmailComposeModal({
             </div>
             {showCc && (
               <div className="flex items-center gap-2">
-                <Label className="w-12 text-right shrink-0 text-sm">CC</Label>
+                <Label className="w-14 text-right shrink-0 text-sm text-muted-foreground">CC</Label>
                 <Input
                   type="text"
                   value={cc}
@@ -282,7 +305,7 @@ export function EmailComposeModal({
               </div>
             )}
             <div className="flex items-center gap-2">
-              <Label className="w-12 text-right shrink-0 text-sm">Subject</Label>
+              <Label className="w-14 text-right shrink-0 text-sm text-muted-foreground">Subject</Label>
               <Input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
@@ -291,10 +314,9 @@ export function EmailComposeModal({
                 maxLength={200}
               />
             </div>
-            {/* Template picker */}
             {templates.length > 0 && (
               <div className="flex items-center gap-2">
-                <Label className="w-12 text-right shrink-0 text-sm text-muted-foreground">Template</Label>
+                <Label className="w-14 text-right shrink-0 text-sm text-muted-foreground">Template</Label>
                 <Select onValueChange={applyTemplate}>
                   <SelectTrigger className="flex-1">
                     <SelectValue placeholder="Load a template…" />
@@ -309,7 +331,54 @@ export function EmailComposeModal({
             )}
           </div>
 
-          {/* Editor area */}
+          {/* Template variable panel — only visible when a template with {{variables}} is loaded */}
+          {templateVarKeys.length > 0 && (
+            <div className="border-b">
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 px-6 py-2.5 text-left hover:bg-muted/40 transition-colors"
+                onClick={() => setVarsExpanded((v) => !v)}
+              >
+                <ChevronDown
+                  className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-150 ${varsExpanded ? "" : "-rotate-90"}`}
+                />
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Fill in Template Fields
+                </span>
+                <Badge
+                  variant={filledCount === templateVarKeys.length ? "default" : "secondary"}
+                  className="ml-auto text-xs py-0 h-5"
+                >
+                  {filledCount} / {templateVarKeys.length} filled
+                </Badge>
+              </button>
+
+              {varsExpanded && (
+                <div className="px-6 pb-4 pt-1">
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Fill in the fields below. They&apos;ll replace the <code className="bg-muted px-1 rounded text-[11px]">{"{{placeholders}}"}</code> in the email before sending.
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                    {templateVarKeys.map((key) => (
+                      <div key={key} className="space-y-1">
+                        <Label className="text-xs font-medium">{toLabel(key)}</Label>
+                        <Input
+                          value={templateVars[key] ?? ""}
+                          onChange={(e) =>
+                            setTemplateVars((prev) => ({ ...prev, [key]: e.target.value }))
+                          }
+                          placeholder={`{{${key}}}`}
+                          className="h-7 text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Editor */}
           <div className="px-6 pt-3 pb-2">
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "edit" | "preview")}>
               <div className="flex items-center justify-between mb-2">
@@ -381,12 +450,17 @@ export function EmailComposeModal({
               <TabsContent value="preview" className="mt-0">
                 <div className="border rounded-md overflow-hidden h-72">
                   <iframe
-                    srcDoc={editor?.getHTML() ?? ""}
+                    srcDoc={previewHtml}
                     sandbox="allow-same-origin"
                     className="w-full h-full"
                     title="Email preview"
                   />
                 </div>
+                {templateVarKeys.length > 0 && filledCount < templateVarKeys.length && (
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    {templateVarKeys.length - filledCount} unfilled {templateVarKeys.length - filledCount === 1 ? "field" : "fields"} shown as <code className="bg-muted px-1 rounded text-[10px]">{"{{placeholder}}"}</code>
+                  </p>
+                )}
               </TabsContent>
             </Tabs>
           </div>
