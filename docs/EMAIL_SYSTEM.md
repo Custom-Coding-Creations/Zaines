@@ -4,7 +4,11 @@ This document describes the complete email architecture for Zaine's Stay & Play,
 
 ## Architecture Overview
 
-Outbound email uses a two-hop architecture. Next.js never calls Resend directly — it calls a Cloudflare Worker, which holds the Resend API key.
+The email system has two paths — outbound (sending) and inbound (receiving), each handled by a dedicated Cloudflare Worker.
+
+### Outbound
+
+Next.js never calls Resend directly — it calls a Cloudflare Worker, which holds the Resend API key.
 
 ```
 Next.js app (Vercel)
@@ -26,7 +30,41 @@ Resend API  →  recipient inbox
 - Cloudflare Workers are on Cloudflare's global network — lower latency for outbound HTTP than Vercel serverless
 - The Worker adds auth validation and can be updated or swapped independently of the Next.js app
 
-**Inbound email** is separate: `info@zainesstayandplay.com` receives mail via Cloudflare Email Routing (DNS MX records), which forwards it to the owner's inbox. This is pure DNS forwarding and has no relationship to the send path.
+### Inbound
+
+`info@zainesstayandplay.com` receives mail via Cloudflare Email Routing (DNS MX records). Routing sends it to `zaines-email-receiver`, a Cloudflare Email Worker that:
+
+1. Forwards the email to the owner's Gmail (preserving existing delivery)
+2. Parses the raw MIME bytes with `postal-mime`
+3. POSTs the parsed email to `/api/email/inbound` in the background (never blocks delivery)
+
+```
+Customer email
+       │
+       ▼
+Cloudflare Email Routing  (MX records for zainesstayandplay.com)
+       │
+       ▼
+zaines-email-receiver Worker  (workers/email-receiver/)
+       ├── message.forward(FORWARD_TO)         → Gmail (owner's copy, preserved)
+       └── ctx.waitUntil(parseAndPost(...))
+                 │
+                 │  POST /api/email/inbound
+                 │  (Authorization: Bearer INBOUND_WEBHOOK_SECRET)
+                 ▼
+         Next.js app (Vercel)
+                 │
+                 ▼
+         EmailLog (direction: "inbound", status: "received")
+                 │
+                 ▼
+         Admin inbox → Inbox tab
+```
+
+**Key design decisions:**
+- Raw bytes are buffered from `message.raw` **before** calling `message.forward()` — the stream can only be consumed once
+- `ctx.waitUntil()` runs the parse/POST after the SMTP handshake completes, so forwarding latency is unaffected
+- Parse failures fall back to a stub record so the email always appears in the inbox
 
 ---
 
@@ -34,18 +72,23 @@ Resend API  →  recipient inbox
 
 | Variable | Where it lives | Purpose |
 |---|---|---|
-| `EMAIL_WORKER_URL` | Vercel env / `.env` | Full URL of the Cloudflare Worker |
-| `EMAIL_WORKER_SECRET` | Vercel env / `.env` | Bearer token Next.js uses to authenticate with the Worker |
-| `RESEND_API_KEY` | Cloudflare Worker secrets | Resend account key — **not** in Vercel |
+| `EMAIL_WORKER_URL` | Vercel env / `.env` | Full URL of `zaines-email-sender` |
+| `EMAIL_WORKER_SECRET` | Vercel env / `.env` | Bearer token Next.js uses to call the outbound Worker |
+| `RESEND_API_KEY` | `zaines-email-sender` Worker secrets | Resend account key — **not** in Vercel |
 | `EMAIL_FROM` | Vercel env / `.env` | Fallback sender address if Admin Settings not configured |
 | `OWNER_EMAIL` | Vercel env / `.env` | Recipient for owner/booking-alert notifications |
 | `CONTACT_INBOX_EMAIL` | Vercel env / `.env` | Recipient for contact form submissions |
+| `INBOUND_WEBHOOK_SECRET` | Vercel env / `.env` **and** `zaines-email-receiver` Worker secrets | Shared Bearer token for the inbound email webhook — must match in both places |
+| `FORWARD_TO` | `zaines-email-receiver` Worker secrets | Gmail address to forward inbound emails to (must be a verified Cloudflare destination address) |
+| `APP_URL` | `zaines-email-receiver` Worker secrets | Base URL of the Next.js app (e.g. `https://zainesstayandplay.com`) |
 
-**Important:** `RESEND_API_KEY` must be set in the Cloudflare Worker secrets, not in Vercel. Setting it in Vercel has no effect.
+**Important:** `RESEND_API_KEY` must be set in the `zaines-email-sender` Worker secrets, not in Vercel. `INBOUND_WEBHOOK_SECRET` must be set in **both** Vercel and the `zaines-email-receiver` Worker secrets with the same value.
 
 ---
 
-## The Cloudflare Worker
+## The Cloudflare Workers
+
+### Email Sender (Outbound)
 
 **Location:** `workers/email-sender/src/index.ts`  
 **Live URL:** `https://zaines-email-sender.davidtraversmailbox.workers.dev`
@@ -107,6 +150,80 @@ curl -X POST https://zaines-email-sender.davidtraversmailbox.workers.dev \
     "to": "you@example.com",
     "subject": "Test",
     "html": "<p>Hello from the Worker!</p>"
+  }'
+```
+
+---
+
+### Email Receiver (Inbound)
+
+**Location:** `workers/email-receiver/src/index.ts`  
+**Deployed as:** `zaines-email-receiver` (Cloudflare Email Worker, not an HTTP Worker)
+
+This is a Cloudflare **Email Worker** — it exports an `email` handler, not a `fetch` handler. It is triggered by Cloudflare Email Routing, not HTTP.
+
+#### Deploying or updating
+
+```bash
+cd workers/email-receiver
+pnpm install
+pnpm exec wrangler deploy
+# or: CLOUDFLARE_API_TOKEN="cfat_..." CLOUDFLARE_ACCOUNT_ID="..." pnpm exec wrangler deploy
+```
+
+#### Setting secrets
+
+These secrets must all be set after every fresh deploy:
+
+```bash
+cd workers/email-receiver
+
+# Gmail address to forward inbound emails to (must be a verified Cloudflare destination)
+echo "zainestayandplay@gmail.com" | pnpm exec wrangler secret put FORWARD_TO
+
+# Base URL of the Next.js app
+echo "https://zainesstayandplay.com" | pnpm exec wrangler secret put APP_URL
+
+# Same value as INBOUND_WEBHOOK_SECRET in Vercel
+echo "your-secret-here" | pnpm exec wrangler secret put INBOUND_WEBHOOK_SECRET
+```
+
+**Critical:** `FORWARD_TO` must be an address that has been added and verified under Cloudflare Email Routing → Destination Addresses. `message.forward()` throws if the address is unverified, causing the email to bounce.
+
+#### Cloudflare dashboard routing rule
+
+After deploying, set the routing rule in the Cloudflare dashboard:
+
+1. Cloudflare → zainesstayandplay.com → Email → Email Routing → Routes
+2. Edit the rule for `info@zainesstayandplay.com`
+3. Set **Action** to **Send to a Worker** → select `zaines-email-receiver`
+4. Save — the Worker handles forwarding internally; remove any separate forwarding action
+
+#### Live logs
+
+```bash
+cd workers/email-receiver
+pnpm exec wrangler tail
+```
+
+#### Inbound webhook endpoint
+
+The Worker POSTs to `/api/email/inbound` with `Authorization: Bearer INBOUND_WEBHOOK_SECRET`. The endpoint:
+- Validates the Bearer token against `process.env.INBOUND_WEBHOOK_SECRET`
+- Creates an `EmailLog` with `direction: "inbound"`, `status: "received"`, `isRead: false`
+- Returns `201` on success
+
+Test it manually:
+
+```bash
+curl -X POST https://zainesstayandplay.com/api/email/inbound \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $INBOUND_WEBHOOK_SECRET" \
+  -d '{
+    "from": "customer@example.com",
+    "to": "info@zainesstayandplay.com",
+    "subject": "Test inbound",
+    "html": "<p>Test</p>"
   }'
 ```
 
@@ -256,23 +373,27 @@ Available template slugs: `booking-confirmation`, `payment-receipt`, `welcome`, 
 
 ## Email Log (Admin Inbox)
 
-Every outbound email is recorded in the `EmailLog` table (`email_logs`). Fields include:
+All emails — sent and received — are recorded in the `EmailLog` table (`email_logs`). Fields include:
 
 | Field | Description |
 |---|---|
-| `direction` | Always `outbound` for sent emails |
-| `type` | Notification type (e.g. `booking_confirmation`, `compose`) |
-| `fromAddress` | Sender address used |
+| `direction` | `outbound` for sent emails, `inbound` for received emails |
+| `type` | Email type: notification type (e.g. `booking_confirmation`), `compose` for manually sent, or `inbound` for received |
+| `fromAddress` | Sender address |
 | `toAddress` | Primary recipient |
 | `cc` | Comma-separated CC addresses (nullable) |
 | `subject` | Email subject |
 | `html` | Full rendered HTML body |
-| `resendId` | Resend message ID (for tracking) |
-| `status` | `sent`, `failed`, or `queued` |
-| `attachments` | JSON array of `{ url, filename, size, mimeType }` |
+| `resendId` | Resend message ID (outbound only) |
+| `status` | `sent` (delivered), `failed` (send error), `queued` (dev fallback), or `received` (inbound) |
+| `attachments` | JSON array of `{ url, filename, size, mimeType }` (outbound only) |
 | `isRead`, `isStarred`, `isArchived` | Admin inbox state |
 
-Admins can view, reply, forward, star, archive, and bulk-manage all sent emails at `/admin/inbox`.
+The admin inbox at `/admin/inbox` has two tabs:
+- **Inbox** — shows `direction: "inbound"` emails. The unread badge on the operations dashboard counts these.
+- **Sent** — shows `direction: "outbound"` emails.
+
+Admins can view, reply (direction-aware — replies to inbound go to the original sender), star, archive, and bulk-manage emails from both tabs.
 
 ---
 
@@ -312,10 +433,12 @@ See [EMAIL_DELIVERABILITY.md](EMAIL_DELIVERABILITY.md) for warm-up guidance and 
 
 | File | Purpose |
 |---|---|
-| `workers/email-sender/src/index.ts` | Cloudflare Worker source |
+| `workers/email-sender/src/index.ts` | Outbound email Cloudflare Worker |
+| `workers/email-receiver/src/index.ts` | Inbound email Cloudflare Email Worker |
+| `src/app/api/email/inbound/route.ts` | Inbound email webhook (called by `zaines-email-receiver`) |
 | `src/lib/notifications.ts` | All automated send functions + `sendEmailViaWorker` |
 | `src/app/api/admin/email-inbox/compose/route.ts` | Admin compose endpoint |
-| `src/app/api/admin/email-inbox/[id]/reply/route.ts` | Admin reply endpoint |
+| `src/app/api/admin/email-inbox/[id]/reply/route.ts` | Admin reply endpoint (direction-aware) |
 | `src/app/api/admin/email-inbox/attachments/route.ts` | Attachment upload to Vercel Blob |
 | `src/app/api/admin/email-inbox/templates/route.ts` | Template CRUD |
 | `src/app/api/admin/email-inbox/templates/[id]/reset/route.ts` | Re-render template from React Email component |
@@ -323,7 +446,7 @@ See [EMAIL_DELIVERABILITY.md](EMAIL_DELIVERABILITY.md) for warm-up guidance and 
 | `src/app/api/email/preview/[template]/route.ts` | Preview any template in browser |
 | `src/emails/` | React Email template components |
 | `scripts/seed-email-templates.mts` | Seeds 12 system templates into DB |
-| `src/components/admin/EmailInboxPanel.tsx` | Admin inbox list view |
-| `src/components/admin/EmailComposeModal.tsx` | Compose sheet (Tiptap editor, CC, attachments, templates) |
+| `src/components/admin/EmailInboxPanel.tsx` | Admin inbox list view (Inbox + Sent tabs) |
+| `src/components/admin/EmailComposeModal.tsx` | Compose sheet with template variable panel |
 | `src/components/admin/EmailDetailSheet.tsx` | Email detail + reply panel |
 | `src/components/admin/inbox/` | Settings page components |

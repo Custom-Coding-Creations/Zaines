@@ -1,6 +1,6 @@
-# 🐾 Pawfect Stays
+# Zaine's Stay & Play
 
-A modern, full-featured dog boarding, daycare, and grooming website built with Next.js 15, TypeScript, and Tailwind CSS.
+A modern, full-featured dog boarding, daycare, and grooming management platform built with Next.js 14, TypeScript, and Tailwind CSS.
 
 ## ✨ Features Implemented
 
@@ -83,7 +83,7 @@ Edit `.env` and configure required environment variables:
 
 - `DATABASE_URL`: PostgreSQL connection string (required for database operations)
   - Format: `postgresql://user:password@localhost:5432/database_name`
-  - Example: `postgresql://postgres:password@localhost:5432/pawfect_stays`
+  - Example: `postgresql://postgres:password@localhost:5432/zaines_stay`
   - **Behavior without DATABASE_URL:**
     - Development: App starts with warning, DB operations return 503
     - Production: App fails to start with clear error message
@@ -167,7 +167,7 @@ Edit `.env` and configure the following:
 #### Database (Required for bookings, users, payments)
 
 ```env
-DATABASE_URL="postgresql://username:password@localhost:5432/pawfect_stays"
+DATABASE_URL="postgresql://username:password@localhost:5432/zaines_stay"
 ```
 
 **Local PostgreSQL Setup:**
@@ -178,7 +178,7 @@ DATABASE_URL="postgresql://username:password@localhost:5432/pawfect_stays"
 # Ubuntu: sudo apt-get install postgresql
 
 # Create database
-createdb pawfect_stays
+createdb zaines_stay
 
 # Run migrations
 npx prisma migrate dev
@@ -216,14 +216,14 @@ STRIPE_WEBHOOK_SECRET="whsec_..."
 
 #### Email Configuration
 
-The email system uses a two-hop architecture: Next.js → Cloudflare Worker → Resend API → recipient. The Resend API key lives in the Cloudflare Worker's secret store, not in this application.
+The email system uses two Cloudflare Workers — one for outbound sending, one for inbound capture.
 
 ```env
-# Cloudflare Worker (required for email sending in production)
+# Outbound: Cloudflare Worker → Resend API
 EMAIL_WORKER_URL="https://zaines-email-sender.YOUR-SUBDOMAIN.workers.dev"
 EMAIL_WORKER_SECRET="your-worker-bearer-token"
 
-# Sender identity (used as fallback if not configured via Admin Settings)
+# Sender identity (fallback if not configured via Admin Settings)
 EMAIL_FROM="info@zainesstayandplay.com"
 
 # Where owner/booking-alert emails are delivered
@@ -231,13 +231,18 @@ OWNER_EMAIL="info@zainesstayandplay.com"
 
 # Where contact form submissions are delivered
 CONTACT_INBOX_EMAIL="info@zainesstayandplay.com"
+
+# Inbound: shared secret between zaines-email-receiver Worker and Next.js
+INBOUND_WEBHOOK_SECRET="generate-with-openssl-rand-base64-32"
 ```
 
-**Email Forwarding:** `info@zainesstayandplay.com` receives inbound mail via Cloudflare Email Routing, which forwards it to the owner's personal inbox.
+**Outbound:** Next.js calls `zaines-email-sender` (Cloudflare Worker), which holds the Resend API key and forwards to Resend. The Resend API key is never in Vercel.
+
+**Inbound:** `info@zainesstayandplay.com` receives mail via Cloudflare Email Routing → `zaines-email-receiver` Worker. The Worker forwards a copy to Gmail and POSTs the parsed email to `/api/email/inbound`, where it is logged and appears in the admin inbox under the Inbox tab.
 
 **Dev fallback:** If `EMAIL_WORKER_URL` or `EMAIL_WORKER_SECRET` are not set, outgoing emails are written to `tmp/email-queue.log` (or a BullMQ Redis queue if `REDIS_URL` is configured) instead of being delivered.
 
-**Admin-configurable sender identity:** The From Name, From Address, Reply-To, and email signature can be changed at runtime via `/admin/inbox/settings` without a redeployment.
+**Admin-configurable sender identity:** From Name, From Address, Reply-To, and email signature are configurable at runtime via `/admin/inbox/settings` — no redeployment needed.
 
 See [docs/EMAIL_SYSTEM.md](docs/EMAIL_SYSTEM.md) for full architecture details and deployment instructions.
 
@@ -288,11 +293,12 @@ npm run dev
 | `STRIPE_SECRET_KEY`                  | No\*     | -                          | Stripe secret key (use test key `sk_test_...`). \*Required for payments      |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | No\*     | -                          | Stripe publishable key (use test key `pk_test_...`). \*Required for payments |
 | `STRIPE_WEBHOOK_SECRET`              | No\*     | -                          | Stripe webhook signing secret. \*Required for webhook handling               |
-| `EMAIL_WORKER_URL`                   | No\*     | -                          | URL of the Cloudflare Email Worker. \*Required for email delivery            |
-| `EMAIL_WORKER_SECRET`                | No\*     | -                          | Bearer token shared between Next.js and the Worker                           |
+| `EMAIL_WORKER_URL`                   | No\*     | -                          | URL of the outbound Cloudflare Email Worker. \*Required for email delivery   |
+| `EMAIL_WORKER_SECRET`                | No\*     | -                          | Bearer token shared between Next.js and the outbound Worker                  |
 | `EMAIL_FROM`                         | No       | `info@zainesstayandplay.com` | Fallback sender address (overridden by Admin Settings)                     |
 | `OWNER_EMAIL`                        | No       | `info@zainesstayandplay.com` | Recipient for owner/booking-alert notifications                            |
 | `CONTACT_INBOX_EMAIL`                | No       | -                          | Recipient for contact form submissions                                       |
+| `INBOUND_WEBHOOK_SECRET`             | No\*     | -                          | Bearer token between `zaines-email-receiver` Worker and `/api/email/inbound` |
 | `RESEND_API_KEY`                     | No       | -                          | Deprecated — configure this in the Cloudflare Worker secrets instead         |
 | `AUTH_GOOGLE_CLIENT_ID`              | No       | -                          | Canonical Auth.js v5 Google OAuth client ID                                  |
 | `AUTH_GOOGLE_CLIENT_SECRET`          | No       | -                          | Canonical Auth.js v5 Google OAuth client secret                              |
@@ -432,8 +438,9 @@ pnpm build      # Build
 - `STRIPE_SECRET_KEY` - Stripe API secret key
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key
 - `STRIPE_WEBHOOK_SECRET` - Stripe webhook signature secret
-- `EMAIL_WORKER_URL` - Cloudflare Worker URL for email delivery
-- `EMAIL_WORKER_SECRET` - Bearer token for the Cloudflare Worker
+- `EMAIL_WORKER_URL` - Cloudflare Worker URL for email delivery (outbound)
+- `EMAIL_WORKER_SECRET` - Bearer token for the outbound email Worker
+- `INBOUND_WEBHOOK_SECRET` - Bearer token for the inbound email webhook
 - `OWNER_EMAIL` - Owner notification recipient
 - `CONTACT_INBOX_EMAIL` - Contact form submission recipient
 - `REDIS_URL` - Redis connection string (optional, for BullMQ email queue)
@@ -882,35 +889,33 @@ npm test src/__tests__/bookings-concurrency.test.ts
 ```
 Zaines/
 ├── src/
-│   ├── app/                    # Next.js App Router pages
-│   │   ├── about/             # About page
-│   │   ├── contact/           # Contact page
-│   │   ├── services/          # Service pages
-│   │   │   ├── boarding/
-│   │   │   ├── daycare/
-│   │   │   ├── grooming/
-│   │   │   └── training/
+│   ├── app/                    # Next.js App Router pages & API routes
+│   │   ├── api/               # REST API routes
+│   │   │   ├── admin/         # Admin-only endpoints (auth, inbox, bookings, etc.)
+│   │   │   ├── email/         # Email endpoints (inbound webhook, preview)
+│   │   │   └── payments/      # Stripe webhook handler
+│   │   ├── admin/             # Admin panel pages
 │   │   ├── book/              # Booking funnel
 │   │   ├── dog/               # Dog Mode feature
-│   │   │   └── calm/          # Calm Mode
-│   │   ├── layout.tsx         # Root layout with header/footer
-│   │   └── page.tsx           # Homepage
+│   │   └── ...                # Marketing pages (home, about, contact, services)
 │   ├── components/            # React components
-│   │   ├── ui/                # shadcn/ui components
-│   │   ├── site-header.tsx    # Main navigation header
-│   │   ├── site-footer.tsx    # Footer
-│   │   ├── main-nav.tsx       # Desktop navigation
-│   │   ├── mobile-nav.tsx     # Mobile menu
-│   │   └── user-nav.tsx       # User account dropdown
-│   ├── config/                # Configuration files
-│   │   └── site.ts            # Site config (NAP, nav, etc.)
-│   └── lib/                   # Utility functions
-│       ├── prisma.ts          # Prisma client
-│       └── utils.ts           # Helper utilities
+│   │   ├── ui/                # shadcn/ui primitives
+│   │   ├── admin/             # Admin panel components (inbox, compose, detail)
+│   │   └── ...                # Layout, navigation, shared components
+│   ├── emails/                # React Email template components (12 templates)
+│   ├── lib/                   # Utilities
+│   │   ├── prisma.ts          # Prisma client
+│   │   ├── notifications.ts   # All transactional email send functions
+│   │   └── ...                # Auth, API helpers, email templates
+│   └── types/                 # Shared TypeScript types
+├── workers/
+│   ├── email-sender/          # Cloudflare Worker: outbound email → Resend
+│   └── email-receiver/        # Cloudflare Worker: inbound email capture
 ├── prisma/
-│   └── schema.prisma          # Database schema (22 models)
-├── COMPETITIVE_EDGE_PLAN.md   # Strategy document
-├── PROJECT_SUMMARY.md         # Detailed project documentation
+│   └── schema.prisma          # Database schema
+├── scripts/                   # Seed scripts and DB utilities
+├── docs/                      # Architecture and deployment documentation
+├── DEPLOY_EMAIL_WORKER.md     # Email worker deployment reference
 └── README.md                  # This file
 ```
 
@@ -944,7 +949,7 @@ Zaines/
 - ✅ Email notifications (Cloudflare Worker → Resend — 12 notification types)
 - ✅ SMS notifications (Twilio — booking confirmation, reminders, incidents)
 - ✅ Photo upload system (daily photo digest emails)
-- ✅ Admin email inbox with compose, reply, templates, attachments
+- ✅ Admin email inbox with compose, reply, templates, attachments, and inbound email capture
 
 ### Future Enhancements
 
@@ -986,30 +991,29 @@ This is a demonstration project. For production use, additional features needed:
 
 ## Email System
 
-The application sends transactional emails via a two-hop path:
+The application uses two Cloudflare Workers for email — one for outbound sending, one for inbound capture.
 
+**Outbound:**
 ```
-Next.js (Vercel) → Cloudflare Worker → Resend API → recipient inbox
-```
-
-The Cloudflare Worker (`workers/email-sender/`) acts as a thin authenticated proxy. The Resend API key is stored in the Worker's secret store — never in the Next.js environment. The Worker URL and a shared bearer token are the only values Next.js needs.
-
-**Production setup** — configure these environment variables:
-
-```env
-EMAIL_WORKER_URL="https://zaines-email-sender.YOUR-SUBDOMAIN.workers.dev"
-EMAIL_WORKER_SECRET="your-worker-bearer-token"
+Next.js (Vercel) → zaines-email-sender (CF Worker) → Resend API → recipient inbox
 ```
 
-**Dev fallback** — if either variable is missing, outgoing emails are written to `tmp/email-queue.log` instead of being sent. Inspect the queue:
+**Inbound:**
+```
+Customer email → Cloudflare Email Routing → zaines-email-receiver (CF Worker)
+                                               ├─ forward() → Gmail (owner's inbox)
+                                               └─ POST /api/email/inbound → EmailLog → admin inbox
+```
+
+`zaines-email-sender` acts as a thin authenticated proxy; the Resend API key lives in its secret store, never in Vercel. `zaines-email-receiver` captures inbound emails, forwards them to Gmail, and simultaneously logs them to the database so they appear in the admin inbox under the **Inbox** tab.
+
+**Dev fallback** — if `EMAIL_WORKER_URL` or `EMAIL_WORKER_SECRET` are missing, outgoing emails are written to `tmp/email-queue.log` instead of being sent:
 
 ```bash
 cat tmp/email-queue.log | jq .
 ```
 
-**Admin-configurable** — From Name, From Address, Reply-To, and email signature are all configurable at runtime via `/admin/inbox/settings → Sender` and `→ Signature`. No redeployment required.
-
-**Inbound email** — `info@zainesstayandplay.com` receives mail via Cloudflare Email Routing, which forwards it to the owner's personal inbox. This is DNS-level routing and is independent of the send path.
+**Admin-configurable** — From Name, From Address, Reply-To, and email signature are all configurable at runtime via `/admin/inbox/settings` with no redeployment required.
 
 For full architecture, deployment steps, and template reference, see [docs/EMAIL_SYSTEM.md](docs/EMAIL_SYSTEM.md).
 

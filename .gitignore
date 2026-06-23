@@ -53,3 +53,6 @@ next-env.d.ts
 # Squad: SubSquad activation file (local to this machine)
 .squad-workstream
 .env*.local
+
+# Cloudflare Worker node_modules (each worker manages its own deps)
+workers/*/node_modules/
