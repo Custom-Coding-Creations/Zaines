@@ -2,21 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireStaffSession } from "@/lib/api/admin-auth";
 import { prisma, isDatabaseConfigured } from "@/lib/prisma";
+import { getAdminSettings } from "@/lib/api/admin-settings";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-const replySchema = z.object({
-  content: z.string().min(1, "Reply content is required").max(50_000),
+const attachmentMetaSchema = z.object({
+  url: z.string().url(),
+  filename: z.string(),
+  size: z.number(),
+  mimeType: z.string(),
 });
 
-function escapeHtml(s: string): string {
-  return s
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
+const replySchema = z.object({
+  html: z.string().min(1, "Reply content is required").max(500_000),
+  attachments: z.array(attachmentMetaSchema).optional(),
+});
 
 export async function POST(request: NextRequest, { params }: RouteContext) {
   const authResult = await requireStaffSession();
@@ -43,13 +43,21 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
+  const emailSettings = await getAdminSettings().then((s) => s.emailSettings).catch(() => null);
+  const from = emailSettings
+    ? `${emailSettings.fromName} <${emailSettings.fromAddress}>`
+    : process.env.EMAIL_FROM || "info@zainesstayandplay.com";
+  const replyTo = emailSettings?.replyTo;
+
   const replySubject = original.subject.startsWith("Re: ")
     ? original.subject
     : `Re: ${original.subject}`;
 
+  const signatureHtml = emailSettings?.signatureHtml;
   const replyHtml = `
     <div style="font-family:Georgia,serif;color:#18212a;line-height:1.6;max-width:620px;">
-      ${escapeHtml(parsed.data.content).replace(/\n/g, "<br/>")}
+      ${parsed.data.html}
+      ${signatureHtml ? `<br/><hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>${signatureHtml}` : ""}
     </div>
     <br/>
     <hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0"/>
@@ -58,7 +66,6 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     </blockquote>
   `;
 
-  const from = process.env.EMAIL_FROM || "info@zainesstayandplay.com";
   const to = original.toAddress;
   const workerUrl = process.env.EMAIL_WORKER_URL;
   const workerSecret = process.env.EMAIL_WORKER_SECRET;
@@ -68,13 +75,31 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
 
   if (workerUrl && workerSecret) {
     try {
+      const workerAttachments = parsed.data.attachments
+        ? await Promise.all(
+            parsed.data.attachments.map(async (att) => {
+              const res = await fetch(att.url);
+              const buf = await res.arrayBuffer();
+              const content = Buffer.from(buf).toString("base64");
+              return { filename: att.filename, content, content_type: att.mimeType };
+            }),
+          )
+        : undefined;
+
       const resp = await fetch(workerUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${workerSecret}`,
         },
-        body: JSON.stringify({ from, to, subject: replySubject, html: replyHtml }),
+        body: JSON.stringify({
+          from,
+          to,
+          ...(replyTo ? { reply_to: replyTo } : {}),
+          subject: replySubject,
+          html: replyHtml,
+          ...(workerAttachments?.length ? { attachments: workerAttachments } : {}),
+        }),
       });
       const json = (await resp.json().catch(() => ({}))) as { messageId?: string };
       if (resp.ok) {
@@ -96,6 +121,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
       html: replyHtml,
       resendId,
       status,
+      attachments: parsed.data.attachments ?? undefined,
       isRead: true, // admin sent it — mark read immediately
     },
   });

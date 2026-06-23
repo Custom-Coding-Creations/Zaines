@@ -1178,6 +1178,8 @@ model EmailLog {
   status      String   @default("sent") // sent | failed | queued
   bookingId   String?  // optional — not all emails link to a booking
   userId      String?  // optional — not all emails link to a user
+  cc          String?  // comma-separated CC addresses
+  attachments Json?    // Array<{ filename, url, size, mimeType }>
   isRead      Boolean  @default(false)
   isStarred   Boolean  @default(false)
   isArchived  Boolean  @default(false)
@@ -1190,6 +1192,21 @@ model EmailLog {
   @@index([isArchived])
   @@index([toAddress])
   @@map("email_logs")
+}
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  type      String   @unique
+  name      String
+  subject   String
+  html      String
+  isSystem  Boolean  @default(false)
+  isEnabled Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@map("email_templates")
 }
 
 model CrmOpportunity {

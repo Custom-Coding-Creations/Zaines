@@ -139,6 +139,13 @@ export interface GoogleReviewsSettings {
   fallbackReviewCount: number;
 }
 
+export interface EmailSettings {
+  fromName: string;
+  fromAddress: string;
+  replyTo: string;
+  signatureHtml: string;
+}
+
 export interface StripeCapabilityFlags {
   billingSubscriptionsEnabled: boolean;
   customerPortalEnabled: boolean;
@@ -279,6 +286,9 @@ export interface AdminSettings {
 
   // Phase 12: Google Reviews Integration
   googleReviewsSettings: GoogleReviewsSettings;
+
+  // Email Settings
+  emailSettings: EmailSettings;
 }
 
 // ============================================================================
@@ -383,6 +393,13 @@ export interface AdminOperationsQueueResponse {
   items: AdminQueueItem[];
 }
 
+export interface EmailAttachmentMeta {
+  url: string;
+  filename: string;
+  size: number;
+  mimeType: string;
+}
+
 export interface AdminEmailLog {
   id: string;
   direction: string;
@@ -390,6 +407,7 @@ export interface AdminEmailLog {
   fromAddress: string;
   toAddress: string;
   subject: string;
+  cc?: string | null;
   resendId: string | null;
   status: string;
   bookingId: string | null;
@@ -397,9 +415,31 @@ export interface AdminEmailLog {
   isRead: boolean;
   isStarred: boolean;
   isArchived: boolean;
+  attachments?: EmailAttachmentMeta[] | null;
   sentAt: string;
   createdAt: string;
   html?: string; // only present in detail fetch
+}
+
+export interface AdminEmailTemplate {
+  id: string;
+  type: string;
+  name: string;
+  subject: string;
+  html: string;
+  isSystem: boolean;
+  isEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmailInboxPageResponse {
+  success: boolean;
+  data: AdminEmailLog[];
+  total: number;
+  page: number;
+  limit: number;
+  unreadCount: number;
 }
 
 // ============================================================================

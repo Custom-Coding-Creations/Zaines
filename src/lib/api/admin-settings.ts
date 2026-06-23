@@ -85,6 +85,7 @@ const SETTINGS_KEYS: Record<string, string> = {
   HOLIDAY_SURCHARGES: 'admin.holiday_surcharges', // JSON array
   LOYALTY_PROGRAM_SETTINGS: 'admin.loyalty_program_settings', // JSON object
   GOOGLE_REVIEWS_SETTINGS: 'admin.google_reviews_settings', // JSON object
+  EMAIL_SETTINGS: 'admin.email_settings', // JSON object
 };
 
 const LEGACY_COPY_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
@@ -390,6 +391,17 @@ export async function getAdminSettings(): Promise<AdminSettings> {
             : getDefaultGoogleReviewsSettings();
         } catch {
           return getDefaultGoogleReviewsSettings();
+        }
+      })(),
+      // Email Settings
+      emailSettings: (() => {
+        try {
+          const json = settingsMap.get(SETTINGS_KEYS.EMAIL_SETTINGS);
+          return json
+            ? { ...getDefaultSettings().emailSettings, ...(JSON.parse(json) as Partial<AdminSettings['emailSettings']>) }
+            : getDefaultSettings().emailSettings;
+        } catch {
+          return getDefaultSettings().emailSettings;
         }
       })(),
     };
@@ -848,6 +860,20 @@ export async function updateAdminSettings(updates: Partial<AdminSettings>): Prom
           create: {
             key: SETTINGS_KEYS.GOOGLE_REVIEWS_SETTINGS,
             value: JSON.stringify(updates.googleReviewsSettings),
+          },
+        }),
+      );
+    }
+
+    // Email Settings
+    if (updates.emailSettings !== undefined) {
+      updatePromises.push(
+        settingsModel.upsert({
+          where: { key: SETTINGS_KEYS.EMAIL_SETTINGS },
+          update: { value: JSON.stringify(updates.emailSettings) },
+          create: {
+            key: SETTINGS_KEYS.EMAIL_SETTINGS,
+            value: JSON.stringify(updates.emailSettings),
           },
         }),
       );

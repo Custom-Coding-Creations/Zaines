@@ -107,6 +107,7 @@ async function logEmailToDb(entry: {
   type: string;
   fromAddress: string;
   toAddress: string;
+  cc?: string | null;
   subject: string;
   html: string;
   resendId?: string | null;
@@ -123,6 +124,7 @@ async function logEmailToDb(entry: {
         type: entry.type,
         fromAddress: entry.fromAddress,
         toAddress: entry.toAddress,
+        cc: entry.cc ?? null,
         subject: entry.subject,
         html: entry.html,
         resendId: entry.resendId ?? null,
@@ -378,14 +380,18 @@ export async function sendReminderNotification(payload: {
 async function sendEmailViaWorker(payload: {
   from: string;
   to: string;
+  cc?: string[];
+  reply_to?: string;
   subject: string;
   html: string;
+  attachments?: Array<{ filename: string; content: string; content_type: string }>;
   // Logging metadata — stripped before sending to the worker
   _logType?: string;
   _bookingId?: string | null;
   _userId?: string | null;
+  _cc?: string | null;
 }): Promise<{ ok: boolean; json?: unknown }> {
-  const { _logType, _bookingId, _userId, ...workerPayload } = payload;
+  const { _logType, _bookingId, _userId, _cc, ...workerPayload } = payload;
   const workerUrl = process.env.EMAIL_WORKER_URL;
   const apiSecret = process.env.EMAIL_WORKER_SECRET;
 
@@ -397,6 +403,7 @@ async function sendEmailViaWorker(payload: {
     type: _logType ?? "unknown",
     fromAddress: workerPayload.from,
     toAddress: workerPayload.to,
+    cc: _cc ?? null,
     subject: workerPayload.subject,
     html: workerPayload.html,
     bookingId: _bookingId ?? null,

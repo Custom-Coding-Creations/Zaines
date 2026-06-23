@@ -305,6 +305,15 @@ export const googleReviewsSettingsDefaults = {
   },
 };
 
+export const emailSettingsDefaults = {
+  emailSettings: {
+    fromName: "Zaine's Stay & Play",
+    fromAddress: 'info@zainesstayandplay.com',
+    replyTo: 'info@zainesstayandplay.com',
+    signatureHtml: '',
+  },
+};
+
 export const fullSettingsDefaults = {
   ...generalSettingsDefaults,
   ...bookingSettingsDefaults,
@@ -315,4 +324,5 @@ export const fullSettingsDefaults = {
   ...testimonialsSettingsDefaults,
   ...loyaltyProgramSettingsDefaults,
   ...googleReviewsSettingsDefaults,
+  ...emailSettingsDefaults,
 };

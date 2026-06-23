@@ -10,12 +10,21 @@ export interface Env {
   EMAIL_WORKER_SECRET: string; // Secret key for authentication
 }
 
+interface EmailAttachment {
+  filename: string;
+  content: string; // base64
+  content_type: string;
+}
+
 interface EmailRequest {
   from: string;
-  to: string;
+  to: string | string[];
+  cc?: string[];
+  reply_to?: string;
   subject: string;
   html: string;
   text?: string;
+  attachments?: EmailAttachment[];
 }
 
 interface EmailResponse {
@@ -100,7 +109,10 @@ export default {
           to: emailData.to,
           subject: emailData.subject,
           html: emailData.html,
-          text: emailData.text,
+          ...(emailData.text ? { text: emailData.text } : {}),
+          ...(emailData.cc?.length ? { cc: emailData.cc } : {}),
+          ...(emailData.reply_to ? { reply_to: emailData.reply_to } : {}),
+          ...(emailData.attachments?.length ? { attachments: emailData.attachments } : {}),
         }),
       });
 

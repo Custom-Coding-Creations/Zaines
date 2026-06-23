@@ -8,14 +8,17 @@ export async function GET(request: NextRequest) {
   if (authResult.error) return authResult.error;
 
   if (!isDatabaseConfigured()) {
-    return NextResponse.json({ success: true, data: [], unreadCount: 0 });
+    return NextResponse.json({ success: true, data: [], total: 0, page: 1, limit: 50, unreadCount: 0 });
   }
 
   const params = request.nextUrl.searchParams;
   const folder = params.get("folder") ?? "inbox"; // inbox | sent | starred | archived
   const search = params.get("search")?.trim() ?? "";
   const type = params.get("type") ?? "";
-  const limit = Math.min(Number(params.get("limit") ?? "100") || 100, 500);
+  const page = Math.max(1, Number(params.get("page") ?? "1") || 1);
+  const limit = Math.min(Math.max(1, Number(params.get("limit") ?? "50") || 50), 200);
+  const dateFrom = params.get("dateFrom") ?? "";
+  const dateTo = params.get("dateTo") ?? "";
 
   const where: Prisma.EmailLogWhereInput = {};
 
@@ -43,8 +46,18 @@ export async function GET(request: NextRequest) {
     ];
   }
 
+  if (dateFrom || dateTo) {
+    where.sentAt = {};
+    if (dateFrom) where.sentAt.gte = new Date(dateFrom);
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setDate(to.getDate() + 1); // inclusive end-of-day
+      where.sentAt.lte = to;
+    }
+  }
+
   try {
-    const [emails, unreadCount] = await Promise.all([
+    const [emails, total, unreadCount] = await Promise.all([
       prisma.emailLog.findMany({
         where,
         select: {
@@ -53,6 +66,7 @@ export async function GET(request: NextRequest) {
           type: true,
           fromAddress: true,
           toAddress: true,
+          cc: true,
           subject: true,
           resendId: true,
           status: true,
@@ -61,19 +75,22 @@ export async function GET(request: NextRequest) {
           isRead: true,
           isStarred: true,
           isArchived: true,
+          attachments: true,
           sentAt: true,
           createdAt: true,
           // html excluded from list — fetched on detail
         },
         orderBy: { sentAt: "desc" },
+        skip: (page - 1) * limit,
         take: limit,
       }),
+      prisma.emailLog.count({ where }),
       prisma.emailLog.count({
         where: { isRead: false, isArchived: false },
       }),
     ]);
 
-    return NextResponse.json({ success: true, data: emails, unreadCount });
+    return NextResponse.json({ success: true, data: emails, total, page, limit, unreadCount });
   } catch (error) {
     console.error("[email-inbox] list failed", error);
     return NextResponse.json(

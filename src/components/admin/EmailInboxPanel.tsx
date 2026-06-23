@@ -1,21 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Archive,
+  CheckCheck,
   Inbox,
   PenSquare,
   RefreshCw,
   Search,
   Send,
+  Settings,
   Star,
   StarOff,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -38,9 +43,11 @@ import {
 } from "@/components/admin/AdminAsyncState";
 import { EmailDetailSheet } from "@/components/admin/EmailDetailSheet";
 import { EmailComposeModal } from "@/components/admin/EmailComposeModal";
-import type { AdminEmailLog } from "@/types/admin";
+import type { AdminEmailLog, EmailInboxPageResponse } from "@/types/admin";
 
 type Folder = "inbox" | "sent" | "starred" | "archived";
+
+const LIMIT = 50;
 
 const FOLDER_OPTIONS: { value: Folder; label: string; icon: React.ReactNode }[] = [
   { value: "inbox", label: "Inbox", icon: <Inbox className="h-3.5 w-3.5" /> },
@@ -61,22 +68,25 @@ const EMAIL_TYPE_LABELS: Record<string, string> = {
   report_card_notification: "Report Card",
   incident_notification: "Incident",
   automated_reminder: "Reminder",
+  vaccine_expiry_reminder: "Vaccine Reminder",
   compose: "Composed",
 };
 
-const EMAIL_TYPES = Object.entries(EMAIL_TYPE_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+const EMAIL_TYPES = Object.entries(EMAIL_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
-  const isToday = d.toDateString() === now.toDateString();
-  if (isToday) {
+  if (d.toDateString() === now.toDateString()) {
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+interface ComposeForwardProps {
+  to: string;
+  subject: string;
+  html: string;
 }
 
 export function EmailInboxPanel() {
@@ -86,54 +96,60 @@ export function EmailInboxPanel() {
   const [folder, setFolder] = useState<Folder>("sent");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
   const [showCompose, setShowCompose] = useState(false);
+  const [forwardProps, setForwardProps] = useState<ComposeForwardProps | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const load = useCallback(async () => {
+  const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    if (searchRef.current) clearTimeout(searchRef.current);
+    searchRef.current = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => { if (searchRef.current) clearTimeout(searchRef.current); };
+  }, [search]);
+
+  const load = useCallback(async (p = page) => {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ folder, limit: "200" });
+      const params = new URLSearchParams({ folder, page: String(p), limit: String(LIMIT) });
       if (typeFilter && typeFilter !== "all") params.set("type", typeFilter);
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (dateFrom) params.set("dateFrom", dateFrom);
+      if (dateTo) params.set("dateTo", dateTo);
+
       const resp = await fetch(`/api/admin/email-inbox?${params.toString()}`);
       if (!resp.ok) throw new Error("Failed to load inbox");
-      const data = (await resp.json()) as {
-        success?: boolean;
-        data?: AdminEmailLog[];
-        unreadCount?: number;
-      };
+      const data = (await resp.json()) as EmailInboxPageResponse;
       setEmails(data.data ?? []);
+      setTotal(data.total ?? 0);
       setUnreadCount(data.unreadCount ?? 0);
+      setSelectedIds(new Set());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }
-  }, [folder, typeFilter]);
+  }, [folder, typeFilter, debouncedSearch, dateFrom, dateTo, page]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    setPage(1);
+  }, [folder, typeFilter, debouncedSearch, dateFrom, dateTo]);
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return emails;
-    const q = search.trim().toLowerCase();
-    return emails.filter(
-      (e) =>
-        e.toAddress.toLowerCase().includes(q) ||
-        e.fromAddress.toLowerCase().includes(q) ||
-        e.subject.toLowerCase().includes(q),
-    );
-  }, [emails, search]);
+  useEffect(() => {
+    void load(page);
+  }, [load, page]);
 
   function handleEmailUpdated(id: string, changes: Partial<AdminEmailLog>) {
-    setEmails((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...changes } : e)),
-    );
-    if (changes.isRead === true) {
-      setUnreadCount((c) => Math.max(0, c - 1));
-    }
+    setEmails((prev) => prev.map((e) => (e.id === id ? { ...e, ...changes } : e)));
+    if (changes.isRead === true) setUnreadCount((c) => Math.max(0, c - 1));
   }
 
   async function toggleStar(e: React.MouseEvent, email: AdminEmailLog) {
@@ -151,7 +167,50 @@ export function EmailInboxPanel() {
     }
   }
 
+  function toggleSelect(e: React.MouseEvent | React.ChangeEvent, id: string) {
+    e.stopPropagation();
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === emails.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(emails.map((e) => e.id)));
+    }
+  }
+
+  async function bulkAction(action: string) {
+    if (selectedIds.size === 0) return;
+    try {
+      const resp = await fetch("/api/admin/email-inbox/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [...selectedIds], action }),
+      });
+      if (!resp.ok) throw new Error("Bulk action failed");
+      const data = (await resp.json()) as { updated: number };
+      toast.success(`Updated ${data.updated} email${data.updated !== 1 ? "s" : ""}`);
+      void load(page);
+    } catch {
+      toast.error("Bulk action failed");
+    }
+  }
+
+  function handleForward(to: string, subject: string, html: string) {
+    setForwardProps({ to, subject, html });
+    setShowCompose(true);
+  }
+
   const folderLabel = FOLDER_OPTIONS.find((f) => f.value === folder)?.label ?? folder;
+  const totalPages = Math.ceil(total / LIMIT);
+  const startRow = (page - 1) * LIMIT + 1;
+  const endRow = Math.min(page * LIMIT, total);
 
   return (
     <div className="space-y-6">
@@ -162,16 +221,22 @@ export function EmailInboxPanel() {
           <p className="text-sm text-muted-foreground">
             Inbox shows unread emails. Sent shows full history.
             {unreadCount > 0 && (
-              <span className="ml-2 font-medium text-foreground">
-                {unreadCount} unread
-              </span>
+              <span className="ml-2 font-medium text-foreground">{unreadCount} unread</span>
             )}
           </p>
         </div>
-        <Button onClick={() => setShowCompose(true)}>
-          <PenSquare className="h-4 w-4 mr-1.5" />
-          Compose
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/admin/inbox/settings">
+              <Settings className="h-4 w-4 mr-1.5" />
+              Settings
+            </Link>
+          </Button>
+          <Button onClick={() => { setForwardProps(null); setShowCompose(true); }}>
+            <PenSquare className="h-4 w-4 mr-1.5" />
+            Compose
+          </Button>
+        </div>
       </div>
 
       {/* Folder selector */}
@@ -210,23 +275,61 @@ export function EmailInboxPanel() {
           />
         </div>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-52">
+          <SelectTrigger className="w-48">
             <SelectValue placeholder="All types" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All types</SelectItem>
             {EMAIL_TYPES.map((t) => (
-              <SelectItem key={t.value} value={t.value}>
-                {t.label}
-              </SelectItem>
+              <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <Button variant="outline" size="icon" onClick={load} title="Refresh">
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="w-36"
+          title="From date"
+        />
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="w-36"
+          title="To date"
+        />
+        {(dateFrom || dateTo) && (
+          <Button variant="ghost" size="icon" onClick={() => { setDateFrom(""); setDateTo(""); }}>
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+        <Button variant="outline" size="icon" onClick={() => load(page)} title="Refresh">
           <RefreshCw className="h-4 w-4" />
           <span className="sr-only">Refresh</span>
         </Button>
       </div>
+
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+          <div className="flex gap-2 ml-2">
+            <Button size="sm" variant="outline" onClick={() => void bulkAction("archive")}>
+              <Archive className="h-3.5 w-3.5 mr-1.5" />Archive
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => void bulkAction("mark_read")}>
+              <CheckCheck className="h-3.5 w-3.5 mr-1.5" />Mark Read
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => void bulkAction("star")}>
+              <Star className="h-3.5 w-3.5 mr-1.5" />Star
+            </Button>
+          </div>
+          <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setSelectedIds(new Set())}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
 
       {/* Async states */}
       {loading && <AdminLoadingState message="Loading emails…" />}
@@ -234,10 +337,10 @@ export function EmailInboxPanel() {
         <AdminErrorState
           title="Unable to load inbox"
           message={error}
-          action={{ label: "Retry", onAction: load }}
+          action={{ label: "Retry", onAction: () => load(page) }}
         />
       )}
-      {!loading && !error && filtered.length === 0 && (
+      {!loading && !error && emails.length === 0 && (
         <AdminEmptyState
           title={
             folder === "inbox" && typeFilter === "all"
@@ -262,13 +365,13 @@ export function EmailInboxPanel() {
       )}
 
       {/* Email table */}
-      {!loading && !error && filtered.length > 0 && (
+      {!loading && !error && emails.length > 0 && (
         <Card>
           <CardHeader className="pb-0">
             <CardTitle className="text-base">
               {folderLabel}{" "}
               <span className="text-muted-foreground font-normal text-sm">
-                ({filtered.length})
+                ({total} total)
               </span>
             </CardTitle>
           </CardHeader>
@@ -276,7 +379,14 @@ export function EmailInboxPanel() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-8 pl-4" />
+                  <TableHead className="w-8 pl-4">
+                    <Checkbox
+                      checked={selectedIds.size === emails.length && emails.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
+                  <TableHead className="w-8" />
                   <TableHead>To</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead className="hidden md:table-cell">Type</TableHead>
@@ -286,7 +396,7 @@ export function EmailInboxPanel() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((email) => (
+                {emails.map((email) => (
                   <TableRow
                     key={email.id}
                     className={
@@ -296,8 +406,18 @@ export function EmailInboxPanel() {
                     }
                     onClick={() => setSelectedEmailId(email.id)}
                   >
+                    {/* Checkbox */}
+                    <TableCell className="pl-4 pr-0" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(email.id)}
+                        onCheckedChange={(e) => toggleSelect(e as unknown as React.MouseEvent, email.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label="Select email"
+                      />
+                    </TableCell>
+
                     {/* Star */}
-                    <TableCell className="pl-4 pr-0">
+                    <TableCell className="pl-1 pr-0">
                       <button
                         onClick={(e) => void toggleStar(e, email)}
                         className="text-muted-foreground hover:text-yellow-500 transition-colors"
@@ -319,6 +439,9 @@ export function EmailInboxPanel() {
                     {/* Subject */}
                     <TableCell className="max-w-[200px] md:max-w-xs text-sm truncate">
                       {email.subject}
+                      {email.attachments && (email.attachments as unknown[]).length > 0 && (
+                        <span className="ml-1.5 text-muted-foreground text-xs">📎</span>
+                      )}
                     </TableCell>
 
                     {/* Type */}
@@ -365,19 +488,50 @@ export function EmailInboxPanel() {
         </Card>
       )}
 
+      {/* Pagination */}
+      {!loading && !error && totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>Showing {startRow}–{endRow} of {total}</span>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <span className="flex items-center px-2 text-sm">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Email detail sheet */}
       <EmailDetailSheet
         emailId={selectedEmailId}
         open={selectedEmailId !== null}
         onClose={() => setSelectedEmailId(null)}
         onUpdated={handleEmailUpdated}
+        onForward={handleForward}
       />
 
-      {/* Compose modal */}
+      {/* Compose / forward modal */}
       <EmailComposeModal
         open={showCompose}
-        onClose={() => setShowCompose(false)}
-        onSent={load}
+        onClose={() => { setShowCompose(false); setForwardProps(null); }}
+        onSent={() => load(page)}
+        defaultHtml={forwardProps?.html}
+        defaultSubject={forwardProps?.subject ? `Fwd: ${forwardProps.subject}` : undefined}
       />
     </div>
   );
