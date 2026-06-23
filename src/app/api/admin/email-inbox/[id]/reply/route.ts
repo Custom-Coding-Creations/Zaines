@@ -30,7 +30,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
 
   const original = await prisma.emailLog.findUnique({
     where: { id },
-    select: { toAddress: true, fromAddress: true, subject: true, html: true },
+    select: { toAddress: true, fromAddress: true, subject: true, html: true, direction: true },
   });
 
   if (!original) {
@@ -66,7 +66,9 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     </blockquote>
   `;
 
-  const to = original.toAddress;
+  // For inbound emails (customer wrote to us), reply goes back to the sender.
+  // For outbound (we wrote to customer), re-send goes to the original recipient.
+  const to = original.direction === "inbound" ? original.fromAddress : original.toAddress;
   const workerUrl = process.env.EMAIL_WORKER_URL;
   const workerSecret = process.env.EMAIL_WORKER_SECRET;
 

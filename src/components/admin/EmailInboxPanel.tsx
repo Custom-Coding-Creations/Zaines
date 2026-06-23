@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Archive,
+  ArrowDownLeft,
+  ArrowUpRight,
   CheckCheck,
   Inbox,
   PenSquare,
@@ -70,6 +72,7 @@ const EMAIL_TYPE_LABELS: Record<string, string> = {
   automated_reminder: "Reminder",
   vaccine_expiry_reminder: "Vaccine Reminder",
   compose: "Composed",
+  inbound: "Inbound",
 };
 
 const EMAIL_TYPES = Object.entries(EMAIL_TYPE_LABELS).map(([value, label]) => ({ value, label }));
@@ -219,7 +222,7 @@ export function EmailInboxPanel() {
         <div>
           <h1 className="text-2xl font-semibold">Email Inbox</h1>
           <p className="text-sm text-muted-foreground">
-            Inbox shows unread emails. Sent shows full history.
+            Inbox shows emails received from customers. Sent shows full outbound history.
             {unreadCount > 0 && (
               <span className="ml-2 font-medium text-foreground">{unreadCount} unread</span>
             )}
@@ -351,7 +354,7 @@ export function EmailInboxPanel() {
             typeFilter !== "all"
               ? "Try removing the type filter or switching folders."
               : folder === "inbox"
-              ? "No unread emails — open the Sent folder to view full history."
+              ? "No inbound emails — customer replies and inquiries will appear here."
               : "Emails will appear here once the system sends them."
           }
           action={
@@ -387,7 +390,7 @@ export function EmailInboxPanel() {
                     />
                   </TableHead>
                   <TableHead className="w-8" />
-                  <TableHead>To</TableHead>
+                  <TableHead>{folder === "inbox" ? "From" : "To"}</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead className="hidden md:table-cell">Type</TableHead>
                   <TableHead className="hidden sm:table-cell">Status</TableHead>
@@ -431,9 +434,9 @@ export function EmailInboxPanel() {
                       </button>
                     </TableCell>
 
-                    {/* To */}
+                    {/* From / To — direction-aware */}
                     <TableCell className="text-sm max-w-[140px] truncate">
-                      {email.toAddress}
+                      {email.direction === "inbound" ? email.fromAddress : email.toAddress}
                     </TableCell>
 
                     {/* Subject */}
@@ -444,17 +447,28 @@ export function EmailInboxPanel() {
                       )}
                     </TableCell>
 
-                    {/* Type */}
+                    {/* Type + direction icon */}
                     <TableCell className="hidden md:table-cell">
-                      <Badge variant="outline" className="text-xs whitespace-nowrap">
-                        {EMAIL_TYPE_LABELS[email.type] ?? email.type}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        {email.direction === "inbound" ? (
+                          <ArrowDownLeft className="h-3 w-3 text-blue-500 shrink-0" />
+                        ) : (
+                          <ArrowUpRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                        )}
+                        <Badge variant="outline" className="text-xs whitespace-nowrap">
+                          {EMAIL_TYPE_LABELS[email.type] ?? email.type}
+                        </Badge>
+                      </div>
                     </TableCell>
 
                     {/* Status */}
                     <TableCell className="hidden sm:table-cell">
                       <Badge
-                        variant={email.status === "sent" ? "secondary" : "destructive"}
+                        variant={
+                          email.status === "sent" || email.status === "received"
+                            ? "secondary"
+                            : "destructive"
+                        }
                         className="text-xs"
                       >
                         {email.status}

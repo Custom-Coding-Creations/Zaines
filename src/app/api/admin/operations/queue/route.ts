@@ -250,7 +250,7 @@ export async function GET() {
         },
       }),
       prisma.emailLog.count({
-        where: { isRead: false, isArchived: false },
+        where: { direction: "inbound", isRead: false, isArchived: false },
       }),
     ]);
 

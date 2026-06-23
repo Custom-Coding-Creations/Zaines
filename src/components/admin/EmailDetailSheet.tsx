@@ -63,6 +63,7 @@ const EMAIL_TYPE_LABELS: Record<string, string> = {
   automated_reminder: "Reminder",
   vaccine_expiry_reminder: "Vaccine Reminder",
   compose: "Composed",
+  inbound: "Inbound Email",
   unknown: "Unknown",
 };
 
@@ -228,7 +229,7 @@ export function EmailDetailSheet({ emailId, open, onClose, onUpdated, onForward 
                 {EMAIL_TYPE_LABELS[email.type] ?? email.type}
               </Badge>
               <span>{new Date(email.sentAt).toLocaleString()}</span>
-              {email.status !== "sent" && (
+              {email.status !== "sent" && email.status !== "received" && (
                 <Badge variant="destructive" className="text-xs">{email.status}</Badge>
               )}
             </div>

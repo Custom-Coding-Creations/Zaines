@@ -1,0 +1,20 @@
+{
+  "name": "zaines-email-receiver",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "secret:forward-to": "wrangler secret put FORWARD_TO",
+    "secret:app-url": "wrangler secret put APP_URL",
+    "secret:webhook-secret": "wrangler secret put INBOUND_WEBHOOK_SECRET"
+  },
+  "dependencies": {
+    "postal-mime": "^2.2.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250115.0",
+    "wrangler": "^3.100.0"
+  }
+}

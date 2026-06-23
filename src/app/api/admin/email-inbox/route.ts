@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
     where.direction = "outbound";
     where.isArchived = false;
   } else {
-    // inbox: unread emails that haven't been archived — the "needs review" queue
-    where.isRead = false;
+    // inbox: emails received from customers (inbound direction only)
+    where.direction = "inbound";
     where.isArchived = false;
   }
 
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.emailLog.count({ where }),
       prisma.emailLog.count({
-        where: { isRead: false, isArchived: false },
+        where: { direction: "inbound", isRead: false, isArchived: false },
       }),
     ]);
 
