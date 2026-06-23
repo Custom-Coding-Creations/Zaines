@@ -96,7 +96,7 @@ export function EmailInboxPanel() {
   const [emails, setEmails] = useState<AdminEmailLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [folder, setFolder] = useState<Folder>("sent");
+  const [folder, setFolder] = useState<Folder>("inbox");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState("");
