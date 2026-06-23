@@ -216,14 +216,30 @@ STRIPE_WEBHOOK_SECRET="whsec_..."
 
 #### Email Configuration
 
+The email system uses a two-hop architecture: Next.js → Cloudflare Worker → Resend API → recipient. The Resend API key lives in the Cloudflare Worker's secret store, not in this application.
+
 ```env
+# Cloudflare Worker (required for email sending in production)
+EMAIL_WORKER_URL="https://zaines-email-sender.YOUR-SUBDOMAIN.workers.dev"
+EMAIL_WORKER_SECRET="your-worker-bearer-token"
+
+# Sender identity (used as fallback if not configured via Admin Settings)
 EMAIL_FROM="info@zainesstayandplay.com"
-RESEND_API_KEY=""  # Optional - leave empty to use dev queue
+
+# Where owner/booking-alert emails are delivered
+OWNER_EMAIL="info@zainesstayandplay.com"
+
+# Where contact form submissions are delivered
+CONTACT_INBOX_EMAIL="info@zainesstayandplay.com"
 ```
 
-**Email Forwarding:** `info@zainesstayandplay.com` forwards to `david@customcodingcreations.com` via Cloudflare Email Routing.
+**Email Forwarding:** `info@zainesstayandplay.com` receives inbound mail via Cloudflare Email Routing, which forwards it to the owner's personal inbox.
 
-**Transactional Emails:** If `RESEND_API_KEY` is not set, booking confirmations and receipts are logged to `tmp/email-queue.log` for development.
+**Dev fallback:** If `EMAIL_WORKER_URL` or `EMAIL_WORKER_SECRET` are not set, outgoing emails are written to `tmp/email-queue.log` (or a BullMQ Redis queue if `REDIS_URL` is configured) instead of being delivered.
+
+**Admin-configurable sender identity:** The From Name, From Address, Reply-To, and email signature can be changed at runtime via `/admin/inbox/settings` without a redeployment.
+
+See [docs/EMAIL_SYSTEM.md](docs/EMAIL_SYSTEM.md) for full architecture details and deployment instructions.
 
 #### Google OAuth (Optional)
 
@@ -272,8 +288,12 @@ npm run dev
 | `STRIPE_SECRET_KEY`                  | No\*     | -                          | Stripe secret key (use test key `sk_test_...`). \*Required for payments      |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | No\*     | -                          | Stripe publishable key (use test key `pk_test_...`). \*Required for payments |
 | `STRIPE_WEBHOOK_SECRET`              | No\*     | -                          | Stripe webhook signing secret. \*Required for webhook handling               |
-| `EMAIL_FROM`                         | No       | `info@zainesstayandplay.com` | Default sender email address for transactional emails                      |
-| `RESEND_API_KEY`                     | No       | -                          | Optional: Resend API key for sending emails (uses dev queue if not set)      |
+| `EMAIL_WORKER_URL`                   | No\*     | -                          | URL of the Cloudflare Email Worker. \*Required for email delivery            |
+| `EMAIL_WORKER_SECRET`                | No\*     | -                          | Bearer token shared between Next.js and the Worker                           |
+| `EMAIL_FROM`                         | No       | `info@zainesstayandplay.com` | Fallback sender address (overridden by Admin Settings)                     |
+| `OWNER_EMAIL`                        | No       | `info@zainesstayandplay.com` | Recipient for owner/booking-alert notifications                            |
+| `CONTACT_INBOX_EMAIL`                | No       | -                          | Recipient for contact form submissions                                       |
+| `RESEND_API_KEY`                     | No       | -                          | Deprecated — configure this in the Cloudflare Worker secrets instead         |
 | `AUTH_GOOGLE_CLIENT_ID`              | No       | -                          | Canonical Auth.js v5 Google OAuth client ID                                  |
 | `AUTH_GOOGLE_CLIENT_SECRET`          | No       | -                          | Canonical Auth.js v5 Google OAuth client secret                              |
 | `GOOGLE_CLIENT_ID`                   | No       | -                          | Google OAuth client ID                                                       |
@@ -412,8 +432,11 @@ pnpm build      # Build
 - `STRIPE_SECRET_KEY` - Stripe API secret key
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key
 - `STRIPE_WEBHOOK_SECRET` - Stripe webhook signature secret
-- `RESEND_API_KEY` - Resend email API key (optional)
-- `REDIS_URL` - Redis connection string (optional)
+- `EMAIL_WORKER_URL` - Cloudflare Worker URL for email delivery
+- `EMAIL_WORKER_SECRET` - Bearer token for the Cloudflare Worker
+- `OWNER_EMAIL` - Owner notification recipient
+- `CONTACT_INBOX_EMAIL` - Contact form submission recipient
+- `REDIS_URL` - Redis connection string (optional, for BullMQ email queue)
 - `VERCEL_TOKEN` - Vercel deployment token
 - `VERCEL_ORG_ID` - Vercel organization ID
 - `VERCEL_PROJECT_ID` - Vercel project ID
@@ -911,16 +934,17 @@ Zaines/
 
 ## 🔧 What's Next
 
-### Ready to Implement
+### Implemented
 
-- ✅ Database setup (schema ready)
-- ✅ Authentication (NextAuth configured)
-- ✅ Payment processing (Stripe configured)
-- 📝 User dashboard & portal
-- 📝 Admin panel
-- 📝 Email notifications
-- 📝 Real-time messaging
-- 📝 Photo upload system
+- ✅ Database setup (Prisma + PostgreSQL)
+- ✅ Authentication (NextAuth.js v5 — credentials + Google OAuth)
+- ✅ Payment processing (Stripe — booking flow, webhooks, recovery links)
+- ✅ User dashboard & customer portal
+- ✅ Admin panel (bookings, pets, photos, email inbox, settings)
+- ✅ Email notifications (Cloudflare Worker → Resend — 12 notification types)
+- ✅ SMS notifications (Twilio — booking confirmation, reminders, incidents)
+- ✅ Photo upload system (daily photo digest emails)
+- ✅ Admin email inbox with compose, reply, templates, attachments
 
 ### Future Enhancements
 
@@ -960,49 +984,45 @@ This is a demonstration project. For production use, additional features needed:
 - Payment integration
 - Email service setup
 
-## Email notifications / Dev queue
+## Email System
 
-The application can send transactional emails (booking confirmations and payment notifications) using Resend or any SMTP provider. To enable real sending, set `RESEND_API_KEY` in your environment (see `.env.example`). If `RESEND_API_KEY` is not configured, the app will write outgoing messages to a local dev queue file at `tmp/email-queue.log` for easy inspection during development.
+The application sends transactional emails via a two-hop path:
 
-**Email Forwarding:** The contact email `info@zainesstayandplay.com` is configured to forward incoming messages to `david@customcodingcreations.com` via Cloudflare Email Routing.
+```
+Next.js (Vercel) → Cloudflare Worker → Resend API → recipient inbox
+```
 
-Quick verification:
+The Cloudflare Worker (`workers/email-sender/`) acts as a thin authenticated proxy. The Resend API key is stored in the Worker's secret store — never in the Next.js environment. The Worker URL and a shared bearer token are the only values Next.js needs.
 
-1. Create a booking via the API or UI.
-2. If `RESEND_API_KEY` is set, the email will be sent via Resend. Otherwise inspect `tmp/email-queue.log`.
+**Production setup** — configure these environment variables:
 
-Environment variables:
+```env
+EMAIL_WORKER_URL="https://zaines-email-sender.YOUR-SUBDOMAIN.workers.dev"
+EMAIL_WORKER_SECRET="your-worker-bearer-token"
+```
 
-- `RESEND_API_KEY` - API key for Resend (optional - uses dev queue if not set)
-- `EMAIL_FROM` - sender address (defaults to `info@zainesstayandplay.com`)
-
-## Optional Redis worker (production)
-
-For production reliability, configure a Redis instance and set `REDIS_URL` (e.g. `redis://user:pass@host:6379`). The app will push email entries to a Redis-backed BullMQ queue when `REDIS_URL` is present. Run the worker to process the queue:
+**Dev fallback** — if either variable is missing, outgoing emails are written to `tmp/email-queue.log` instead of being sent. Inspect the queue:
 
 ```bash
-# Start the worker (on a machine with access to REDIS_URL)
+cat tmp/email-queue.log | jq .
+```
+
+**Admin-configurable** — From Name, From Address, Reply-To, and email signature are all configurable at runtime via `/admin/inbox/settings → Sender` and `→ Signature`. No redeployment required.
+
+**Inbound email** — `info@zainesstayandplay.com` receives mail via Cloudflare Email Routing, which forwards it to the owner's personal inbox. This is DNS-level routing and is independent of the send path.
+
+For full architecture, deployment steps, and template reference, see [docs/EMAIL_SYSTEM.md](docs/EMAIL_SYSTEM.md).
+
+## Optional Redis queue (production)
+
+For production reliability with higher email volumes, configure a Redis instance (`REDIS_URL=redis://user:pass@host:6379`). When `REDIS_URL` is present, failed or queued emails are pushed to a BullMQ queue instead of the flat log file, with automatic retries and exponential backoff.
+
+```bash
+# Start the queue worker
 pnpm run worker
 ```
 
-The worker processes queued `booking_confirmation` and `payment_notification` jobs and will attempt retries using BullMQ job attempts/backoff. If Redis is not configured the app will continue using the local `tmp/email-queue.log` file.
-
-## CI and Docker
-
-- A GitHub Actions CI workflow runs typecheck, lint and tests for pushes to `main` and `premerge/*` branches, and for PRs targeting `main`. See `.github/workflows/ci.yml`.
-- To run the worker and Redis locally via Docker Compose:
-
-```bash
-# build and start redis + worker
-RESEND_API_KEY=your_key_here pnpm docker-compose up --build
-```
-
-This will start a Redis container and the worker which processes queued email jobs.
-
-- Database hosting
-- File storage for uploads
-- Testing suite
-- CI/CD pipeline
+If Redis is not configured, the app falls back to `tmp/email-queue.log` automatically.
 
 ## 📄 License
 
