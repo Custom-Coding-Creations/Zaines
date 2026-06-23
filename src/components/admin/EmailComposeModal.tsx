@@ -100,7 +100,7 @@ export function EmailComposeModal({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ link: false, underline: false }),
       TiptapLink.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: "Write your message…" }),
       TiptapUnderline,

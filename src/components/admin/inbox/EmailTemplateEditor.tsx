@@ -80,7 +80,7 @@ export function EmailTemplateEditor({ template, open, onClose, onSaved }: Props)
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ link: false, underline: false }),
       TiptapLink.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: "Write your email template…" }),
       TiptapUnderline,

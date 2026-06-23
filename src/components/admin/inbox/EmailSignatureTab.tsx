@@ -35,7 +35,7 @@ export function EmailSignatureTab() {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ link: false, underline: false }),
       TiptapLink.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: "Write your email signature…" }),
       TiptapUnderline,

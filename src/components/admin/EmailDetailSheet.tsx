@@ -83,7 +83,7 @@ export function EmailDetailSheet({ emailId, open, onClose, onUpdated, onForward 
 
   const replyEditor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ link: false, underline: false }),
       Placeholder.configure({ placeholder: "Write your reply…" }),
       TiptapUnderline,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
