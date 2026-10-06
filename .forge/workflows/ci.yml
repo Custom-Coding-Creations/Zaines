@@ -2,8 +2,20 @@ name: ForgeCI Self-Hosted CI Pipeline
 on:
   push:
     branches: [ main, master ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.claude/**'
+      - 'LICENSE'
   pull_request:
     branches: [ main, master ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - '.claude/**'
+      - 'LICENSE'
 
 jobs:
   quality:
@@ -31,7 +43,7 @@ jobs:
         run: corepack enable
 
       - name: Install Dependencies
-        run: pnpm install --frozen-lockfile=false
+        run: pnpm install --frozen-lockfile=false --prefer-offline
 
       - name: Generate Prisma Client
         run: pnpm run prisma:generate
